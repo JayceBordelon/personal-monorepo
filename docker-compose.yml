@@ -1,0 +1,68 @@
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=bordelonjayce@gmail.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "traefik_letsencrypt:/letsencrypt"
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  jayceb-blog:
+    image: jayce.blog:latest
+    build:
+      context: ./jayceb.blog
+    expose:
+      - "3000"
+    networks:
+      - app-network
+    restart: unless-stopped
+    labels:
+      - "app=jayceb.blog"
+      - "traefik.enable=true"
+      - "traefik.http.routers.jayceb-blog.rule=Host(`jayceb.blog`) || Host(`www.jayceb.blog`)"
+      - "traefik.http.routers.jayceb-blog.entrypoints=websecure"
+      - "traefik.http.routers.jayceb-blog.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.jayceb-blog.priority=5"
+      - "traefik.http.services.jayceb-blog.loadbalancer.server.port=3000"
+
+  jayceb-com:
+    image: jayce.com:latest
+    build:
+      context: ./jayceb.com
+    expose:
+      - "3000"
+    networks:
+      - app-network
+    restart: unless-stopped
+    labels:
+      - "app=jayceb.com"
+      - "traefik.enable=true"
+      - "traefik.http.routers.jayceb-com.rule=Host(`jayceb.com`) || Host(`www.jayceb.com`)"
+      - "traefik.http.routers.jayceb-com.entrypoints=websecure"
+      - "traefik.http.routers.jayceb-com.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.jayceb-com.priority=5"
+      - "traefik.http.services.jayceb-com.loadbalancer.server.port=3000"
+
+volumes:
+  traefik_letsencrypt:
+
+networks:
+  app-network:
+    driver: bridge
