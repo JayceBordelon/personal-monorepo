@@ -22,8 +22,7 @@ export async function generateMetadata({
 
   if (!post) return {};
 
-  
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https:
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://jayceb.com";
   const postUrl = `${baseUrl}/blog/${id}`;
   const imageUrl = post.image
     ? `${baseUrl}${post.image}`
@@ -35,7 +34,6 @@ export async function generateMetadata({
     authors: [{ name: post.author }],
     keywords: post.tags || [],
 
-    
     openGraph: {
       title: post.title,
       description: post.summary,
@@ -56,21 +54,20 @@ export async function generateMetadata({
       ],
     },
 
-    
+    // Twitter Card metadata
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.summary,
       images: [imageUrl],
-      creator: "@JayceBordelon", 
+      creator: "@JayceBordelon",
     },
 
-    
+    // Canonical URL
     alternates: {
       canonical: postUrl,
     },
 
-    
     other: {
       "article:published_time": post.published
         ? new Date(post.published).toISOString()
