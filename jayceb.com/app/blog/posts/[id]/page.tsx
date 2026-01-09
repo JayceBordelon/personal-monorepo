@@ -22,9 +22,63 @@ export async function generateMetadata({
 
   if (!post) return {};
 
+  
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https:
+  const postUrl = `${baseUrl}/blog/${id}`;
+  const imageUrl = post.image
+    ? `${baseUrl}${post.image}`
+    : `${baseUrl}/images/og-default.png`;
+
   return {
     title: post.title,
     description: post.summary,
+    authors: [{ name: post.author }],
+    keywords: post.tags || [],
+
+    
+    openGraph: {
+      title: post.title,
+      description: post.summary,
+      type: "article",
+      url: postUrl,
+      publishedTime: post.published
+        ? new Date(post.published).toISOString()
+        : undefined,
+      authors: [post.author],
+      tags: post.tags || [],
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        },
+      ],
+    },
+
+    
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.summary,
+      images: [imageUrl],
+      creator: "@JayceBordelon", 
+    },
+
+    
+    alternates: {
+      canonical: postUrl,
+    },
+
+    
+    other: {
+      "article:published_time": post.published
+        ? new Date(post.published).toISOString()
+        : undefined,
+      "article:author": post.author,
+      "article:section": post.label || "Blog",
+      "article:tag": post.tags?.join(", ") || undefined,
+    },
   };
 }
 
@@ -48,7 +102,7 @@ export default async function PostPage({
       <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 lg:px-16 py-4">
           <Link
-            href="/"
+            href="/blog"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
