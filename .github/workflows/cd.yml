@@ -1,0 +1,42 @@
+name: Jayce Land - CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+
+env:
+  PROJECT_PATH: /home/jayce/career
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run linter
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            cd ${{ env.PROJECT_PATH }}
+
+            git pull origin main
+
+            echo "=== Linting jayceb.blog ==="
+            cd jayceb.blog
+            npm install
+            npm run lint
+            cd ..
+
+            echo "=== Linting jayceb.com ==="
+            cd jayceb.com
+            npm install
+            npm run lint
+            cd ..
+
+            echo "✓ All projects linted successfully"
