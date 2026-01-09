@@ -4,11 +4,12 @@ import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { BackgroundPaths } from "@/components/ui/shadcn-io/background-paths";
 import { Toaster } from "sonner";
-
+import Header from "@/components/header";
 
 export const metadata: Metadata = {
   title: "Jayce Bordelon | Software Engineer",
-  description: "Software Engineer at Mastercard specializing in microservices, distributed systems, and full-stack development. Co-Founder of OccupAI. Washington University in St. Louis CS graduate.",
+  description:
+    "Software Engineer at Mastercard specializing in microservices, distributed systems, and full-stack development. Co-Founder of OccupAI. Washington University in St. Louis CS graduate.",
   keywords: [
     "Jayce Bordelon",
     "Software Engineer",
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
     "Artificial Intelligence",
     "Machine Learning",
     "St. Louis",
-    "Washington University"
+    "Washington University",
   ],
   authors: [{ name: "Jayce Bordelon" }],
   creator: "Jayce Bordelon",
@@ -35,7 +36,8 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://jayceb.com",
     title: "Jayce Bordelon | Software Engineer",
-    description: "Software Engineer at Mastercard specializing in microservices, distributed systems, and full-stack development. Co-Founder  of OccupAI.",
+    description:
+      "Software Engineer at Mastercard specializing in microservices, distributed systems, and full-stack development. Co-Founder  of OccupAI.",
     siteName: "Jayce Bordelon",
     images: [
       {
@@ -49,7 +51,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Jayce Bordelon | Software Engineer",
-    description: "Software Engineer at Mastercard specializing in microservices, distributed systems, and full-stack development.",
+    description:
+      "Software Engineer at Mastercard specializing in microservices, distributed systems, and full-stack development.",
     images: ["/images/dawg.jpg"],
   },
   robots: {
@@ -66,10 +69,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem={true}
+        >
+          <Header />
           {children}
-          <BackgroundPaths/>
-          <Toaster theme="system" richColors/>
+          <BackgroundPaths />
+          <Toaster theme="system" richColors />
         </ThemeProvider>
       </body>
     </html>

@@ -2,17 +2,26 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+import { IconBrandGithub, IconBrandLinkedin } from "@tabler/icons-react";
 import { FileText, ExternalLink } from "lucide-react";
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
+  const isBlogPage = pathname?.startsWith("/blog");
 
   return (
-    <header className="fixed top-0 z-50 w-full py-4">
+    <header className="fixed top-0 z-50 w-full py-4 bg-background">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
         <button
+          type="button"
           onClick={() => router.push("/")}
           className="flex items-center transition-opacity hover:opacity-80"
         >
@@ -21,23 +30,68 @@ export default function Header() {
             alt="Jayce Bordelon"
             width={48}
             height={48}
+            className="cursor-pointer"
           />
         </button>
 
         <nav className="flex items-center gap-4">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="https://jayceb.blog" target="_blank" rel="noopener noreferrer">
-              Blog
-              <ExternalLink className="ml-1.5 h-3 w-3" />
-            </Link>
-          </Button>
+          {isBlogPage ? (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" asChild className="cursor-pointer">
+                    <Link
+                      href="https://github.com/JayceBordelon"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <IconBrandGithub className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>GitHub</p>
+                </TooltipContent>
+              </Tooltip>
 
-          <Button size="sm" asChild>
-            <Link href="/Resume.pdf" target="_blank" rel="noopener noreferrer">
-              <FileText className="mr-1.5 h-4 w-4" />
-              Resume
-            </Link>
-          </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" asChild className="cursor-pointer">
+                    <Link
+                      href="https://linkedin.com/in/JayceBordelon"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <IconBrandLinkedin className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>LinkedIn</p>
+                </TooltipContent>
+              </Tooltip>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/blog">
+                  Blog
+                  <ExternalLink className="ml-1.5 h-3 w-3" />
+                </Link>
+              </Button>
+
+              <Button size="sm" asChild>
+                <Link
+                  href="/Resume.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FileText className="mr-1.5 h-4 w-4" />
+                  Resume
+                </Link>
+              </Button>
+            </>
+          )}
         </nav>
       </div>
     </header>

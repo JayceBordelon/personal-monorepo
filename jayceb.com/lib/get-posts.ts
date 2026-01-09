@@ -18,19 +18,15 @@ export interface PostMetaData {
 const postsDirectory = path.join(process.cwd(), "content");
 
 export function getAllPosts(): PostMetaData[] {
-  // Get all .mdx files from the content directory
   const fileNames = fs.readdirSync(postsDirectory);
   const mdxFiles = fileNames.filter((fileName) => fileName.endsWith(".mdx"));
 
   const posts = mdxFiles.map((fileName) => {
-    // Remove ".mdx" from file name to get id
     const id = fileName.replace(/\.mdx$/, "");
 
-    // Read markdown file as string
     const fullPath = path.join(postsDirectory, fileName);
     const fileContents = fs.readFileSync(fullPath, "utf8");
 
-    // Use gray-matter to parse the post metadata section
     const { data } = matter(fileContents);
 
     return {
@@ -47,7 +43,6 @@ export function getAllPosts(): PostMetaData[] {
     } as PostMetaData;
   });
 
-  // Sort posts by date
   return posts.sort((a, b) => {
     if (a.published < b.published) {
       return 1;

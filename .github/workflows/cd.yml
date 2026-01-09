@@ -27,19 +27,13 @@ jobs:
 
             git pull origin main
 
-            echo "=== Linting jayceb.blog ==="
-            cd jayceb.blog
-            npm install
-            npm run lint
-            cd ..
-
             echo "=== Linting jayceb.com ==="
             cd jayceb.com
             npm install
             npm run lint
             cd ..
 
-            echo "✓ All projects linted successfully"
+            echo "✓ Project linted successfully"
 
   build:
     name: Build
@@ -48,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build applications
+      - name: Build application
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
@@ -58,8 +52,7 @@ jobs:
             cd ${{ env.PROJECT_PATH }}
             git pull origin main
 
-            # Clean caches
-            rm -rf jayceb.blog/.next jayceb.blog/node_modules/.cache
+            # Clean cache
             rm -rf jayceb.com/.next jayceb.com/node_modules/.cache
 
             # Ensure Traefik is running
@@ -67,10 +60,6 @@ jobs:
 
             COMMIT_SHA=$(git rev-parse HEAD)
             SHORT_SHA=$(git rev-parse --short HEAD)
-
-            echo "Building jayceb-blog:${SHORT_SHA}..."
-            docker compose build --no-cache jayceb-blog
-            docker tag jayce.blog:latest "jayce.blog:${SHORT_SHA}"
 
             echo "Building jayceb-com:${SHORT_SHA}..."
             docker compose build --no-cache jayceb-com
@@ -97,21 +86,16 @@ jobs:
             COMMIT_SHA=$(git rev-parse HEAD)
             SHORT_SHA=$(git rev-parse --short HEAD)
 
-            echo "=== Deploying jayceb-blog:${SHORT_SHA} ==="
-            docker rollout jayceb-blog --timeout 120 --wait-after-healthy 30
-
             echo "=== Deploying jayceb-com:${SHORT_SHA} ==="
             docker rollout jayceb-com --timeout 120 --wait-after-healthy 30
 
             echo "=== Cleaning up ==="
             docker image prune -f
-            docker images "jayce.blog" --format "{{.ID}} {{.CreatedAt}}" | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f || true
             docker images "jayce.com" --format "{{.ID}} {{.CreatedAt}}" | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f || true
 
             echo ""
             echo "✓ DEPLOYMENT COMPLETE: ${SHORT_SHA}"
-            echo "  • jayceb.blog: https://jayceb.blog"
-            echo "  • jayceb.com:  https://jayceb.com"
+            echo "  • jayceb.com: https://jayceb.com"
 
   healthcheck:
     name: Health Check
@@ -123,8 +107,6 @@ jobs:
           echo "🏥 Running health checks..."
 
           ENDPOINTS=(
-            "https://jayceb.blog"
-            "https://www.jayceb.blog"
             "https://jayceb.com"
             "https://www.jayceb.com"
           )

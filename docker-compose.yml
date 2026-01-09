@@ -24,24 +24,6 @@ services:
       - app-network
     restart: unless-stopped
 
-  jayceb-blog:
-    image: jayce.blog:latest
-    build:
-      context: ./jayceb.blog
-    expose:
-      - "3000"
-    networks:
-      - app-network
-    restart: unless-stopped
-    labels:
-      - "app=jayceb.blog"
-      - "traefik.enable=true"
-      - "traefik.http.routers.jayceb-blog.rule=Host(`jayceb.blog`) || Host(`www.jayceb.blog`)"
-      - "traefik.http.routers.jayceb-blog.entrypoints=websecure"
-      - "traefik.http.routers.jayceb-blog.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.jayceb-blog.priority=5"
-      - "traefik.http.services.jayceb-blog.loadbalancer.server.port=3000"
-
   jayceb-com:
     image: jayce.com:latest
     build:

@@ -159,7 +159,7 @@ export default function HeroSection() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button size="icon" asChild className="cursor-pointer">
-                    <Link href="https://jayceb.blog" target="_blank">
+                    <Link href="/blog" target="_blank">
                       <IconWriting className="h-4 w-4" />
                     </Link>
                   </Button>

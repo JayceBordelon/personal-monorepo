@@ -86,7 +86,11 @@ export default function PostsClient({ posts }: PostsClientProps) {
             </div>
           ) : (
             filteredPosts.map((post) => (
-              <Link key={post.id} href={`/posts/${post.id}`} className="group">
+              <Link
+                key={post.id}
+                href={`/blog/posts/${post.id}`}
+                className="group"
+              >
                 <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg h-full cursor-pointer">
                   {/* Featured Image */}
                   <div className="relative aspect-video w-full overflow-hidden">
