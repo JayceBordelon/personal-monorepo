@@ -1,23 +1,13 @@
 "use client";
 
+import { IconBrandGithub, IconBrandLinkedin, IconMail, IconWriting } from "@tabler/icons-react";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  IconBrandGithub,
-  IconBrandLinkedin,
-  IconMail,
-  IconWriting,
-} from "@tabler/icons-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import TypingText from "@/components/ui/shadcn-io/typing-text";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function HeroSection() {
   const handleClick = async () => {
@@ -29,22 +19,10 @@ export default function HeroSection() {
     <section className="flex items-center justify-center px-4 h-screen">
       <div className="max-w-4xl w-full flex flex-col md:flex-row items-center gap-6 md:gap-12">
         {/* Headshot */}
-        <motion.div
-          className="shrink-0"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
+        <motion.div className="shrink-0" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
           <div className="relative">
             <div className="absolute -inset-2 bg-primary/20 blur-2xl rounded-3xl" />
-            <Image
-              src="/images/dawg.jpg"
-              alt="Jayce Bordelon"
-              width={240}
-              height={240}
-              className="relative rounded-2xl w-40 sm:w-60 md:w-80 h-auto"
-              priority
-            />
+            <Image src="/images/dawg.jpg" alt="Jayce Bordelon" width={240} height={240} className="relative rounded-2xl w-40 sm:w-60 md:w-80 h-auto" priority />
           </div>
         </motion.div>
 
@@ -60,18 +38,9 @@ export default function HeroSection() {
           </motion.h1>
 
           {/* Typing Text Role */}
-          <motion.div
-            className="my-2 h-7 sm:h-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
+          <motion.div className="my-2 h-7 sm:h-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
             <TypingText
-              text={[
-                "Mastercard - SWE",
-                "OccupAI - Co-Founder",
-                "WashU - CS Alum",
-              ]}
+              text={["Mastercard - SWE", "OccupAI - Co-Founder", "WashU - CS Alum"]}
               typingSpeed={60}
               pauseDuration={4000}
               deletingSpeed={40}
@@ -93,11 +62,7 @@ export default function HeroSection() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    onClick={handleClick}
-                    size="icon"
-                    className="cursor-pointer"
-                  >
+                  <Button onClick={handleClick} size="icon" className="cursor-pointer">
                     <IconMail className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
@@ -110,12 +75,7 @@ export default function HeroSection() {
                 <TooltipTrigger asChild>
                   <Button size="icon" asChild className="cursor-pointer">
                     <Link href="https://occupai.us" target="_blank">
-                      <Image
-                        width={24}
-                        height={24}
-                        src="/images/occy.png"
-                        alt="occy"
-                      />
+                      <Image width={24} height={24} src="/images/occy.png" alt="occy" />
                     </Link>
                   </Button>
                 </TooltipTrigger>
@@ -127,10 +87,7 @@ export default function HeroSection() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button size="icon" asChild className="cursor-pointer">
-                    <Link
-                      href="https://github.com/JayceBordelon"
-                      target="_blank"
-                    >
+                    <Link href="https://github.com/JayceBordelon" target="_blank">
                       <IconBrandGithub className="h-4 w-4" />
                     </Link>
                   </Button>
@@ -143,10 +100,7 @@ export default function HeroSection() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button size="icon" asChild className="cursor-pointer">
-                    <Link
-                      href="https://linkedin.com/in/JayceBordelon"
-                      target="_blank"
-                    >
+                    <Link href="https://linkedin.com/in/JayceBordelon" target="_blank">
                       <IconBrandLinkedin className="h-4 w-4" />
                     </Link>
                   </Button>

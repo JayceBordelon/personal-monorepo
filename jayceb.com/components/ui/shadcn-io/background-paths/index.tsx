@@ -1,16 +1,16 @@
 /* eslint-disable react-hooks/purity */
-'use client';
+"use client";
 
-import { motion } from 'framer-motion';
+import { motion } from "framer-motion";
 
 function FloatingPaths({ position }: { position: number }) {
-  const spread = 3; 
-  const verticalSpacing = 22; 
-  const horizontalSpacing = 22; 
+  const spread = 3;
+  const verticalSpacing = 22;
+  const horizontalSpacing = 22;
 
-const paths = Array.from({ length: 50 }, (_, i) => {
+  const paths = Array.from({ length: 50 }, (_, i) => {
     const wave = Math.sin(i * 0.3) * 50;
-    
+
     return {
       id: i,
       d: `M-${600 * spread - i * horizontalSpacing * position} -${189 + i * verticalSpacing}C-${
@@ -27,12 +27,7 @@ const paths = Array.from({ length: 50 }, (_, i) => {
   });
 
   return (
-    <svg
-      className="w-full h-full text-primary"
-      viewBox={`${-1200 * spread} -1200 ${3000 * spread} 2000`} 
-      fill="none"
-      preserveAspectRatio="xMidYMid slice"
-    >
+    <svg className="w-full h-full text-primary" viewBox={`${-1200 * spread} -1200 ${3000 * spread} 2000`} fill="none" preserveAspectRatio="xMidYMid slice">
       <title>Background Paths</title>
       {paths.map((path) => (
         <motion.path
@@ -40,7 +35,7 @@ const paths = Array.from({ length: 50 }, (_, i) => {
           d={path.d}
           stroke="currentColor"
           strokeWidth={path.width}
-          strokeOpacity={0.08 + path.id * 0.015} 
+          strokeOpacity={0.08 + path.id * 0.015}
           initial={{ pathLength: 0.3, opacity: 0.5 }}
           animate={{
             pathLength: 1,
@@ -48,10 +43,10 @@ const paths = Array.from({ length: 50 }, (_, i) => {
             pathOffset: [0, 1, 0],
           }}
           transition={{
-            duration: 30, 
+            duration: 30,
             delay: Math.random() * 2.5,
             repeat: Number.POSITIVE_INFINITY,
-            ease: 'linear',
+            ease: "linear",
           }}
         />
       ))}

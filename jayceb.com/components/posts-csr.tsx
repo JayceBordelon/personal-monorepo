@@ -1,23 +1,14 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Calendar, Clock, ArrowRight } from "lucide-react";
+import { ArrowRight, Calendar, Clock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useMemo } from "react";
-import { PostMetaData } from "@/lib/get-posts";
+import { useMemo, useState } from "react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import type { PostMetaData } from "@/lib/get-posts";
 
 interface PostsClientProps {
   posts: PostMetaData[];
@@ -27,10 +18,7 @@ export default function PostsClient({ posts }: PostsClientProps) {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   const allTags = useMemo(() => {
-    const tags = new Set<string>();
-    posts.forEach((post) => {
-      post.tags?.forEach((tag) => tags.add(tag));
-    });
+    const tags = new Set(posts.flatMap((post) => post.tags ?? []));
     return Array.from(tags);
   }, [posts]);
 
@@ -45,32 +33,19 @@ export default function PostsClient({ posts }: PostsClientProps) {
     <section className="py-32">
       <div className="container mx-auto flex flex-col items-center gap-16 px-4 lg:px-16">
         <div className="text-center max-w-3xl">
-          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
-            Blog Posts
-          </h1>
+          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">Blog Posts</h1>
           <p className="text-muted-foreground text-lg md:text-xl mb-8">
-            My takes on stuff. These posts are filled with opinions ranging from
-            technical architecture and programming to career advice and general,
-            personal musings.
+            My takes on stuff. These posts are filled with opinions ranging from technical architecture and programming to career advice and general, personal musings.
           </p>
         </div>
 
         {allTags.length > 0 && (
           <div className="flex flex-wrap justify-center gap-2">
-            <Badge
-              variant={selectedTag === null ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => setSelectedTag(null)}
-            >
+            <Badge variant={selectedTag === null ? "default" : "outline"} className="cursor-pointer" onClick={() => setSelectedTag(null)}>
               All Posts
             </Badge>
             {allTags.map((tag) => (
-              <Badge
-                key={tag}
-                variant={selectedTag === tag ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => setSelectedTag(tag)}
-              >
+              <Badge key={tag} variant={selectedTag === tag ? "default" : "outline"} className="cursor-pointer" onClick={() => setSelectedTag(tag)}>
                 {tag}
               </Badge>
             ))}
@@ -80,17 +55,11 @@ export default function PostsClient({ posts }: PostsClientProps) {
         <div className="w-full grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
           {filteredPosts.length === 0 ? (
             <div className="col-span-full text-center py-12">
-              <p className="text-muted-foreground text-lg">
-                No posts found matching your criteria.
-              </p>
+              <p className="text-muted-foreground text-lg">No posts found matching your criteria.</p>
             </div>
           ) : (
             filteredPosts.map((post) => (
-              <Link
-                key={post.id}
-                href={`/blog/posts/${post.id}`}
-                className="group"
-              >
+              <Link key={post.id} href={`/blog/posts/${post.id}`} className="group">
                 <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg h-full cursor-pointer">
                   {/* Featured Image */}
                   <div className="relative aspect-video w-full overflow-hidden">
@@ -102,10 +71,7 @@ export default function PostsClient({ posts }: PostsClientProps) {
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                     <div className="absolute top-4 left-4">
-                      <Badge
-                        variant="secondary"
-                        className="backdrop-blur-sm bg-background/80"
-                      >
+                      <Badge variant="secondary" className="backdrop-blur-sm bg-background/80">
                         {post.label}
                       </Badge>
                     </div>
@@ -113,18 +79,13 @@ export default function PostsClient({ posts }: PostsClientProps) {
 
                   <CardHeader className="space-y-3">
                     {/* Title */}
-                    <h3 className="text-xl font-semibold tracking-tight line-clamp-2 group-hover:text-primary transition-colors">
-                      {post.title}
-                    </h3>
+                    <h3 className="text-xl font-semibold tracking-tight line-clamp-2 group-hover:text-primary transition-colors">{post.title}</h3>
 
                     {/* Metadata */}
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <HoverCard openDelay={200}>
                         <HoverCardTrigger asChild>
-                          <button
-                            className="flex items-center gap-2 hover:text-foreground transition-colors"
-                            onClick={(e) => e.preventDefault()}
-                          >
+                          <button type="button" className="flex items-center gap-2 hover:text-foreground transition-colors" onClick={(e) => e.preventDefault()}>
                             <Avatar className="h-6 w-6">
                               <AvatarFallback className="text-xs">
                                 {post.author
@@ -147,13 +108,8 @@ export default function PostsClient({ posts }: PostsClientProps) {
                               </AvatarFallback>
                             </Avatar>
                             <div className="space-y-1">
-                              <h4 className="text-sm font-semibold">
-                                {post.author}
-                              </h4>
-                              <p className="text-sm text-muted-foreground">
-                                {post.authorDesc ||
-                                  "Software Engineer and Blogger."}
-                              </p>
+                              <h4 className="text-sm font-semibold">{post.author}</h4>
+                              <p className="text-sm text-muted-foreground">{post.authorDesc || "Software Engineer and Blogger."}</p>
                             </div>
                           </div>
                         </HoverCardContent>
@@ -164,9 +120,7 @@ export default function PostsClient({ posts }: PostsClientProps) {
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3.5 w-3.5" />
                         <time dateTime={post.published}>
-                          {new Date(
-                            post.published + "T12:00:00"
-                          ).toLocaleDateString("en-US", {
+                          {new Date(`${post.published}T12:00:00`).toLocaleDateString("en-US", {
                             year: "numeric",
                             month: "long",
                             day: "numeric",
@@ -206,9 +160,7 @@ export default function PostsClient({ posts }: PostsClientProps) {
                   </CardHeader>
 
                   <CardContent className="flex-1">
-                    <p className="text-muted-foreground line-clamp-3">
-                      {post.summary}
-                    </p>
+                    <p className="text-muted-foreground line-clamp-3">{post.summary}</p>
                   </CardContent>
 
                   <CardFooter>

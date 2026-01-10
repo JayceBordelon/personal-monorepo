@@ -1,5 +1,5 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import matter from "gray-matter";
 
 export interface PostMetaData {
@@ -59,7 +59,5 @@ export function getPostById(id: string): PostMetaData | undefined {
 
 export function getPostIds(): string[] {
   const fileNames = fs.readdirSync(postsDirectory);
-  return fileNames
-    .filter((fileName) => fileName.endsWith(".mdx"))
-    .map((fileName) => fileName.replace(/\.mdx$/, ""));
+  return fileNames.filter((fileName) => fileName.endsWith(".mdx")).map((fileName) => fileName.replace(/\.mdx$/, ""));
 }

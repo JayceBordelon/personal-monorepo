@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { ElementType, useEffect, useRef, useState, createElement, useMemo, useCallback } from 'react';
-import { gsap } from 'gsap';
+import { gsap } from "gsap";
+import { createElement, type ElementType, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface TypingTextProps {
   className?: string;
@@ -26,17 +26,17 @@ interface TypingTextProps {
 
 const TypingText = ({
   text,
-  as: Component = 'div',
+  as: Component = "div",
   typingSpeed = 50,
   initialDelay = 0,
   pauseDuration = 2000,
   deletingSpeed = 30,
   loop = true,
-  className = '',
+  className = "",
   showCursor = true,
   hideCursorWhileTyping = false,
-  cursorCharacter = '|',
-  cursorClassName = '',
+  cursorCharacter = "|",
+  cursorClassName = "",
   cursorBlinkDuration = 0.5,
   textColors = [],
   variableSpeed,
@@ -45,7 +45,7 @@ const TypingText = ({
   reverseMode = false,
   ...props
 }: TypingTextProps & React.HTMLAttributes<HTMLElement>) => {
-  const [displayedText, setDisplayedText] = useState('');
+  const [displayedText, setDisplayedText] = useState("");
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
@@ -62,7 +62,7 @@ const TypingText = ({
   }, [variableSpeed, typingSpeed]);
 
   const getCurrentTextColor = () => {
-    if (textColors.length === 0) return 'currentColor';
+    if (textColors.length === 0) return "currentColor";
     return textColors[currentTextIndex % textColors.length];
   };
 
@@ -70,8 +70,8 @@ const TypingText = ({
     if (!startOnVisible || !containerRef.current) return;
 
     const observer = new IntersectionObserver(
-      entries => {
-        entries.forEach(entry => {
+      (entries) => {
+        entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setIsVisible(true);
           }
@@ -92,7 +92,7 @@ const TypingText = ({
         duration: cursorBlinkDuration,
         repeat: -1,
         yoyo: true,
-        ease: 'power2.inOut'
+        ease: "power2.inOut",
       });
     }
   }, [showCursor, cursorBlinkDuration]);
@@ -103,11 +103,11 @@ const TypingText = ({
     let timeout: NodeJS.Timeout;
 
     const currentText = textArray[currentTextIndex];
-    const processedText = reverseMode ? currentText.split('').reverse().join('') : currentText;
+    const processedText = reverseMode ? currentText.split("").reverse().join("") : currentText;
 
     const executeTypingAnimation = () => {
       if (isDeleting) {
-        if (displayedText === '') {
+        if (displayedText === "") {
           setIsDeleting(false);
           if (currentTextIndex === textArray.length - 1 && !loop) {
             return;
@@ -117,20 +117,20 @@ const TypingText = ({
             onSentenceComplete(textArray[currentTextIndex], currentTextIndex);
           }
 
-          setCurrentTextIndex(prev => (prev + 1) % textArray.length);
+          setCurrentTextIndex((prev) => (prev + 1) % textArray.length);
           setCurrentCharIndex(0);
           timeout = setTimeout(() => {}, pauseDuration);
         } else {
           timeout = setTimeout(() => {
-            setDisplayedText(prev => prev.slice(0, -1));
+            setDisplayedText((prev) => prev.slice(0, -1));
           }, deletingSpeed);
         }
       } else {
         if (currentCharIndex < processedText.length) {
           timeout = setTimeout(
             () => {
-              setDisplayedText(prev => prev + processedText[currentCharIndex]);
-              setCurrentCharIndex(prev => prev + 1);
+              setDisplayedText((prev) => prev + processedText[currentCharIndex]);
+              setCurrentCharIndex((prev) => prev + 1);
             },
             variableSpeed ? getRandomSpeed() : typingSpeed
           );
@@ -142,7 +142,7 @@ const TypingText = ({
       }
     };
 
-    if (currentCharIndex === 0 && !isDeleting && displayedText === '') {
+    if (currentCharIndex === 0 && !isDeleting && displayedText === "") {
       timeout = setTimeout(executeTypingAnimation, initialDelay);
     } else {
       executeTypingAnimation();
@@ -164,18 +164,17 @@ const TypingText = ({
     reverseMode,
     variableSpeed,
     onSentenceComplete,
-    getRandomSpeed
+    getRandomSpeed,
   ]);
 
-  const shouldHideCursor =
-    hideCursorWhileTyping && (currentCharIndex < textArray[currentTextIndex].length || isDeleting);
+  const shouldHideCursor = hideCursorWhileTyping && (currentCharIndex < textArray[currentTextIndex].length || isDeleting);
 
   return createElement(
     Component,
     {
       ref: containerRef,
       className: `inline-block whitespace-pre-wrap tracking-tight ${className}`,
-      ...props
+      ...props,
     },
     <span className="inline" style={{ color: getCurrentTextColor() }}>
       {displayedText}
@@ -183,13 +182,9 @@ const TypingText = ({
     showCursor && (
       <span
         ref={cursorRef}
-        className={`inline-block opacity-100 ${shouldHideCursor ? 'hidden' : ''} ${
-          cursorCharacter === '|' 
-            ? `h-5 w-[1px] translate-y-1 bg-foreground ${cursorClassName}` 
-            : `ml-1 ${cursorClassName}`
-        }`}
+        className={`inline-block opacity-100 ${shouldHideCursor ? "hidden" : ""} ${cursorCharacter === "|" ? `h-5 w-[1px] translate-y-1 bg-foreground ${cursorClassName}` : `ml-1 ${cursorClassName}`}`}
       >
-        {cursorCharacter === '|' ? '' : cursorCharacter}
+        {cursorCharacter === "|" ? "" : cursorCharacter}
       </span>
     )
   );

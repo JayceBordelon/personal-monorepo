@@ -1,8 +1,8 @@
-import { notFound } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, ArrowLeft } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ArrowLeft, Calendar, Clock } from "lucide-react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { getPostById, getPostIds } from "@/lib/get-posts";
 
 export async function generateStaticParams() {
@@ -12,11 +12,7 @@ export async function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const post = getPostById(id);
 
@@ -24,9 +20,7 @@ export async function generateMetadata({
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://jayceb.com";
   const postUrl = `${baseUrl}/blog/${id}`;
-  const imageUrl = post.image
-    ? `${baseUrl}${post.image}`
-    : `${baseUrl}/images/og-default.png`;
+  const imageUrl = post.image ? `${baseUrl}${post.image}` : `${baseUrl}/images/og-default.png`;
 
   return {
     title: post.title,
@@ -39,9 +33,7 @@ export async function generateMetadata({
       description: post.summary,
       type: "article",
       url: postUrl,
-      publishedTime: post.published
-        ? new Date(post.published).toISOString()
-        : undefined,
+      publishedTime: post.published ? new Date(post.published).toISOString() : undefined,
       authors: [post.author],
       tags: post.tags || [],
       images: [
@@ -69,9 +61,7 @@ export async function generateMetadata({
     },
 
     other: {
-      "article:published_time": post.published
-        ? new Date(post.published).toISOString()
-        : undefined,
+      "article:published_time": post.published ? new Date(post.published).toISOString() : undefined,
       "article:author": post.author,
       "article:section": post.label || "Blog",
       "article:tag": post.tags?.join(", ") || undefined,
@@ -79,11 +69,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function PostPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const post = getPostById(id);
 
@@ -98,10 +84,7 @@ export default async function PostPage({
       {/* Back button */}
       <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 lg:px-16 py-4">
-          <Link
-            href="/blog"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <Link href="/blog" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
             Back to posts
           </Link>
@@ -119,14 +102,10 @@ export default async function PostPage({
           </div>
 
           {/* Title */}
-          <h1 className="font-serif text-5xl md:text-6xl font-bold tracking-tight text-foreground leading-tight">
-            {post.title}
-          </h1>
+          <h1 className="font-serif text-5xl md:text-6xl font-bold tracking-tight text-foreground leading-tight">{post.title}</h1>
 
           {/* Summary */}
-          <p className="text-xl text-muted-foreground leading-relaxed">
-            {post.summary}
-          </p>
+          <p className="text-xl text-muted-foreground leading-relaxed">{post.summary}</p>
 
           {/* Author and metadata */}
           <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-border">
@@ -140,14 +119,8 @@ export default async function PostPage({
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
-                <span className="font-semibold text-foreground text-sm">
-                  {post.author}
-                </span>
-                {post.authorDesc && (
-                  <span className="text-xs text-muted-foreground">
-                    {post.authorDesc}
-                  </span>
-                )}
+                <span className="font-semibold text-foreground text-sm">{post.author}</span>
+                {post.authorDesc && <span className="text-xs text-muted-foreground">{post.authorDesc}</span>}
               </div>
             </div>
 
@@ -156,14 +129,11 @@ export default async function PostPage({
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
               <time dateTime={post.published}>
-                {new Date(post.published + "T12:00:00").toLocaleDateString(
-                  "en-US",
-                  {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  }
-                )}
+                {new Date(`${post.published}T12:00:00`).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
               </time>
             </div>
 
@@ -197,10 +167,7 @@ export default async function PostPage({
 
         {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-border">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-primary hover:underline underline-offset-4 font-medium"
-          >
+          <Link href="/" className="inline-flex items-center gap-2 text-primary hover:underline underline-offset-4 font-medium">
             <ArrowLeft className="h-4 w-4" />
             Back to all posts
           </Link>
