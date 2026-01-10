@@ -106,9 +106,6 @@ jobs:
             set -e
             cd ${{ env.PROJECT_PATH }}
 
-            # Ensure traefik is running (start if not, restart if needed)
-            docker compose up -d traefik
-
             # Zero-downtime rolling deployment of your app
             docker rollout jayceb-com --timeout 120 --wait-after-healthy 30
 
