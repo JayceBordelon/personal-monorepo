@@ -73,11 +73,10 @@ jobs:
 
             rm -rf jayceb.com/.next jayceb.com/node_modules/.cache
 
-            docker compose up -d traefik --force-recreate
-
             COMMIT_SHA=$(git rev-parse HEAD)
             SHORT_SHA=$(git rev-parse --short HEAD)
 
+            # Just build the new image - don't touch traefik or running containers
             docker compose build --no-cache jayceb-com
             docker tag jayce.com:latest "jayce.com:${SHORT_SHA}"
 
@@ -107,8 +106,13 @@ jobs:
             set -e
             cd ${{ env.PROJECT_PATH }}
 
+            # Ensure traefik is running (start if not, restart if needed)
+            docker compose up -d traefik
+
+            # Zero-downtime rolling deployment of your app
             docker rollout jayceb-com --timeout 120 --wait-after-healthy 30
 
+            # Cleanup old images
             docker image prune -f
             docker images "jayce.com" --format "{{.ID}} {{.CreatedAt}}" | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f || true
 
