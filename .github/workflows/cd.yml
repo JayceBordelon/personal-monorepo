@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 env:
-  PROJECT_PATH: /home/jayce/career
+  PROJECT_PATH: /home/jayce/jayceland
 
 jobs:
   lint:
