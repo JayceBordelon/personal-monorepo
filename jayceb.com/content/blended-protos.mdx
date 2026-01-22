@@ -8,7 +8,7 @@ authorDesc: "SWE"
 published: "2026-01-08"
 image: "/images/blended-protos.gif"
 readTime: "8 min read"
-tags: ["GRPC", "Microservices"]
+tags: ["Microservices"]
 ---
 
 In modern distributed systems built on gRPC, maintaining request correlation across multiple asynchronous service calls is critical. While gRPC provides excellent primitives for service-to-service communication, aggregating responses from multiple microservices while preserving correlation requires careful architectural design. This article explores a pattern I call "blended protobufs" that elegantly solves this challenge.
