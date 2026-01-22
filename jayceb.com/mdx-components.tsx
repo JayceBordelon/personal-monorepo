@@ -30,18 +30,56 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     // Strong/Bold
     strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
 
-    // Code
-    code: ({ children, className }) => {
-      const isInline = !className;
+    // Code - rehype-pretty-code handles syntax highlighting
+    code: ({ children, className, ...props }) => {
+      // Check if this is inline code (no data-language attribute from rehype-pretty-code)
+      const isInline = !className && !props["data-language"];
 
       if (isInline) {
         return <code className="relative rounded-md bg-muted px-[0.4rem] py-[0.2rem] font-mono text-sm font-semibold text-foreground border border-border">{children}</code>;
       }
 
-      return <code className={className}>{children}</code>;
+      // Code block - styled by rehype-pretty-code
+      return (
+        <code className={`${className || ""} grid`} {...props}>
+          {children}
+        </code>
+      );
     },
 
-    pre: ({ children }) => <pre className="bg-card border border-border text-card-foreground p-6 rounded-lg overflow-x-auto mb-6 font-mono text-sm shadow-sm">{children}</pre>,
+    pre: ({ children, ...props }) => (
+      <pre
+        className="bg-card border border-border text-card-foreground p-4 rounded-lg overflow-x-auto mb-6 font-mono text-sm shadow-sm [&>code]:bg-transparent [&_span]:text-[--shiki-light] dark:[&_span]:text-[--shiki-dark]"
+        {...props}
+      >
+        {children}
+      </pre>
+    ),
+
+    // Figure wrapper from rehype-pretty-code
+    figure: ({ children, ...props }) => {
+      // Check if this is a code figure from rehype-pretty-code
+      if (props["data-rehype-pretty-code-figure"] !== undefined) {
+        return (
+          <figure className="my-6" {...props}>
+            {children}
+          </figure>
+        );
+      }
+      return <figure {...props}>{children}</figure>;
+    },
+
+    // Code block title/caption from rehype-pretty-code
+    figcaption: ({ children, ...props }) => {
+      if (props["data-rehype-pretty-code-title"] !== undefined) {
+        return (
+          <figcaption className="bg-muted border border-b-0 border-border text-muted-foreground px-4 py-2 rounded-t-lg font-mono text-xs" {...props}>
+            {children}
+          </figcaption>
+        );
+      }
+      return <figcaption {...props}>{children}</figcaption>;
+    },
 
     // Horizontal rule
     hr: () => <hr className="my-8 border-border" />,
