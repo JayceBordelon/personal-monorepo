@@ -78,9 +78,35 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   }
 
   const PostContent = (await import(`@/content/${id}.mdx`)).default;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://jayceb.com";
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.summary,
+    author: {
+      "@type": "Person",
+      name: post.author,
+      url: baseUrl,
+    },
+    datePublished: post.published,
+    image: post.image ? `${baseUrl}${post.image}` : undefined,
+    url: `${baseUrl}/blog/posts/${id}`,
+    publisher: {
+      "@type": "Person",
+      name: "Jayce Bordelon",
+      url: baseUrl,
+    },
+  };
 
   return (
     <div className="min-h-screen">
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Back button */}
       <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 lg:px-16 py-4">

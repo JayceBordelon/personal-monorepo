@@ -4,38 +4,38 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #f9f9fa;
-  --foreground: #000000;
+  --background: #fafafa;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #000000;
+  --card-foreground: #0f172a;
   --popover: #ffffff;
-  --popover-foreground: #000000;
-  --primary: #34a85a;
+  --popover-foreground: #0f172a;
+  --primary: #475569;
   --primary-foreground: #ffffff;
-  --secondary: #52c97a;
+  --secondary: #64748b;
   --secondary-foreground: #ffffff;
-  --muted: #fafafa;
-  --muted-foreground: #050505;
-  --accent: #7ed957;
-  --accent-foreground: #000000;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #94a3b8;
+  --accent-foreground: #0f172a;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #e0e0e0;
-  --input: #e0e0e0;
-  --ring: #34a85a;
-  --chart-1: #34a85a;
-  --chart-2: #52c97a;
-  --chart-3: #7ed957;
-  --chart-4: #2d8b50;
-  --chart-5: #1a9641;
-  --sidebar: #f9f9fa;
-  --sidebar-foreground: #000000;
-  --sidebar-primary: #34a85a;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #475569;
+  --chart-1: #475569;
+  --chart-2: #64748b;
+  --chart-3: #94a3b8;
+  --chart-4: #334155;
+  --chart-5: #1e293b;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #475569;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #7ed957;
-  --sidebar-accent-foreground: #000000;
-  --sidebar-border: #e0e0e0;
-  --sidebar-ring: #34a85a;
+  --sidebar-accent: #94a3b8;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #475569;
   --font-sans: Plus Jakarta Sans, sans-serif;
   --font-serif: Source Serif 4, serif;
   --font-mono: JetBrains Mono, monospace;
@@ -63,38 +63,38 @@
 }
 
 .dark {
-  --background: #000000;
-  --foreground: #e5e5e5;
-  --card: #0a0a0a;
-  --card-foreground: #e5e5e5;
-  --popover: #0a0a0a;
-  --popover-foreground: #e5e5e5;
-  --primary: #34a85a;
-  --primary-foreground: #ffffff;
-  --secondary: #2d8b50;
-  --secondary-foreground: #e5e5e5;
-  --muted: #0f0f0f;
-  --muted-foreground: #c9c9c9;
-  --accent: #52c97a;
-  --accent-foreground: #e5e5e5;
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --card: #1e293b;
+  --card-foreground: #f1f5f9;
+  --popover: #1e293b;
+  --popover-foreground: #f1f5f9;
+  --primary: #94a3b8;
+  --primary-foreground: #0f172a;
+  --secondary: #64748b;
+  --secondary-foreground: #f1f5f9;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #cbd5e1;
+  --accent-foreground: #0f172a;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #1a1a1a;
-  --input: #1a1a1a;
-  --ring: #34a85a;
-  --chart-1: #34a85a;
-  --chart-2: #2d8b50;
-  --chart-3: #52c97a;
-  --chart-4: #7ed957;
-  --chart-5: #1a9641;
-  --sidebar: #000000;
-  --sidebar-foreground: #e5e5e5;
-  --sidebar-primary: #34a85a;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #52c97a;
-  --sidebar-accent-foreground: #e5e5e5;
-  --sidebar-border: #1a1a1a;
-  --sidebar-ring: #34a85a;
+  --border: #334155;
+  --input: #334155;
+  --ring: #94a3b8;
+  --chart-1: #94a3b8;
+  --chart-2: #64748b;
+  --chart-3: #cbd5e1;
+  --chart-4: #475569;
+  --chart-5: #334155;
+  --sidebar: #0f172a;
+  --sidebar-foreground: #f1f5f9;
+  --sidebar-primary: #94a3b8;
+  --sidebar-primary-foreground: #0f172a;
+  --sidebar-accent: #cbd5e1;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #334155;
+  --sidebar-ring: #94a3b8;
   --font-sans: Plus Jakarta Sans, sans-serif;
   --font-serif: Source Serif 4, serif;
   --font-mono: JetBrains Mono, monospace;
@@ -183,4 +183,34 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Syntax highlighting - rehype-pretty-code */
+[data-rehype-pretty-code-figure] pre {
+  @apply border border-border rounded-lg;
+}
+
+[data-rehype-pretty-code-figure] pre[data-language]::before {
+  content: attr(data-language);
+  @apply absolute right-3 top-2 text-xs text-muted-foreground uppercase tracking-wide;
+}
+
+[data-rehype-pretty-code-figure] pre {
+  @apply relative;
+}
+
+/* Line highlighting */
+[data-highlighted-line] {
+  @apply bg-primary/10 border-l-2 border-primary -mx-4 px-4;
+}
+
+/* Line numbers */
+[data-line-numbers] {
+  counter-reset: line;
+}
+
+[data-line-numbers] > [data-line]::before {
+  counter-increment: line;
+  content: counter(line);
+  @apply inline-block w-4 mr-4 text-right text-muted-foreground/50;
 }
