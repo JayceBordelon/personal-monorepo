@@ -113,6 +113,9 @@ jobs:
             docker image prune -f
             docker images "jayce.com" --format "{{.ID}} {{.CreatedAt}}" | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f || true
 
+            # System Cleanup
+            docker system prune -af --volumes
+
   healthcheck:
     name: Health Check
     runs-on: ubuntu-latest
