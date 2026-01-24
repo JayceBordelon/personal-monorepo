@@ -4,16 +4,16 @@
 import { motion } from "framer-motion";
 
 function FloatingPaths({ position }: { position: number }) {
-  const numPaths = 50;
+  const numPaths = 80;
   const spread = 700;
 
   // Base positions - diagonal flow
   const diagonalOffset = 350;
-  const baseLeftX = -1000 * position;
+  const baseLeftX = -1200 * position;
   const baseLeftY = diagonalOffset;
   const baseMidX = 0;
-  const baseMidY = -16;
-  const baseRightX = 850 * position;
+  const baseMidY = -100;
+  const baseRightX = 1200 * position;
   const baseRightY = -diagonalOffset;
 
   const paths = Array.from({ length: numPaths }, (_, i) => {
@@ -59,13 +59,13 @@ function FloatingPaths({ position }: { position: number }) {
       <title>Background Paths</title>
       {paths.map((path) => {
         // Stagger from top to bottom: t goes -1 to 1, so (t + 1) / 2 goes 0 to 1
-        const appearDelay = 0.5 + ((path.t + 1) / 1.5) * 2;
-        const drawDuration = 2;
+        const appearDelay = (path.t + 1) / 2;
+        const drawDuration = 8;
         // All paths start flowing together after the last one finishes drawing
-        const flowStartTime = 2 + drawDuration;
+        const flowStartTime = 0;
 
         // Flow back and forth - right then back left
-        const flowDir = [0, 1, 0];
+        const flowDir = [1, 0, 1];
 
         return (
           <motion.path

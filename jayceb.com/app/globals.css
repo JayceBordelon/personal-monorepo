@@ -180,9 +180,12 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
-  html,
   body {
     @apply bg-background text-foreground;
+  }
+
+  html,
+  body {
     overscroll-behavior: none;
   }
 }
