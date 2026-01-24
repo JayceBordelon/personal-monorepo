@@ -1,0 +1,64 @@
+name: Health Check
+
+on:
+  workflow_call:
+    outputs:
+      status:
+        description: "Health check status"
+        value: ${{ jobs.healthcheck.outputs.status }}
+      results:
+        description: "Health check results"
+        value: ${{ jobs.healthcheck.outputs.results }}
+      error:
+        description: "Health check error message"
+        value: ${{ jobs.healthcheck.outputs.error }}
+
+jobs:
+  healthcheck:
+    name: Verify Endpoints
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.health.outputs.status }}
+      results: ${{ steps.health.outputs.results }}
+      error: ${{ steps.health.outputs.error }}
+    steps:
+      - name: Verify endpoints
+        id: health
+        run: |
+          set -e
+
+          ENDPOINTS=(
+            "https://jayceb.com"
+            "https://www.jayceb.com"
+          )
+
+          FAILED=0
+          RESULTS=""
+          FAILED_ENDPOINTS=""
+
+          for endpoint in "${ENDPOINTS[@]}"; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$endpoint" || echo "000")
+
+            if [[ "$STATUS" =~ ^2[0-9]{2}$ ]]; then
+              RESULTS="${RESULTS}✓ $endpoint ($STATUS)\n"
+            else
+              RESULTS="${RESULTS}✗ $endpoint ($STATUS)\n"
+              FAILED_ENDPOINTS="${FAILED_ENDPOINTS}$endpoint returned $STATUS\n"
+              FAILED=1
+            fi
+          done
+
+          echo "results<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$RESULTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          if [ $FAILED -eq 1 ]; then
+            echo "status=✗ FAILED" >> $GITHUB_OUTPUT
+            echo "error<<EOF" >> $GITHUB_OUTPUT
+            echo -e "Health check failures:\n$FAILED_ENDPOINTS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "status=✓ PASSED" >> $GITHUB_OUTPUT
+            echo "error=" >> $GITHUB_OUTPUT
+          fi
