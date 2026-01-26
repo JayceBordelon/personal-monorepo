@@ -1,22 +1,21 @@
 "use client";
 
-import { IconBrandGithub, IconBrandLinkedin, IconMail, IconWriting } from "@tabler/icons-react";
+import { IconBrandGithub, IconBrandLinkedin, IconCalendar, IconWriting } from "@tabler/icons-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import TypingText from "@/components/ui/shadcn-io/typing-text";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function HeroSection() {
-  const handleClick = async () => {
-    navigator.clipboard.writeText("jayce@occupai.us");
-    toast.success("Copied jayce@occupai.us to clipboard!");
-  };
-
   const socialLinks = [
-    { icon: IconMail, label: "Copy email", onClick: handleClick },
+    {
+      icon: IconCalendar,
+      label: "Meet With Me",
+      href: "https://calendly.com/jayce-occupai/30min",
+      external: true,
+    },
     {
       icon: () => <Image width={20} height={20} src="/images/occy.png" alt="occy" />,
       label: "OccupAI",
@@ -142,27 +141,16 @@ export default function HeroSection() {
                 >
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      {link.onClick ? (
-                        <Button
-                          onClick={link.onClick}
-                          size="icon"
-                          variant="outline"
-                          className="cursor-pointer h-11 w-11 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm hover:bg-primary hover:text-primary-foreground hover:border-primary hover:scale-110 transition-all duration-200 shadow-lg shadow-black/5"
-                        >
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        asChild
+                        className="cursor-pointer h-11 w-11 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm hover:bg-primary hover:text-primary hover:border-primary hover:scale-110 transition-all duration-200 shadow-lg shadow-black/5"
+                      >
+                        <Link href={link.href ?? "#"} target={link.external ? "_blank" : undefined}>
                           <link.icon className="h-5 w-5" />
-                        </Button>
-                      ) : (
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          asChild
-                          className="cursor-pointer h-11 w-11 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm hover:bg-primary hover:text-primary-foreground hover:border-primary hover:scale-110 transition-all duration-200 shadow-lg shadow-black/5"
-                        >
-                          <Link href={link.href ?? "#"} target={link.external ? "_blank" : undefined}>
-                            <link.icon className="h-5 w-5" />
-                          </Link>
-                        </Button>
-                      )}
+                        </Link>
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="font-medium">
                       <p>{link.label}</p>
