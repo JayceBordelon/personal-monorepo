@@ -36,7 +36,7 @@ services:
     labels:
       - "app=jayceb.com"
       - "traefik.enable=true"
-      - "traefik.http.routers.jayceb-com.rule=Host(`jayceb.com`) || Host(`www.jayceb.com`)"
+      - "traefik.http.routers.jayceb-com.rule=Host(`jayceb.com`) || Host(`www.jayceb.com`) || Host(`jaycebordelon.com`) || Host(`www.jaycebordelon.com`)"
       - "traefik.http.routers.jayceb-com.entrypoints=websecure"
       - "traefik.http.routers.jayceb-com.tls.certresolver=letsencrypt"
       - "traefik.http.routers.jayceb-com.priority=5"
