@@ -37,10 +37,16 @@ jobs:
           script: |
             set -e
 
-            rm -rf ${{ inputs.project_path }}
-            git clone ${{ inputs.repo_url }} ${{ inputs.project_path }}
-
-            echo "✓ Repository cloned successfully"
+            if [ -d "${{ inputs.project_path }}" ]; then
+              cd ${{ inputs.project_path }}
+              git fetch origin
+              git reset --hard origin/main
+              git clean -fdx
+              echo "✓ Repository updated successfully"
+            else
+              git clone ${{ inputs.repo_url }} ${{ inputs.project_path }}
+              echo "✓ Repository cloned successfully"
+            fi
 
       - name: Set sync status
         id: sync_status
