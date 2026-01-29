@@ -28,8 +28,8 @@ jobs:
           set -e
 
           ENDPOINTS=(
-            "https://jayceb.com"
-            "https://www.jayceb.com"
+            "https://jaycebordelon.com"
+            "https://www.jaycebordelon.com"
           )
 
           FAILED=0
