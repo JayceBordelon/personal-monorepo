@@ -16,7 +16,7 @@ on:
 
 jobs:
   lint:
-    name: ESLint
+    name: Biome Linting
     runs-on: ubuntu-latest
     outputs:
       status: ${{ steps.lint_status.outputs.status }}

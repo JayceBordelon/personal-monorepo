@@ -33,7 +33,7 @@ jobs:
 
   build:
     name: Build
-    needs: lint
+    needs: sync
     if: success()
     uses: ./.github/workflows/build.yml
     secrets: inherit
