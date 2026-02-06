@@ -24,17 +24,17 @@ services:
       - app-network
     restart: unless-stopped
 
-  jayceb-com:
-    image: jayce.com:latest
+  jaycebordelon-com:
+    image: jaycebordelon.com:latest
     build:
-      context: ./jayceb.com
+      context: ./jaycebordelon.com
     expose:
       - "3000"
     networks:
       - app-network
     restart: unless-stopped
     labels:
-      - "app=jayceb.com"
+      - "app=jaycebordelon.com"
       - "traefik.enable=true"
       # Main router for canonical domain
       - "traefik.http.routers.jaycebordelon.rule=Host(`jaycebordelon.com`) || Host(`www.jaycebordelon.com`)"
