@@ -37,7 +37,7 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             cd ${{ inputs.project_path }}
 
-            cd jayceb.com
+            cd jaycebordelon.com
             npm install
             npm run lint
 

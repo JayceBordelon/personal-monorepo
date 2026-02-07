@@ -49,7 +49,7 @@ services:
       - "traefik.http.routers.jayceb-redirect.priority=5"
       - "traefik.http.routers.jayceb-redirect.middlewares=redirect-to-jaycebordelon"
       # Redirect middleware
-      - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.regex=^https://(www\\.)?jayceb\\.com(.*)"
+      - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.regex=^https://(www\\.)?jaycebordelon\\.com(.*)"
       - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.replacement=https://jaycebordelon.com$${2}"
       - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.permanent=true"
 

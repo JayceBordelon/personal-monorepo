@@ -81,7 +81,7 @@ jobs:
           username: bordelonjayce@gmail.com
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "[HARD RESET] JayceLand - ${{ job.status == 'success' && 'SUCCESS' || 'FAILED' }}"
-          to: jayce@jaycebordelon.com
+          to: jayce@occupai.us
           from: JayceLand CI/CD <automation@gmail.com>
           html_body: |
             <!DOCTYPE html>

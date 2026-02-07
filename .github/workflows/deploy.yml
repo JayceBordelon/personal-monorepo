@@ -74,10 +74,10 @@ jobs:
             set -e
             cd ${{ inputs.project_path }}
 
-            docker rollout jayceb-com --timeout 120 --wait-after-healthy 30
+            docker rollout jaycebordelon-com --timeout 120 --wait-after-healthy 30
 
             docker image prune -f
-            docker images "jayce.com" --format "{{.ID}} {{.CreatedAt}}" | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f || true
+            docker images "jaycebordelon.com" --format "{{.ID}} {{.CreatedAt}}" | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f || true
 
             docker system prune -af --volumes
 
