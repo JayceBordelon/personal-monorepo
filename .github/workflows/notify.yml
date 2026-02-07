@@ -402,8 +402,8 @@ jobs:
                   <div class="section">
                     <h3>Quick Links</h3>
                     <div class="links-box">
-                      <a href="https://jayceb.com">https://jayceb.com</a><br>
-                      <a href="https://www.jayceb.com">https://www.jayceb.com</a><br>
+                      <a href="https://jaycebordelon.com">https://jaycebordelon.com</a><br>
+                      <a href="https://www.jaycebordelon.com">https://www.jaycebordelon.com</a><br>
                       <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ inputs.deploy_commit_sha }}">View Commit on GitHub</a><br>
                       <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Workflow Run</a>
                     </div>
@@ -412,7 +412,7 @@ jobs:
 
                 <div class="footer">
                   <p class="footer-label">Deployment Pipeline</p>
-                  <p class="footer-value">jayceb.com</p>
+                  <p class="footer-value">jaycebordelon.com</p>
                 </div>
               </div>
 
