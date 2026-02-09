@@ -27,7 +27,7 @@ services:
   jaycebordelon-com:
     image: jaycebordelon.com:latest
     build:
-      context: ./jaycebordelon.com
+      context: .
     expose:
       - "3000"
     networks:
