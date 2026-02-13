@@ -10,8 +10,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PROJECT_PATH: /home/jayce/jayceland
-  REPO_URL: git@github.com:JayceBordelon/jayceland.git
+  PROJECT_PATH: /home/jayce/jaycebordelon.com
+  REPO_URL: git@github.com:JayceBordelon/jaycebordelon.com.git
 
 jobs:
   sync:
@@ -19,8 +19,8 @@ jobs:
     uses: ./.github/workflows/sync.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/jayceland
-      repo_url: git@github.com:JayceBordelon/jayceland.git
+      project_path: /home/jayce/jaycebordelon.com
+      repo_url: git@github.com:JayceBordelon/jaycebordelon.com.git
 
   lint:
     name: Lint
@@ -29,7 +29,7 @@ jobs:
     uses: ./.github/workflows/lint.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/jayceland
+      project_path: /home/jayce/jaycebordelon.com
 
   build:
     name: Build
@@ -38,7 +38,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/jayceland
+      project_path: /home/jayce/jaycebordelon.com
 
   deploy:
     name: Deploy
@@ -47,7 +47,7 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/jayceland
+      project_path: /home/jayce/jaycebordelon.com
 
   healthcheck:
     name: Health Check
