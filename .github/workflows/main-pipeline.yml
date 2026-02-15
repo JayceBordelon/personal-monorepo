@@ -10,8 +10,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PROJECT_PATH: /home/jayce/jaycebordelon.com
-  REPO_URL: git@github.com:JayceBordelon/jaycebordelon.com.git
+  PROJECT_PATH: /home/jayce/personal-monorepo
+  REPO_URL: git@github.com:JayceBordelon/personal-monorepo.git
 
 jobs:
   sync:
@@ -19,8 +19,8 @@ jobs:
     uses: ./.github/workflows/sync.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/jaycebordelon.com
-      repo_url: git@github.com:JayceBordelon/jaycebordelon.com.git
+      project_path: /home/jayce/personal-monorepo
+      repo_url: git@github.com:JayceBordelon/personal-monorepo.git
 
   lint:
     name: Lint
@@ -29,7 +29,7 @@ jobs:
     uses: ./.github/workflows/lint.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/jaycebordelon.com
+      project_path: /home/jayce/personal-monorepo
 
   build:
     name: Build
@@ -38,7 +38,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/jaycebordelon.com
+      project_path: /home/jayce/personal-monorepo
 
   deploy:
     name: Deploy
@@ -47,7 +47,7 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/jaycebordelon.com
+      project_path: /home/jayce/personal-monorepo
 
   healthcheck:
     name: Health Check

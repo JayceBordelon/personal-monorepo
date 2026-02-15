@@ -74,7 +74,11 @@ jobs:
             set -e
             cd ${{ inputs.project_path }}
 
+            # Rolling deployment for web app
             docker rollout jaycebordelon-com --timeout 120 --wait-after-healthy 30
+
+            # Restart trading server (no rollout needed for background service)
+            docker compose up -d --force-recreate trading-server
 
             docker image prune -f
             docker images "jaycebordelon.com" --format "{{.ID}} {{.CreatedAt}}" | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f || true
