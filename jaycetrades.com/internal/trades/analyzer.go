@@ -36,10 +36,11 @@ func NewAnalyzer(apiKey string) *Analyzer {
 	}
 }
 
-type claudeRequest struct {
-	Model     string    `json:"model"`
-	MaxTokens int       `json:"max_tokens"`
-	Messages  []message `json:"messages"`
+type openAIRequest struct {
+	Model       string    `json:"model"`
+	Messages    []message `json:"messages"`
+	MaxTokens   int       `json:"max_tokens,omitempty"`
+	Temperature float64   `json:"temperature,omitempty"`
 }
 
 type message struct {
@@ -47,10 +48,15 @@ type message struct {
 	Content string `json:"content"`
 }
 
-type claudeResponse struct {
-	Content []struct {
-		Text string `json:"text"`
-	} `json:"content"`
+type openAIResponse struct {
+	Choices []struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+	} `json:"choices"`
+	Error *struct {
+		Message string `json:"message"`
+	} `json:"error,omitempty"`
 }
 
 func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.TickerMention) ([]Trade, error) {
@@ -64,50 +70,55 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 
 	prompt := fmt.Sprintf(AnalysisPrompt, today, weekday, string(sentimentJSON))
 
-	reqBody := claudeRequest{
-		Model:     "claude-sonnet-4-20250514",
-		MaxTokens: 4096,
+	reqBody := openAIRequest{
+		Model: "gpt-4o",
 		Messages: []message{
+			{Role: "system", Content: "You are an expert options trader. Respond only with valid JSON arrays."},
 			{Role: "user", Content: prompt},
 		},
+		MaxTokens:   4096,
+		Temperature: 0.7,
 	}
 
 	body, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal Claude request: %w", err)
+		return nil, fmt.Errorf("failed to marshal OpenAI request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("x-api-key", a.apiKey)
-	req.Header.Set("anthropic-version", "2023-06-01")
-	req.Header.Set("content-type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+a.apiKey)
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to call Claude API: %w", err)
+		return nil, fmt.Errorf("failed to call OpenAI API: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	var openAIResp openAIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&openAIResp); err != nil {
+		return nil, fmt.Errorf("failed to decode OpenAI response: %w", err)
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("claude API returned status %d", resp.StatusCode)
+		errMsg := "unknown error"
+		if openAIResp.Error != nil {
+			errMsg = openAIResp.Error.Message
+		}
+		return nil, fmt.Errorf("openAI API returned status %d: %s", resp.StatusCode, errMsg)
 	}
 
-	var claudeResp claudeResponse
-	if err := json.NewDecoder(resp.Body).Decode(&claudeResp); err != nil {
-		return nil, fmt.Errorf("failed to decode Claude response: %w", err)
-	}
-
-	if len(claudeResp.Content) == 0 {
-		return nil, fmt.Errorf("empty response from Claude")
+	if len(openAIResp.Choices) == 0 {
+		return nil, fmt.Errorf("empty response from OpenAI")
 	}
 
 	var trades []Trade
-	if err := json.Unmarshal([]byte(claudeResp.Content[0].Text), &trades); err != nil {
-		return nil, fmt.Errorf("failed to parse trades from Claude response: %w", err)
+	if err := json.Unmarshal([]byte(openAIResp.Choices[0].Message.Content), &trades); err != nil {
+		return nil, fmt.Errorf("failed to parse trades from OpenAI response: %w", err)
 	}
 
 	// Enrich with sentiment scores

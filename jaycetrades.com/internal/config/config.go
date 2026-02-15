@@ -6,9 +6,9 @@ import (
 )
 
 type Config struct {
-	CronSchedule    string // Cron expression (e.g., "0 9 * * 1-5" for 9am weekdays)
+	CronSchedule    string   // Cron expression (e.g., "0 9 * * 1-5" for 9am weekdays)
 	ResendAPIKey    string
-	ClaudeAPIKey    string
+	OpenAIAPIKey    string
 	EmailRecipients []string // Comma-separated list of recipients
 	EmailFrom       string
 }
@@ -36,7 +36,7 @@ func Load() *Config {
 	return &Config{
 		CronSchedule:    cronSchedule,
 		ResendAPIKey:    os.Getenv("RESEND_API_KEY"),
-		ClaudeAPIKey:    os.Getenv("ANTHROPIC_API_KEY"),
+		OpenAIAPIKey:    os.Getenv("OPENAI_API_KEY"),
 		EmailRecipients: recipients,
 		EmailFrom:       emailFrom,
 	}
