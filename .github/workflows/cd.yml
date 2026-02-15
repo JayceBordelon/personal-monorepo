@@ -1,12 +1,11 @@
 name: Jayce Land - CI/CD Pipeline
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 env:
-  PROJECT_PATH: /home/jayce/jaycebordelon.com
-  REPO_URL: git@github.com:JayceBordelon/jaycebordelon.com.git
+  PROJECT_PATH: /home/jayce/personal-monorepo
+  REPO_URL: git@github.com:JayceBordelon/personal-monorepo.git
 
 jobs:
   sync:
@@ -15,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Clone fresh repository
+      - name: Force pull repository
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
@@ -23,12 +22,11 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
-            
-            # Nuke and reclone repo
-            rm -rf ${{ env.PROJECT_PATH }}
-            git clone ${{ env.REPO_URL }} ${{ env.PROJECT_PATH }}
-            
-            echo "✓ Repository cloned successfully"
+            cd ${{ env.PROJECT_PATH }}
+            git fetch origin
+            git reset --hard origin/main
+            git clean -fdx
+            echo "✓ Repository updated successfully"
 
   lint:
     name: Lint
@@ -47,7 +45,7 @@ jobs:
             set -e
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            cd ${{ env.PROJECT_PATH }}
+            cd ${{ env.PROJECT_PATH }}/jaycebordelon.com
 
             npm install
             npm run lint
@@ -69,13 +67,13 @@ jobs:
             set -e
             cd ${{ env.PROJECT_PATH }}
 
-            rm -rf .next node_modules/.cache
+            rm -rf jaycebordelon.com/.next jaycebordelon.com/node_modules/.cache
 
             COMMIT_SHA=$(git rev-parse HEAD)
             SHORT_SHA=$(git rev-parse --short HEAD)
 
-            # Just build the new image - don't touch traefik or running containers
-            docker compose build --no-cache jaycebordelon-com
+            # Build both services
+            docker compose build --no-cache jaycebordelon-com trading-server
             docker tag jaycebordelon.com:latest "jaycebordelon.com:${SHORT_SHA}"
 
   deploy:
@@ -104,8 +102,11 @@ jobs:
             set -e
             cd ${{ env.PROJECT_PATH }}
 
-            # Zero-downtime rolling deployment of your app
+            # Zero-downtime rolling deployment of web app
             docker rollout jaycebordelon-com --timeout 120 --wait-after-healthy 30
+
+            # Restart trading server (no rollout needed for background service)
+            docker compose up -d --force-recreate trading-server
 
             # Cleanup old images
             docker image prune -f

@@ -27,7 +27,7 @@ services:
   jaycebordelon-com:
     image: jaycebordelon.com:latest
     build:
-      context: .
+      context: ./jaycebordelon.com
     expose:
       - "3000"
     networks:
@@ -52,6 +52,22 @@ services:
       - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.regex=^https://(www\\.)?jaycebordelon\\.com(.*)"
       - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.replacement=https://jaycebordelon.com$${2}"
       - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.permanent=true"
+
+  trading-server:
+    build:
+      context: ./jaycetrades.com
+    environment:
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - EMAIL_RECIPIENTS=${EMAIL_RECIPIENTS}
+      - EMAIL_FROM=${EMAIL_FROM:-trades@jaycetrades.com}
+      - CRON_SCHEDULE=${CRON_SCHEDULE:-25 9 * * 1-5}
+      - RUN_ON_START=${RUN_ON_START:-false}
+    networks:
+      - app-network
+    restart: unless-stopped
+    labels:
+      - "app=trading-server"
 
 volumes:
   traefik_letsencrypt:
