@@ -25,7 +25,7 @@ jobs:
             cd ${{ env.PROJECT_PATH }}
             git fetch origin
             git reset --hard origin/main
-            git clean -fdx
+            git clean -fd
             echo "✓ Repository updated successfully"
 
   lint:
