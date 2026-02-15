@@ -109,7 +109,7 @@ func (s *Scraper) fetchRedditPosts(ctx context.Context, redditURL string) ([]red
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("reddit returned status %d", resp.StatusCode)
@@ -148,7 +148,7 @@ func (s *Scraper) ScrapeFinanceNews(ctx context.Context) ([]TickerMention, error
 		// Fallback - return empty if news API fails
 		return []TickerMention{}, nil
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Parse and extract tickers from headlines
 	// This is a simplified version - in production you'd use a proper news API
@@ -296,7 +296,7 @@ func (s *Scraper) SearchNews(ctx context.Context, ticker string) ([]NewsItem, er
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Parse response - simplified for now
 	return []NewsItem{}, nil

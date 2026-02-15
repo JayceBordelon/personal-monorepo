@@ -43,12 +43,13 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            cd ${{ env.PROJECT_PATH }}/jaycebordelon.com
+            cd ${{ env.PROJECT_PATH }}
 
-            npm install
-            npm run lint
+            # Lint JS/TS
+            biome check .
+
+            # Lint Go
+            cd jaycetrades.com && golangci-lint run ./...
 
   build:
     name: Build

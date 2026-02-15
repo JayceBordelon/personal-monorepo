@@ -16,7 +16,7 @@ on:
 
 jobs:
   lint:
-    name: Biome Linting
+    name: Biome + Go Linting
     runs-on: ubuntu-latest
     outputs:
       status: ${{ steps.lint_status.outputs.status }}
@@ -33,12 +33,13 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            cd ${{ inputs.project_path }}/jaycebordelon.com
+            cd ${{ inputs.project_path }}
 
-            npm install
-            npm run lint
+            # Lint JS/TS
+            biome check .
+
+            # Lint Go
+            cd jaycetrades.com && golangci-lint run ./...
 
       - name: Set lint status
         id: lint_status

@@ -6,7 +6,7 @@ import (
 )
 
 type Config struct {
-	CronSchedule    string   // Cron expression (e.g., "0 9 * * 1-5" for 9am weekdays)
+	CronSchedule    string // Cron expression (e.g., "0 9 * * 1-5" for 9am weekdays)
 	ResendAPIKey    string
 	ClaudeAPIKey    string
 	EmailRecipients []string // Comma-separated list of recipients

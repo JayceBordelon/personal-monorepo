@@ -90,10 +90,10 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 	if err != nil {
 		return nil, fmt.Errorf("failed to call Claude API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Claude API returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("claude API returned status %d", resp.StatusCode)
 	}
 
 	var claudeResp claudeResponse
