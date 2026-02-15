@@ -68,15 +68,15 @@ func main() {
 	if cfg.ResendAPIKey == "" {
 		log.Fatal("RESEND_API_KEY is required")
 	}
-	if cfg.ClaudeAPIKey == "" {
-		log.Fatal("ANTHROPIC_API_KEY is required")
+	if cfg.OpenAIAPIKey == "" {
+		log.Fatal("OPENAI_API_KEY is required")
 	}
 	if len(cfg.EmailRecipients) == 0 {
 		log.Fatal("EMAIL_RECIPIENTS is required")
 	}
 
 	scraper := sentiment.NewScraper()
-	analyzer := trades.NewAnalyzer(cfg.ClaudeAPIKey)
+	analyzer := trades.NewAnalyzer(cfg.OpenAIAPIKey)
 	emailClient := email.NewClient(cfg.ResendAPIKey)
 
 	job := func() {
@@ -129,8 +129,8 @@ func runTradeAnalysis(cfg *config.Config, scraper *sentiment.Scraper, analyzer *
 	}
 	log.Printf("Found %d trending tickers", len(sentimentData))
 
-	// Get top 3 trades from Claude
-	log.Println("Analyzing trades with Claude...")
+	// Get top 3 trades from OpenAI
+	log.Println("Analyzing trades with OpenAI...")
 	topTrades, err := analyzer.GetTopTrades(ctx, sentimentData)
 	if err != nil {
 		log.Printf("Error analyzing trades: %v", err)
