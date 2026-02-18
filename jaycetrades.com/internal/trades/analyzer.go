@@ -20,6 +20,14 @@ type Trade struct {
 	EstimatedPrice float64 `json:"estimated_price"`
 	Thesis         string  `json:"thesis"`
 	SentimentScore float64 `json:"sentiment_score"`
+	// Additional fields for better trade context
+	CurrentPrice float64 `json:"current_price"` // Current stock price
+	TargetPrice  float64 `json:"target_price"`  // Price target for the underlying
+	StopLoss     float64 `json:"stop_loss"`     // Exit premium if trade goes against you
+	ProfitTarget float64 `json:"profit_target"` // Exit premium for taking profits
+	RiskLevel    string  `json:"risk_level"`    // LOW, MEDIUM, HIGH
+	Catalyst     string  `json:"catalyst"`      // Upcoming event driving the trade
+	MentionCount int     `json:"mention_count"` // WSB mention count
 }
 
 type Analyzer struct {
@@ -121,14 +129,19 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 		return nil, fmt.Errorf("failed to parse trades from OpenAI response: %w", err)
 	}
 
-	// Enrich with sentiment scores
-	sentimentMap := make(map[string]float64)
+	// Enrich with sentiment data
+	type sentimentInfo struct {
+		Score    float64
+		Mentions int
+	}
+	sentimentMap := make(map[string]sentimentInfo)
 	for _, s := range sentimentData {
-		sentimentMap[s.Symbol] = s.Sentiment
+		sentimentMap[s.Symbol] = sentimentInfo{Score: s.Sentiment, Mentions: s.Mentions}
 	}
 	for i := range trades {
-		if score, ok := sentimentMap[trades[i].Symbol]; ok {
-			trades[i].SentimentScore = score
+		if info, ok := sentimentMap[trades[i].Symbol]; ok {
+			trades[i].SentimentScore = info.Score
+			trades[i].MentionCount = info.Mentions
 		}
 	}
 

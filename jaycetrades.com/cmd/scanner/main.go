@@ -150,6 +150,13 @@ func runTradeAnalysis(cfg *config.Config, scraper *sentiment.Scraper, analyzer *
 			EstimatedPrice: t.EstimatedPrice,
 			Thesis:         t.Thesis,
 			SentimentScore: t.SentimentScore,
+			CurrentPrice:   t.CurrentPrice,
+			TargetPrice:    t.TargetPrice,
+			StopLoss:       t.StopLoss,
+			ProfitTarget:   t.ProfitTarget,
+			RiskLevel:      t.RiskLevel,
+			Catalyst:       t.Catalyst,
+			MentionCount:   t.MentionCount,
 		}
 	}
 
