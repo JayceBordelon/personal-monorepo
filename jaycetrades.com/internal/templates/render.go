@@ -19,6 +19,13 @@ type Trade struct {
 	EstimatedPrice float64
 	Thesis         string
 	SentimentScore float64
+	CurrentPrice   float64
+	TargetPrice    float64
+	StopLoss       float64
+	ProfitTarget   float64
+	RiskLevel      string
+	Catalyst       string
+	MentionCount   int
 }
 
 type EmailData struct {
@@ -27,8 +34,20 @@ type EmailData struct {
 	Trades  []Trade
 }
 
+var funcMap = template.FuncMap{
+	"mul": func(a, b float64) float64 { return a * b },
+	"div": func(a, b float64) float64 {
+		if b == 0 {
+			return 0
+		}
+		return a / b
+	},
+	"sub": func(a, b float64) float64 { return a - b },
+	"add": func(a, b float64) float64 { return a + b },
+}
+
 func RenderEmail(trades []Trade) (string, error) {
-	tmpl, err := template.ParseFS(templateFS, "email.html")
+	tmpl, err := template.New("email.html").Funcs(funcMap).ParseFS(templateFS, "email.html")
 	if err != nil {
 		return "", err
 	}
