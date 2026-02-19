@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"jaycetrades.com/internal/sentiment"
@@ -125,7 +126,8 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 	}
 
 	var trades []Trade
-	if err := json.Unmarshal([]byte(openAIResp.Choices[0].Message.Content), &trades); err != nil {
+	content := stripMarkdownCodeBlock(openAIResp.Choices[0].Message.Content)
+	if err := json.Unmarshal([]byte(content), &trades); err != nil {
 		return nil, fmt.Errorf("failed to parse trades from OpenAI response: %w", err)
 	}
 
@@ -146,4 +148,21 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 	}
 
 	return trades, nil
+}
+
+// stripMarkdownCodeBlock removes markdown code block formatting from a string.
+// OpenAI sometimes returns JSON wrapped in ```json ... ``` blocks.
+func stripMarkdownCodeBlock(s string) string {
+	s = strings.TrimSpace(s)
+	if strings.HasPrefix(s, "```") {
+		// Remove opening fence (with optional language identifier)
+		if idx := strings.Index(s, "\n"); idx != -1 {
+			s = s[idx+1:]
+		}
+		// Remove closing fence
+		if idx := strings.LastIndex(s, "```"); idx != -1 {
+			s = s[:idx]
+		}
+	}
+	return strings.TrimSpace(s)
 }
