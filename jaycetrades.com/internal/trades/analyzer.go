@@ -59,18 +59,22 @@ type tool struct {
 
 // Responses API response structure
 type responsesAPIResponse struct {
-	ID     string       `json:"id"`
-	Output []outputItem `json:"output"`
-	Error  *struct {
+	ID         string       `json:"id"`
+	Output     []outputItem `json:"output"`
+	OutputText string       `json:"output_text"` // Convenience field that aggregates all text output
+	Error      *struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
 }
 
 type outputItem struct {
-	Type    string `json:"type"`
-	Content string `json:"content,omitempty"`
-	// For message type outputs
-	Text string `json:"text,omitempty"`
+	Type    string        `json:"type"`
+	Content []contentItem `json:"content,omitempty"` // Array of content items
+}
+
+type contentItem struct {
+	Type string `json:"type"` // "output_text" or "refusal"
+	Text string `json:"text"`
 }
 
 func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.TickerMention) ([]Trade, error) {
@@ -127,15 +131,22 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 	}
 
 	// Extract text content from response output
-	var content string
-	for _, item := range apiResp.Output {
-		if item.Type == "message" && item.Content != "" {
-			content = item.Content
-			break
-		}
-		if item.Text != "" {
-			content = item.Text
-			break
+	// Prefer the convenience output_text field, fall back to parsing nested structure
+	content := apiResp.OutputText
+	if content == "" {
+		// Fallback: extract from nested output structure
+		for _, item := range apiResp.Output {
+			if item.Type == "message" && len(item.Content) > 0 {
+				for _, c := range item.Content {
+					if c.Type == "output_text" && c.Text != "" {
+						content = c.Text
+						break
+					}
+				}
+				if content != "" {
+					break
+				}
+			}
 		}
 	}
 
