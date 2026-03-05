@@ -45,27 +45,32 @@ func NewAnalyzer(apiKey string) *Analyzer {
 	}
 }
 
-type openAIRequest struct {
-	Model       string    `json:"model"`
-	Messages    []message `json:"messages"`
-	MaxTokens   int       `json:"max_tokens,omitempty"`
-	Temperature float64   `json:"temperature,omitempty"`
+// Responses API request structure (supports web search)
+type responsesAPIRequest struct {
+	Model       string  `json:"model"`
+	Input       string  `json:"input"`
+	Tools       []tool  `json:"tools,omitempty"`
+	Temperature float64 `json:"temperature,omitempty"`
 }
 
-type message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+type tool struct {
+	Type string `json:"type"`
 }
 
-type openAIResponse struct {
-	Choices []struct {
-		Message struct {
-			Content string `json:"content"`
-		} `json:"message"`
-	} `json:"choices"`
-	Error *struct {
+// Responses API response structure
+type responsesAPIResponse struct {
+	ID     string       `json:"id"`
+	Output []outputItem `json:"output"`
+	Error  *struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
+}
+
+type outputItem struct {
+	Type    string `json:"type"`
+	Content string `json:"content,omitempty"`
+	// For message type outputs
+	Text string `json:"text,omitempty"`
 }
 
 func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.TickerMention) ([]Trade, error) {
@@ -79,13 +84,13 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 
 	prompt := fmt.Sprintf(AnalysisPrompt, today, weekday, string(sentimentJSON))
 
-	reqBody := openAIRequest{
+	// Use Responses API with web search enabled
+	reqBody := responsesAPIRequest{
 		Model: "gpt-4o",
-		Messages: []message{
-			{Role: "system", Content: "You are an expert options trader. Respond only with valid JSON arrays."},
-			{Role: "user", Content: prompt},
+		Input: prompt,
+		Tools: []tool{
+			{Type: "web_search_preview"},
 		},
-		MaxTokens:   4096,
 		Temperature: 0.7,
 	}
 
@@ -94,7 +99,7 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 		return nil, fmt.Errorf("failed to marshal OpenAI request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/responses", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -108,25 +113,38 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	var openAIResp openAIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&openAIResp); err != nil {
+	var apiResp responsesAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		return nil, fmt.Errorf("failed to decode OpenAI response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		errMsg := "unknown error"
-		if openAIResp.Error != nil {
-			errMsg = openAIResp.Error.Message
+		if apiResp.Error != nil {
+			errMsg = apiResp.Error.Message
 		}
 		return nil, fmt.Errorf("openAI API returned status %d: %s", resp.StatusCode, errMsg)
 	}
 
-	if len(openAIResp.Choices) == 0 {
+	// Extract text content from response output
+	var content string
+	for _, item := range apiResp.Output {
+		if item.Type == "message" && item.Content != "" {
+			content = item.Content
+			break
+		}
+		if item.Text != "" {
+			content = item.Text
+			break
+		}
+	}
+
+	if content == "" {
 		return nil, fmt.Errorf("empty response from OpenAI")
 	}
 
 	var trades []Trade
-	content := stripMarkdownCodeBlock(openAIResp.Choices[0].Message.Content)
+	content = stripMarkdownCodeBlock(content)
 	if err := json.Unmarshal([]byte(content), &trades); err != nil {
 		return nil, fmt.Errorf("failed to parse trades from OpenAI response: %w", err)
 	}

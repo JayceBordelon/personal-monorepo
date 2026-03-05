@@ -5,16 +5,17 @@ const AnalysisPrompt = `You are an expert options trader. Today is %s (%s).
 SENTIMENT DATA FROM WALLSTREETBETS:
 %s
 
-Using the sentiment data above and your knowledge of current market conditions, provide exactly 3 options trade recommendations.
+IMPORTANT: Use web search to look up CURRENT stock prices, upcoming earnings dates, recent news, and any catalysts for the tickers mentioned above. Do NOT use outdated information.
+
+Using the sentiment data above combined with your real-time web research, provide exactly 3 options trade recommendations.
 
 REQUIREMENTS:
 - Each trade should be a short-term option: 0DTE (same day expiration) to 7 DTE (one week out)
 - NO SINGLE CONTRACT should cost more than $200 (so strike prices should be chosen accordingly)
 - Include both CALL and PUT opportunities based on sentiment and market analysis
 - Provide a clear thesis for each trade explaining WHY it should be made
-- Include the current stock price, a realistic price target, and identify any upcoming catalysts
-
-Search the web for current stock prices, upcoming catalysts, earnings dates, and any relevant news that could impact these tickers.
+- Include the CURRENT stock price (from your web search), a realistic price target, and identify any upcoming catalysts
+- Verify earnings dates and any major news events via web search
 
 RESPOND WITH ONLY A JSON ARRAY containing exactly 3 trades in this format:
 [
