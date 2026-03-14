@@ -7,7 +7,7 @@ SENTIMENT DATA FROM WALLSTREETBETS:
 
 IMPORTANT: Use web search to look up CURRENT stock prices, upcoming earnings dates, recent news, and any catalysts for the tickers mentioned above. Do NOT use outdated information.
 
-Using the sentiment data above combined with your real-time web research, provide exactly 3 options trade recommendations.
+Using the sentiment data above combined with your real-time web research, provide exactly 5 options trade recommendations.
 
 REQUIREMENTS:
 - Each trade should be a short-term option: 0DTE (same day expiration) to 7 DTE (one week out)
@@ -17,7 +17,7 @@ REQUIREMENTS:
 - Include the CURRENT stock price (from your web search), a realistic price target, and identify any upcoming catalysts
 - Verify earnings dates and any major news events via web search
 
-RESPOND WITH ONLY A JSON ARRAY containing exactly 3 trades in this format:
+RESPOND WITH ONLY A JSON ARRAY containing exactly 5 trades in this format:
 [
   {
     "symbol": "TICKER",

@@ -43,7 +43,19 @@ var funcMap = template.FuncMap{
 		return a / b
 	},
 	"sub": func(a, b float64) float64 { return a - b },
-	"add": func(a, b float64) float64 { return a + b },
+	"add": func(a, b any) any {
+		switch av := a.(type) {
+		case int:
+			if bv, ok := b.(int); ok {
+				return av + bv
+			}
+		case float64:
+			if bv, ok := b.(float64); ok {
+				return av + bv
+			}
+		}
+		return 0
+	},
 }
 
 func RenderEmail(trades []Trade) (string, error) {
