@@ -117,9 +117,9 @@ jobs:
           secure: true
           username: bordelonjayce@gmail.com
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "[${{ steps.overall.outputs.status }}] Jayce Land Deployment - ${{ inputs.deploy_short_sha }}"
-          to: bordelonjayce@gmail.com
-          from: Jayce Land CI/CD <bordelonjayce@gmail.com>
+          subject: "[${{ steps.overall.outputs.status }}] Jayce's Project Deployment Automation - ${{ inputs.deploy_short_sha }}"
+          to: bordelonjayce@gmail.com,kadedanger@gmail.com,camilledevaney7@gmail.com
+          from: Jayce's Project Deployment Automation <bordelonjayce@gmail.com>
           html_body: |
             <!DOCTYPE html>
             <html>
@@ -315,7 +315,7 @@ jobs:
             <body>
               <div class="container">
                 <div class="header ${{ steps.overall.outputs.status == 'FAILED' && 'failed' || '' }}">
-                  <h1>Jayce Land</h1>
+                  <h1>Jayce's Project Deployment Automation</h1>
                   <p>Build ${{ inputs.deploy_short_sha || 'unknown' }}</p>
                   <span class="status-badge status-${{ steps.overall.outputs.status == 'FAILED' && 'failed' || 'passed' }}">
                     ${{ steps.overall.outputs.status == 'FAILED' && '✗ FAILED' || '✓ PASSED' }}
@@ -323,6 +323,15 @@ jobs:
                 </div>
 
                 <div class="content">
+                  <div style="background-color: #f1f5f9; border-left: 4px solid #64748b; padding: 16px 20px; margin-bottom: 32px; border-radius: 0 8px 8px 0;">
+                    <p style="margin: 0; color: #475569; font-size: 14px; line-height: 1.6;">
+                      You are receiving this email because you have opted in to receive updates from <strong>Jayce's Personal Projects</strong>. A new update has been deployed to a service you're subscribed to.
+                    </p>
+                    <p style="margin: 12px 0 0 0; color: #475569; font-size: 14px; line-height: 1.6;">
+                      If you are paying for any particular service, source code licensing, or project, I would be more than happy to detail the specific changes for that service. Feel free to reach out at <a href="mailto:bordelonjayce@gmail.com" style="color: #334155; font-weight: 600;">bordelonjayce@gmail.com</a>.
+                    </p>
+                  </div>
+
                   ${{ steps.overall.outputs.status == 'FAILED' && format('<div class="section"><h3>Deployment Errors</h3><div class="error-box">{0}</div></div>', steps.overall.outputs.errors) || '' }}
 
                   <div class="section">
@@ -418,6 +427,7 @@ jobs:
 
               <div class="copyright">
                 <p>Automated deployment notification • Build ${{ inputs.deploy_short_sha || 'unknown' }}</p>
+                <p style="margin-top: 8px;">You received this email because you opted in to updates from Jayce's Personal Projects.</p>
               </div>
             </body>
             </html>
