@@ -157,12 +157,13 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 	log.Println("Scraping WSB sentiment...")
 	sentimentData, err := scraper.GetTrendingTickers(ctx, 20)
 	if err != nil {
-		log.Printf("Error getting sentiment data: %v", err)
-		return
+		log.Printf("Warning: error getting sentiment data: %v", err)
+		sentimentData = nil
 	}
 	log.Printf("Found %d trending tickers", len(sentimentData))
 
-	// Get top 10 trades from OpenAI
+	// Get top 10 trades from OpenAI (works with or without sentiment data —
+	// OpenAI will use web search to find trending tickers when Reddit fails)
 	log.Println("Analyzing trades with OpenAI...")
 	topTrades, err := analyzer.GetTopTrades(ctx, sentimentData)
 	if err != nil {
@@ -170,6 +171,11 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 		return
 	}
 	log.Printf("Generated %d trade recommendations", len(topTrades))
+
+	if len(topTrades) == 0 {
+		log.Println("No trades generated, skipping email")
+		return
+	}
 
 	// Deduplicate tickers (keep first occurrence)
 	seen := make(map[string]bool)

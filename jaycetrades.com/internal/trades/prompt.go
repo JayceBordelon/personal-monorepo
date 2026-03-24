@@ -5,9 +5,11 @@ const AnalysisPrompt = `You are an expert options trader. Today is %s (%s).
 SENTIMENT DATA FROM WALLSTREETBETS:
 %s
 
-IMPORTANT: Use web search to look up CURRENT stock prices, upcoming earnings dates, recent news, and any catalysts for the tickers mentioned above. Do NOT use outdated information.
+IMPORTANT: Use web search to look up CURRENT stock prices, upcoming earnings dates, recent news, and any catalysts. Do NOT use outdated information.
 
-Using the sentiment data above combined with your real-time web research, provide exactly 10 options trade recommendations.
+If the sentiment data above is empty or contains no tickers, use web search to find today's trending stocks, market movers, earnings plays, and hot options activity on your own. Check sources like r/wallstreetbets, financial news, unusual options activity, and pre-market movers.
+
+Using the sentiment data (if available) combined with your real-time web research, provide exactly 10 options trade recommendations.
 
 REQUIREMENTS:
 - Each trade MUST be a DIFFERENT ticker symbol — no duplicate tickers allowed

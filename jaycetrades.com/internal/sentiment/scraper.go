@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -34,11 +35,11 @@ func NewScraper() *Scraper {
 
 // ScrapeRedditWSB scrapes r/wallstreetbets for ticker mentions
 func (s *Scraper) ScrapeRedditWSB(ctx context.Context) ([]TickerMention, error) {
-	// Reddit's public JSON API (no auth needed for public subreddits)
+	// Use old.reddit.com — more lenient with unauthenticated access than www.reddit.com
 	urls := []string{
-		"https://www.reddit.com/r/wallstreetbets/hot.json?limit=25",
-		"https://www.reddit.com/r/wallstreetbets/rising.json?limit=25",
-		"https://www.reddit.com/r/options/hot.json?limit=25",
+		"https://old.reddit.com/r/wallstreetbets/hot.json?limit=50",
+		"https://old.reddit.com/r/wallstreetbets/rising.json?limit=50",
+		"https://old.reddit.com/r/options/hot.json?limit=50",
 	}
 
 	mentions := make(map[string]*TickerMention)
@@ -46,6 +47,7 @@ func (s *Scraper) ScrapeRedditWSB(ctx context.Context) ([]TickerMention, error) 
 	for _, redditURL := range urls {
 		posts, err := s.fetchRedditPosts(ctx, redditURL)
 		if err != nil {
+			log.Printf("Warning: failed to fetch %s: %v", redditURL, err)
 			continue // Don't fail entirely if one source fails
 		}
 
@@ -103,7 +105,9 @@ func (s *Scraper) fetchRedditPosts(ctx context.Context, redditURL string) ([]red
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "OptionsScanner/1.0")
+	// Use a browser-like User-Agent — Reddit blocks generic bot agents
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "application/json")
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
@@ -112,7 +116,7 @@ func (s *Scraper) fetchRedditPosts(ctx context.Context, redditURL string) ([]red
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("reddit returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("reddit returned status %d for %s", resp.StatusCode, redditURL)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -122,7 +126,7 @@ func (s *Scraper) fetchRedditPosts(ctx context.Context, redditURL string) ([]red
 
 	var redditResp redditResponse
 	if err := json.Unmarshal(body, &redditResp); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse reddit response from %s: %w", redditURL, err)
 	}
 
 	posts := make([]redditPost, 0, len(redditResp.Data.Children))
@@ -193,14 +197,14 @@ func (s *Scraper) GetTrendingTickers(ctx context.Context, limit int) ([]TickerMe
 
 // extractTickers finds stock ticker symbols in text
 func extractTickers(text string) []string {
-	// Match $TICKER or standalone uppercase 1-5 letter words that look like tickers
+	// Match $TICKER format (high confidence)
 	dollarPattern := regexp.MustCompile(`\$([A-Z]{1,5})\b`)
-
-	matches := dollarPattern.FindAllStringSubmatch(text, -1)
+	// Match bare uppercase tickers 2-5 chars surrounded by word boundaries (lower confidence)
+	barePattern := regexp.MustCompile(`\b([A-Z]{2,5})\b`)
 
 	tickers := make(map[string]bool)
 
-	// Common words to exclude
+	// Common words/acronyms to exclude
 	exclude := map[string]bool{
 		"I": true, "A": true, "THE": true, "AND": true, "FOR": true,
 		"ARE": true, "BUT": true, "NOT": true, "YOU": true, "ALL": true,
@@ -214,11 +218,31 @@ func extractTickers(text string) []string {
 		"YOLO": true, "FOMO": true, "IMO": true, "TBH": true, "LOL": true,
 		"USA": true, "GDP": true, "SEC": true, "FED": true, "IV": true,
 		"PE": true, "EPS": true, "RSI": true, "HODL": true, "OP": true,
+		"RIP": true, "BRO": true, "WTF": true, "SMH": true, "ETF": true,
+		"ANY": true, "BIG": true, "RUN": true, "EOD": true, "RED": true,
+		"DTE": true, "OI": true, "PM": true, "AM": true, "API": true,
+		"EDIT": true, "JUST": true, "LIKE": true, "THIS": true, "THAT": true,
+		"BEEN": true, "FROM": true, "THEY": true, "WILL": true, "WITH": true,
+		"WHAT": true, "WHEN": true, "YOUR": true, "SOME": true, "THEM": true,
+		"THAN": true, "THEN": true, "ONLY": true, "OVER": true, "ALSO": true,
+		"BACK": true, "MUCH": true, "MOST": true, "VERY": true, "EVEN": true,
+		"LONG": true, "GOOD": true, "EACH": true, "MAKE": true,
+		"LMAO": true, "BEAR": true, "BULL": true, "HOLD": true, "SELL": true,
+		"CALL": true, "PUTS": true, "MOON": true, "PUMP": true, "DUMP": true,
 	}
 
-	for _, match := range matches {
+	// $TICKER matches are always included
+	for _, match := range dollarPattern.FindAllStringSubmatch(text, -1) {
 		ticker := match[1]
-		if !exclude[ticker] && len(ticker) >= 1 && len(ticker) <= 5 {
+		if !exclude[ticker] {
+			tickers[ticker] = true
+		}
+	}
+
+	// Bare tickers only included if 2-5 chars (reduces false positives)
+	for _, match := range barePattern.FindAllStringSubmatch(text, -1) {
+		ticker := match[1]
+		if !exclude[ticker] && len(ticker) >= 2 {
 			tickers[ticker] = true
 		}
 	}
