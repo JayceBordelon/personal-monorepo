@@ -59,19 +59,48 @@ services:
       - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.replacement=https://jaycebordelon.com$${2}"
       - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.permanent=true"
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: jaycetrades
+      POSTGRES_PASSWORD: jaycetrades
+      POSTGRES_DB: jaycetrades
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jaycetrades"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   trading-server:
     build:
       context: ./jaycetrades.com
     env_file:
       - .env
+    expose:
+      - "8080"
     networks:
       - app-network
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     labels:
       - "app=trading-server"
+      - "traefik.enable=true"
+      - "traefik.http.routers.trading.rule=Host(`jaycetrades.com`) || Host(`www.jaycetrades.com`)"
+      - "traefik.http.routers.trading.entrypoints=websecure"
+      - "traefik.http.routers.trading.tls.certresolver=letsencrypt"
+      - "traefik.http.services.trading.loadbalancer.server.port=8080"
 
 volumes:
   traefik_letsencrypt:
+  postgres_data:
 
 networks:
   app-network:

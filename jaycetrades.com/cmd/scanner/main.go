@@ -12,6 +12,7 @@ import (
 	"jaycetrades.com/internal/config"
 	"jaycetrades.com/internal/email"
 	"jaycetrades.com/internal/sentiment"
+	"jaycetrades.com/internal/server"
 	"jaycetrades.com/internal/store"
 	"jaycetrades.com/internal/templates"
 	"jaycetrades.com/internal/trades"
@@ -77,15 +78,22 @@ func main() {
 	if cfg.OpenAIAPIKey == "" {
 		log.Fatal("OPENAI_API_KEY is required")
 	}
-	if len(cfg.EmailRecipients) == 0 {
-		log.Fatal("EMAIL_RECIPIENTS is required")
-	}
 
-	db, err := store.New(cfg.DBPath)
+	db, err := store.New(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 	defer func() { _ = db.Close() }()
+
+	// Seed subscribers from EMAIL_RECIPIENTS env var (for backward compatibility)
+	if len(cfg.EmailRecipients) > 0 {
+		for _, email := range cfg.EmailRecipients {
+			if err := db.AddSubscriber(email, ""); err != nil {
+				log.Printf("Warning: failed to seed subscriber %s: %v", email, err)
+			}
+		}
+		log.Printf("Seeded %d subscribers from EMAIL_RECIPIENTS", len(cfg.EmailRecipients))
+	}
 
 	scraper := sentiment.NewScraper()
 	analyzer := trades.NewAnalyzer(cfg.OpenAIAPIKey)
@@ -126,11 +134,20 @@ func main() {
 
 	c.Start()
 
+	// Start HTTP API server in background
+	srv := server.New(db, cfg.ServerPort)
+	go srv.Start()
+
 	log.Printf("Options trade scanner started")
-	log.Printf("Database: %s", cfg.DBPath)
+	log.Printf("Database: PostgreSQL")
+	log.Printf("API server: :%s", cfg.ServerPort)
 	log.Printf("Market open schedule: %s (ET)", cfg.CronScheduleOpen)
 	log.Printf("Market close schedule: %s (ET)", cfg.CronScheduleClose)
-	log.Printf("Emails will be sent to: %v", cfg.EmailRecipients)
+
+	// Log current subscriber count
+	if subs, err := db.GetActiveSubscribers(); err == nil {
+		log.Printf("Active subscribers: %d", len(subs))
+	}
 
 	// Run immediately on startup if RUN_ON_START is set
 	if os.Getenv("RUN_ON_START") == "true" {
@@ -145,6 +162,15 @@ func main() {
 
 	log.Println("Shutting down...")
 	c.Stop()
+}
+
+func getRecipients(db *store.Store) []string {
+	emails, err := db.GetActiveEmails()
+	if err != nil {
+		log.Printf("Error getting subscribers: %v", err)
+		return nil
+	}
+	return emails
 }
 
 func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Scraper, analyzer *trades.Analyzer, emailClient *email.Client) {
@@ -226,8 +252,15 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 	}
 	subject := fmt.Sprintf("Options Trades for %s", time.Now().Format("Monday, Jan 2"))
 
-	log.Println("Sending email...")
-	if err := emailClient.SendTradeEmail(cfg.EmailFrom, cfg.EmailRecipients, subject, htmlContent); err != nil {
+	// Get recipients from database
+	recipients := getRecipients(db)
+	if len(recipients) == 0 {
+		log.Println("No active subscribers, skipping email send")
+		return
+	}
+
+	log.Printf("Sending email to %d subscribers...", len(recipients))
+	if err := emailClient.SendTradeEmail(cfg.EmailFrom, recipients, subject, htmlContent); err != nil {
 		log.Printf("Error sending email: %v", err)
 		return
 	}
@@ -289,8 +322,15 @@ func runEndOfDayAnalysis(cfg *config.Config, db *store.Store, analyzer *trades.A
 	}
 	subject := fmt.Sprintf("EOD Summary for %s", time.Now().Format("Monday, Jan 2"))
 
-	log.Println("Sending EOD summary email...")
-	if err := emailClient.SendTradeEmail(cfg.EmailFrom, cfg.EmailRecipients, subject, htmlContent); err != nil {
+	// Get recipients from database
+	recipients := getRecipients(db)
+	if len(recipients) == 0 {
+		log.Println("No active subscribers, skipping EOD email send")
+		return
+	}
+
+	log.Printf("Sending EOD summary email to %d subscribers...", len(recipients))
+	if err := emailClient.SendTradeEmail(cfg.EmailFrom, recipients, subject, htmlContent); err != nil {
 		log.Printf("Error sending EOD email: %v", err)
 		return
 	}

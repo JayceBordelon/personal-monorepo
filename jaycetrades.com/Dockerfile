@@ -19,4 +19,6 @@ WORKDIR /app
 
 COPY --from=builder /app/scanner .
 
+EXPOSE 8080
+
 CMD ["./scanner"]
