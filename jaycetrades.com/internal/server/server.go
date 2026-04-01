@@ -279,7 +279,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleRobots(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	_, _ = w.Write([]byte("User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: https://jaycetrades.com/sitemap.xml\n"))
+	_, _ = w.Write([]byte("User-agent: *\nAllow: /\nDisallow: /api/\n\nUser-agent: Googlebot\nAllow: /\nDisallow: /api/\n\nSitemap: https://jaycetrades.com/sitemap.xml\n"))
 }
 
 func (s *Server) handleSitemap(w http.ResponseWriter, r *http.Request) {

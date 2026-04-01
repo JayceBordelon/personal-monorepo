@@ -4,13 +4,62 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <title>JayceTrades | Live Dashboard</title>
-  <meta name="description" content="Live options trade dashboard showing today's AI-powered picks with real-time contract performance and P&L tracking.">
-  <meta name="robots" content="index, follow">
+  <title>JayceTrades | Live Options Dashboard</title>
+  <meta name="description" content="Live options trade dashboard with AI-powered daily picks, real-time P&L tracking, win rate charts, and historical performance across day, week, month, year, and all-time views.">
+  <meta name="keywords" content="JayceTrades, options dashboard, live trade tracker, options P&L, AI trading signals, daily options picks, trade performance, win rate, options analytics, stock options, day trading dashboard, Jayce Bordelon">
+  <meta name="author" content="Jayce Bordelon">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
   <link rel="canonical" href="https://jaycetrades.com/dashboard">
-  <meta property="og:title" content="JayceTrades | Live Dashboard">
-  <meta property="og:description" content="Live options trade dashboard with real-time contract performance tracking.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_US">
   <meta property="og:url" content="https://jaycetrades.com/dashboard">
+  <meta property="og:title" content="JayceTrades | Live Options Dashboard">
+  <meta property="og:description" content="AI-powered options trade dashboard with daily picks, real-time P&L charts, and historical performance tracking.">
+  <meta property="og:site_name" content="JayceTrades">
+  <meta property="og:image" content="https://jaycebordelon.com/images/dawg.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="JayceTrades Live Options Dashboard">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="JayceTrades | Live Options Dashboard">
+  <meta name="twitter:description" content="AI-powered options trade dashboard with daily picks, real-time P&L charts, and historical performance.">
+  <meta name="twitter:image" content="https://jaycebordelon.com/images/dawg.jpg">
+  <meta name="twitter:creator" content="@JayceBordelon">
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "JayceTrades Live Dashboard",
+    "url": "https://jaycetrades.com/dashboard",
+    "description": "Live options trade dashboard with AI-powered daily picks, real-time P&L tracking, and historical performance charts.",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Jayce Bordelon",
+      "url": "https://jaycebordelon.com",
+      "jobTitle": "Software Engineer",
+      "sameAs": ["https://github.com/jaycebordelon", "https://linkedin.com/in/jaycebordelon"]
+    },
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "JayceTrades",
+      "url": "https://jaycetrades.com"
+    }
+  }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -476,8 +525,11 @@
         <div class="header-right">
           <a href="/" class="nav-link">Subscribe</a>
           <div class="mode-toggle">
-            <button class="mode-btn active" id="dayModeBtn" onclick="setMode('day')">Day</button>
-            <button class="mode-btn" id="weekModeBtn" onclick="setMode('week')">Week</button>
+            <button class="mode-btn active" id="mode_day" onclick="setMode('day')">Day</button>
+            <button class="mode-btn" id="mode_week" onclick="setMode('week')">Week</button>
+            <button class="mode-btn" id="mode_month" onclick="setMode('month')">Month</button>
+            <button class="mode-btn" id="mode_year" onclick="setMode('year')">Year</button>
+            <button class="mode-btn" id="mode_all" onclick="setMode('all')">All</button>
           </div>
           <div class="date-nav">
             <button class="date-nav-btn" id="prevBtn" onclick="navPrev()" title="Older">&#9664;</button>
@@ -514,10 +566,11 @@
     var countdown = REFRESH_SECONDS;
 
     // State
-    var mode = 'day'; // 'day' or 'week'
+    var MODES = ['day','week','month','year','all'];
+    var mode = 'day';
     var availableDates = []; // newest-first
     var dayIndex = 0; // index into availableDates (0 = newest)
-    var weekOffset = 0; // 0 = current week, 1 = last week, etc.
+    var rangeOffset = 0; // 0 = current period, 1 = previous, etc. (for week/month/year)
 
     // Helpers
     function fmt(n, d) { return Number(n).toFixed(d === undefined ? 2 : d); }
@@ -556,42 +609,66 @@
       return months[d.getMonth()] + ' ' + d.getDate();
     }
 
-    // Get Monday and Friday of a week containing refDate, shifted by weekOffset
-    function getWeekBounds(weekOff) {
+    // Date math helpers
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    function toDateStr(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+    function todayStr() { return toDateStr(new Date()); }
+
+    function getRangeBounds(m, off) {
       var now = new Date();
-      // shift by weekOff weeks
-      now.setDate(now.getDate() - weekOff * 7);
-      var day = now.getDay();
-      var diffToMon = (day === 0) ? -6 : 1 - day;
-      var mon = new Date(now);
-      mon.setDate(now.getDate() + diffToMon);
-      var fri = new Date(mon);
-      fri.setDate(mon.getDate() + 4);
-      function pad(n) { return n < 10 ? '0' + n : '' + n; }
-      function toStr(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
-      return { start: toStr(mon), end: toStr(fri) };
+      var start, end;
+      if (m === 'week') {
+        var ref = new Date(now); ref.setDate(ref.getDate() - off * 7);
+        var day = ref.getDay();
+        var diffToMon = (day === 0) ? -6 : 1 - day;
+        start = new Date(ref); start.setDate(ref.getDate() + diffToMon);
+        end = new Date(start); end.setDate(start.getDate() + 4);
+      } else if (m === 'month') {
+        start = new Date(now.getFullYear(), now.getMonth() - off, 1);
+        end = new Date(now.getFullYear(), now.getMonth() - off + 1, 0);
+      } else if (m === 'year') {
+        start = new Date(now.getFullYear() - off, 0, 1);
+        end = new Date(now.getFullYear() - off, 11, 31);
+      } else { // 'all'
+        return { start: '2020-01-01', end: todayStr() };
+      }
+      return { start: toDateStr(start), end: toDateStr(end) };
     }
 
-    function getWeekLabel(weekOff) {
-      var b = getWeekBounds(weekOff);
-      return formatMonthDay(b.start) + ' - ' + formatMonthDay(b.end);
+    function getRangeLabel(m, off) {
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      if (m === 'week') {
+        var b = getRangeBounds('week', off);
+        return formatMonthDay(b.start) + ' - ' + formatMonthDay(b.end);
+      } else if (m === 'month') {
+        var d = new Date(); d.setMonth(d.getMonth() - off);
+        return months[d.getMonth()] + ' ' + d.getFullYear();
+      } else if (m === 'year') {
+        return '' + (new Date().getFullYear() - off);
+      }
+      return 'All Time';
     }
 
-    // Oldest available week offset
-    function maxWeekOffset() {
+    function maxRangeOffset(m) {
       if (availableDates.length === 0) return 0;
       var oldest = availableDates[availableDates.length - 1];
       var p = oldest.split('-');
-      var oldestDate = new Date(p[0], p[1] - 1, p[2]);
+      var od = new Date(p[0], p[1] - 1, p[2]);
       var now = new Date();
-      var diffMs = now.getTime() - oldestDate.getTime();
-      return Math.ceil(diffMs / (7 * 24 * 60 * 60 * 1000));
+      if (m === 'week') {
+        return Math.ceil((now.getTime() - od.getTime()) / (7 * 86400000));
+      } else if (m === 'month') {
+        return (now.getFullYear() - od.getFullYear()) * 12 + now.getMonth() - od.getMonth();
+      } else if (m === 'year') {
+        return now.getFullYear() - od.getFullYear();
+      }
+      return 0; // 'all' has no offset
     }
 
     // Persist state to localStorage
     function saveState() {
       try {
-        var state = { mode: mode, weekOffset: weekOffset };
+        var state = { mode: mode, rangeOffset: rangeOffset };
         if (availableDates[dayIndex]) state.date = availableDates[dayIndex];
         localStorage.setItem('jt_dash', JSON.stringify(state));
       } catch (e) { /* ignore */ }
@@ -604,54 +681,37 @@
       return null;
     }
 
-    // Mode switching
-    function setMode(m) {
-      mode = m;
-      document.getElementById('dayModeBtn').className = 'mode-btn' + (m === 'day' ? ' active' : '');
-      document.getElementById('weekModeBtn').className = 'mode-btn' + (m === 'week' ? ' active' : '');
-      saveState();
-      if (m === 'day') {
-        updateDayNav();
-        loadDay();
-      } else {
-        updateWeekNav();
-        loadWeek();
+    // Update mode button highlights
+    function updateModeButtons() {
+      for (var i = 0; i < MODES.length; i++) {
+        var btn = document.getElementById('mode_' + MODES[i]);
+        if (btn) btn.className = 'mode-btn' + (MODES[i] === mode ? ' active' : '');
       }
     }
 
-    // Day navigation - left arrow = older (higher index), right arrow = newer (lower index)
+    // Mode switching
+    function setMode(m) {
+      mode = m;
+      if (m !== 'day') rangeOffset = 0;
+      updateModeButtons();
+      saveState();
+      if (m === 'day') { updateDayNav(); loadDay(); }
+      else { updateRangeNav(); loadRange(); }
+    }
+
+    // Navigation
     function navPrev() {
       if (mode === 'day') {
-        if (dayIndex < availableDates.length - 1) {
-          dayIndex++;
-          updateDayNav();
-          loadDay();
-          saveState();
-        }
-      } else {
-        if (weekOffset < maxWeekOffset()) {
-          weekOffset++;
-          updateWeekNav();
-          loadWeek();
-          saveState();
-        }
+        if (dayIndex < availableDates.length - 1) { dayIndex++; updateDayNav(); loadDay(); saveState(); }
+      } else if (mode !== 'all') {
+        if (rangeOffset < maxRangeOffset(mode)) { rangeOffset++; updateRangeNav(); loadRange(); saveState(); }
       }
     }
     function navNext() {
       if (mode === 'day') {
-        if (dayIndex > 0) {
-          dayIndex--;
-          updateDayNav();
-          loadDay();
-          saveState();
-        }
-      } else {
-        if (weekOffset > 0) {
-          weekOffset--;
-          updateWeekNav();
-          loadWeek();
-          saveState();
-        }
+        if (dayIndex > 0) { dayIndex--; updateDayNav(); loadDay(); saveState(); }
+      } else if (mode !== 'all') {
+        if (rangeOffset > 0) { rangeOffset--; updateRangeNav(); loadRange(); saveState(); }
       }
     }
 
@@ -661,20 +721,18 @@
       var next = document.getElementById('nextBtn');
       if (availableDates.length > 0 && dayIndex < availableDates.length) {
         label.textContent = formatDateShort(availableDates[dayIndex]);
-      } else {
-        label.textContent = 'No data';
-      }
+      } else { label.textContent = 'No data'; }
       prev.disabled = dayIndex >= availableDates.length - 1;
       next.disabled = dayIndex <= 0;
     }
 
-    function updateWeekNav() {
+    function updateRangeNav() {
       var label = document.getElementById('dateLabel');
       var prev = document.getElementById('prevBtn');
       var next = document.getElementById('nextBtn');
-      label.textContent = getWeekLabel(weekOffset);
-      prev.disabled = weekOffset >= maxWeekOffset();
-      next.disabled = weekOffset <= 0;
+      label.textContent = getRangeLabel(mode, rangeOffset);
+      if (mode === 'all') { prev.disabled = true; next.disabled = true; }
+      else { prev.disabled = rangeOffset >= maxRangeOffset(mode); next.disabled = rangeOffset <= 0; }
     }
 
     function loadDay() {
@@ -683,21 +741,15 @@
       if (date) url += '?date=' + date;
       fetch(url)
         .then(function(r) { return r.json(); })
-        .then(function(data) {
-          renderDayView(data);
-          countdown = REFRESH_SECONDS;
-        })
+        .then(function(data) { renderDayView(data); countdown = REFRESH_SECONDS; })
         .catch(function() { countdown = REFRESH_SECONDS; });
     }
 
-    function loadWeek() {
-      var b = getWeekBounds(weekOffset);
+    function loadRange() {
+      var b = getRangeBounds(mode, rangeOffset);
       fetch('/api/trades/week?start=' + b.start + '&end=' + b.end)
         .then(function(r) { return r.json(); })
-        .then(function(data) {
-          renderWeekView(data);
-          countdown = REFRESH_SECONDS;
-        })
+        .then(function(data) { renderWeekView(data); countdown = REFRESH_SECONDS; })
         .catch(function() { countdown = REFRESH_SECONDS; });
     }
 
@@ -957,7 +1009,8 @@
       var winRate = (totalWinners + totalLosers) > 0 ? (totalWinners / (totalWinners + totalLosers) * 100) : 0;
 
       var html = '';
-      html += '<div class="refresh-bar"><h1 style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">Weekly Performance</h1>' +
+      var rangeTitle = mode === 'week' ? 'Weekly' : mode === 'month' ? 'Monthly' : mode === 'year' ? 'Yearly' : 'All-Time';
+      html += '<div class="refresh-bar"><h1 style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">' + rangeTitle + ' Performance</h1>' +
         '<span class="refresh-timer" id="timer">Refreshes in ' + REFRESH_SECONDS + 's</span></div>';
       html += '<p style="color: var(--muted-foreground); font-size: 13px; margin-bottom: 20px;">' +
         totalTrades + ' trades across ' + data.days.length + ' trading days</p>';
@@ -1029,19 +1082,17 @@
           if (data.dates && data.dates.length > 0) {
             availableDates = data.dates;
           }
-          // Restore saved state
           if (saved) {
             if (saved.date && availableDates.length > 0) {
               var idx = availableDates.indexOf(saved.date);
               if (idx >= 0) dayIndex = idx;
             }
-            if (saved.weekOffset != null) weekOffset = saved.weekOffset;
-            if (saved.mode === 'week') {
-              mode = 'week';
-              document.getElementById('dayModeBtn').className = 'mode-btn';
-              document.getElementById('weekModeBtn').className = 'mode-btn active';
-              updateWeekNav();
-              loadWeek();
+            if (saved.rangeOffset != null) rangeOffset = saved.rangeOffset;
+            if (saved.mode && MODES.indexOf(saved.mode) >= 0 && saved.mode !== 'day') {
+              mode = saved.mode;
+              updateModeButtons();
+              updateRangeNav();
+              loadRange();
               return;
             }
           }
@@ -1059,7 +1110,7 @@
       if (timerEl) timerEl.textContent = 'Refreshes in ' + countdown + 's';
       if (countdown <= 0) {
         if (mode === 'day') loadDay();
-        else loadWeek();
+        else loadRange();
       }
     }
 
