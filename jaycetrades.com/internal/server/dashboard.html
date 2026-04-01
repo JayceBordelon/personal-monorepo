@@ -588,16 +588,32 @@
       return Math.ceil(diffMs / (7 * 24 * 60 * 60 * 1000));
     }
 
+    // Persist state to localStorage
+    function saveState() {
+      try {
+        var state = { mode: mode, weekOffset: weekOffset };
+        if (availableDates[dayIndex]) state.date = availableDates[dayIndex];
+        localStorage.setItem('jt_dash', JSON.stringify(state));
+      } catch (e) { /* ignore */ }
+    }
+    function loadState() {
+      try {
+        var raw = localStorage.getItem('jt_dash');
+        if (raw) return JSON.parse(raw);
+      } catch (e) { /* ignore */ }
+      return null;
+    }
+
     // Mode switching
     function setMode(m) {
       mode = m;
       document.getElementById('dayModeBtn').className = 'mode-btn' + (m === 'day' ? ' active' : '');
       document.getElementById('weekModeBtn').className = 'mode-btn' + (m === 'week' ? ' active' : '');
+      saveState();
       if (m === 'day') {
         updateDayNav();
         loadDay();
       } else {
-        weekOffset = 0;
         updateWeekNav();
         loadWeek();
       }
@@ -610,12 +626,14 @@
           dayIndex++;
           updateDayNav();
           loadDay();
+          saveState();
         }
       } else {
         if (weekOffset < maxWeekOffset()) {
           weekOffset++;
           updateWeekNav();
           loadWeek();
+          saveState();
         }
       }
     }
@@ -625,12 +643,14 @@
           dayIndex--;
           updateDayNav();
           loadDay();
+          saveState();
         }
       } else {
         if (weekOffset > 0) {
           weekOffset--;
           updateWeekNav();
           loadWeek();
+          saveState();
         }
       }
     }
@@ -1000,15 +1020,31 @@
       el.innerHTML = '<div class="fade-in">' + html + '</div>';
     }
 
-    // Startup: load dates, then render
+    // Startup: load dates, restore state, then render
     function init() {
+      var saved = loadState();
       fetch('/api/trades/dates')
         .then(function(r) { return r.json(); })
         .then(function(data) {
           if (data.dates && data.dates.length > 0) {
             availableDates = data.dates;
           }
-          dayIndex = 0;
+          // Restore saved state
+          if (saved) {
+            if (saved.date && availableDates.length > 0) {
+              var idx = availableDates.indexOf(saved.date);
+              if (idx >= 0) dayIndex = idx;
+            }
+            if (saved.weekOffset != null) weekOffset = saved.weekOffset;
+            if (saved.mode === 'week') {
+              mode = 'week';
+              document.getElementById('dayModeBtn').className = 'mode-btn';
+              document.getElementById('weekModeBtn').className = 'mode-btn active';
+              updateWeekNav();
+              loadWeek();
+              return;
+            }
+          }
           updateDayNav();
           loadDay();
         })
