@@ -102,7 +102,7 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 
 	// Use Responses API with web search enabled
 	reqBody := responsesAPIRequest{
-		Model: "gpt-4.1",
+		Model: "gpt-5.4",
 		Input: prompt,
 		Tools: []tool{
 			{Type: "web_search_preview"},
@@ -203,7 +203,7 @@ func (a *Analyzer) GetEndOfDayAnalysis(ctx context.Context, morningTrades []Trad
 	prompt := fmt.Sprintf(EndOfDayPrompt, today, weekday, string(tradesJSON))
 
 	reqBody := responsesAPIRequest{
-		Model: "gpt-4.1",
+		Model: "gpt-5.4",
 		Input: prompt,
 		Tools: []tool{
 			{Type: "web_search_preview"},
