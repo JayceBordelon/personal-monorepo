@@ -287,7 +287,7 @@ func sendStartupTestEmail(cfg *config.Config, db *store.Store, emailClient *emai
 	// 7. Cron scheduler
 	checks = append(checks, templates.HealthCheck{
 		Name: "Cron Scheduler", Status: "ok",
-		Detail: fmt.Sprintf("Open %s / Close %s / Weekly %s", cfg.CronScheduleOpen, cfg.CronScheduleClose, cfg.CronScheduleWeekly),
+		Detail:  fmt.Sprintf("Open %s / Close %s / Weekly %s", cfg.CronScheduleOpen, cfg.CronScheduleClose, cfg.CronScheduleWeekly),
 		Latency: "-",
 	})
 
