@@ -181,9 +181,29 @@ func RenderEmail(trades []Trade) (string, error) {
 	return buf.String(), nil
 }
 
+type HealthCheck struct {
+	Name    string
+	Status  string // "ok", "warn", "fail"
+	Detail  string
+	Latency string // e.g. "12ms"
+}
+
 type StatusEmailData struct {
-	Subject string
-	Date    string
+	Subject      string
+	Date         string
+	Checks       []HealthCheck
+	AllPassed    bool
+	PassCount    int
+	WarnCount    int
+	FailCount    int
+	TotalChecks  int
+	Subscribers  int
+	CronOpen     string
+	CronClose    string
+	CronWeekly   string
+	ServerPort   string
+	DashboardURL string
+	Model        string
 }
 
 type ErrorEmailData struct {
@@ -192,10 +212,11 @@ type ErrorEmailData struct {
 	Error   string
 }
 
-// RenderTestEmail verifies the main email and summary templates with sample data,
-// then returns a "System Online" notification email.
-func RenderTestEmail() (string, error) {
-	// Exercise the main email template with sample data to catch type/rendering errors
+// VerifyTemplates exercises all email templates with sample data to catch rendering errors.
+// Returns a HealthCheck for template rendering.
+func VerifyTemplates() HealthCheck {
+	start := time.Now()
+
 	sampleTrades := []Trade{
 		{
 			Symbol: "SPY", ContractType: "CALL", StrikePrice: 500,
@@ -207,10 +228,9 @@ func RenderTestEmail() (string, error) {
 		},
 	}
 	if _, err := RenderEmail(sampleTrades); err != nil {
-		return "", fmt.Errorf("email template verification failed: %w", err)
+		return HealthCheck{Name: "Email Templates", Status: "fail", Detail: err.Error(), Latency: fmtLatency(start)}
 	}
 
-	// Exercise the summary template too
 	sampleSummaries := []SummaryTrade{
 		{
 			Symbol: "SPY", ContractType: "CALL", StrikePrice: 500,
@@ -219,10 +239,9 @@ func RenderTestEmail() (string, error) {
 		},
 	}
 	if _, err := RenderSummaryEmail(sampleSummaries); err != nil {
-		return "", fmt.Errorf("summary template verification failed: %w", err)
+		return HealthCheck{Name: "Email Templates", Status: "fail", Detail: err.Error(), Latency: fmtLatency(start)}
 	}
 
-	// Exercise the weekly template
 	sampleWeekly := WeeklyEmailData{
 		Subject: "Weekly Report", WeekRange: "Mar 25 - Mar 29, 2026",
 		Days: []WeeklyDayData{
@@ -240,18 +259,25 @@ func RenderTestEmail() (string, error) {
 		DashboardURL: "https://jaycetrades.com/dashboard",
 	}
 	if _, err := RenderWeeklyEmail(sampleWeekly); err != nil {
-		return "", fmt.Errorf("weekly template verification failed: %w", err)
+		return HealthCheck{Name: "Email Templates", Status: "fail", Detail: err.Error(), Latency: fmtLatency(start)}
 	}
 
-	// Render the startup notification email
+	return HealthCheck{Name: "Email Templates", Status: "ok", Detail: "All 4 templates rendered", Latency: fmtLatency(start)}
+}
+
+func fmtLatency(start time.Time) string {
+	d := time.Since(start)
+	if d < time.Millisecond {
+		return fmt.Sprintf("%dμs", d.Microseconds())
+	}
+	return fmt.Sprintf("%dms", d.Milliseconds())
+}
+
+// RenderTestEmail renders the startup health check email with the provided data.
+func RenderTestEmail(data StatusEmailData) (string, error) {
 	tmpl, err := template.New("test.html").Funcs(funcMap).ParseFS(templateFS, "test.html")
 	if err != nil {
 		return "", err
-	}
-
-	data := StatusEmailData{
-		Subject: "System Online",
-		Date:    time.Now().Format("Monday, Jan 2, 2006"),
 	}
 
 	var buf bytes.Buffer

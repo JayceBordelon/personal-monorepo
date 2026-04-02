@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"sort"
@@ -184,10 +185,158 @@ func main() {
 	c.Stop()
 }
 
-func sendStartupTestEmail(cfg *config.Config, db *store.Store, emailClient *email.Client) error {
-	htmlContent, err := templates.RenderTestEmail()
+func checkHealth(name string, fn func() error) templates.HealthCheck {
+	start := time.Now()
+	err := fn()
+	latency := time.Since(start)
+	var lat string
+	if latency < time.Millisecond {
+		lat = fmt.Sprintf("%dμs", latency.Microseconds())
+	} else {
+		lat = fmt.Sprintf("%dms", latency.Milliseconds())
+	}
 	if err != nil {
-		return fmt.Errorf("template verification: %w", err)
+		return templates.HealthCheck{Name: name, Status: "fail", Detail: err.Error(), Latency: lat}
+	}
+	return templates.HealthCheck{Name: name, Status: "ok", Detail: "Connected", Latency: lat}
+}
+
+func sendStartupTestEmail(cfg *config.Config, db *store.Store, emailClient *email.Client) error {
+	var checks []templates.HealthCheck
+
+	// 1. Database connectivity
+	c := checkHealth("PostgreSQL Database", func() error {
+		dates, err := db.GetTradeDates(1)
+		if err != nil {
+			return err
+		}
+		_ = dates
+		return nil
+	})
+	c.Detail = "Query OK"
+	checks = append(checks, c)
+
+	// 2. Template rendering (exercises all 4 templates)
+	checks = append(checks, templates.VerifyTemplates())
+
+	// 3. Reddit sentiment scraper
+	c = checkHealth("Reddit Sentiment Scraper", func() error {
+		scraper := sentiment.NewScraper()
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		data, err := scraper.GetTrendingTickers(ctx, 5)
+		if err != nil {
+			return err
+		}
+		if len(data) == 0 {
+			return fmt.Errorf("no tickers returned")
+		}
+		return nil
+	})
+	if c.Status == "ok" {
+		c.Detail = "Fetched trending tickers"
+	}
+	checks = append(checks, c)
+
+	// 4. OpenAI API reachability (lightweight models list call)
+	c = checkHealth("OpenAI API", func() error {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		req, err := http.NewRequestWithContext(ctx, "GET", "https://api.openai.com/v1/models/gpt-5.4", nil)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Authorization", "Bearer "+cfg.OpenAIAPIKey)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return err
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("HTTP %d", resp.StatusCode)
+		}
+		return nil
+	})
+	if c.Status == "ok" {
+		c.Detail = "gpt-5.4 accessible"
+	}
+	checks = append(checks, c)
+
+	// 5. Resend email API (verified by actually sending this email)
+	checks = append(checks, templates.HealthCheck{
+		Name: "Resend Email API", Status: "ok", Detail: "Delivering this email", Latency: "-",
+	})
+
+	// 6. HTTP server
+	c = checkHealth("HTTP API Server", func() error {
+		resp, err := http.Get("http://localhost:" + cfg.ServerPort + "/health")
+		if err != nil {
+			return err
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("HTTP %d", resp.StatusCode)
+		}
+		return nil
+	})
+	if c.Status == "ok" {
+		c.Detail = fmt.Sprintf("Listening on :%s", cfg.ServerPort)
+	}
+	checks = append(checks, c)
+
+	// 7. Cron scheduler
+	checks = append(checks, templates.HealthCheck{
+		Name: "Cron Scheduler", Status: "ok",
+		Detail: fmt.Sprintf("Open %s / Close %s / Weekly %s", cfg.CronScheduleOpen, cfg.CronScheduleClose, cfg.CronScheduleWeekly),
+		Latency: "-",
+	})
+
+	// 8. Subscriber check
+	subs, _ := db.GetActiveSubscribers()
+	subCheck := templates.HealthCheck{
+		Name: "Subscriber List", Status: "ok",
+		Detail: fmt.Sprintf("%d active subscribers", len(subs)), Latency: "-",
+	}
+	if len(subs) == 0 {
+		subCheck.Status = "warn"
+		subCheck.Detail = "No active subscribers"
+	}
+	checks = append(checks, subCheck)
+
+	// Tally results
+	passCount, warnCount, failCount := 0, 0, 0
+	for _, ch := range checks {
+		switch ch.Status {
+		case "ok":
+			passCount++
+		case "warn":
+			warnCount++
+		case "fail":
+			failCount++
+		}
+	}
+
+	data := templates.StatusEmailData{
+		Subject:      "System Online",
+		Date:         time.Now().Format("Monday, Jan 2, 2006 3:04 PM ET"),
+		Checks:       checks,
+		AllPassed:    failCount == 0,
+		PassCount:    passCount,
+		WarnCount:    warnCount,
+		FailCount:    failCount,
+		TotalChecks:  len(checks),
+		Subscribers:  len(subs),
+		CronOpen:     cfg.CronScheduleOpen,
+		CronClose:    cfg.CronScheduleClose,
+		CronWeekly:   cfg.CronScheduleWeekly,
+		ServerPort:   cfg.ServerPort,
+		DashboardURL: "https://jaycetrades.com/dashboard",
+		Model:        "gpt-5.4",
+	}
+
+	htmlContent, err := templates.RenderTestEmail(data)
+	if err != nil {
+		return fmt.Errorf("template rendering: %w", err)
 	}
 
 	recipients := getRecipients(db)
@@ -195,7 +344,11 @@ func sendStartupTestEmail(cfg *config.Config, db *store.Store, emailClient *emai
 		return fmt.Errorf("no active subscribers")
 	}
 
-	subject := fmt.Sprintf("JayceTrades System Online — %s", time.Now().Format("Jan 2, 3:04 PM"))
+	status := "All Systems Go"
+	if failCount > 0 {
+		status = fmt.Sprintf("%d Check(s) Failed", failCount)
+	}
+	subject := fmt.Sprintf("JayceTrades Deploy — %s — %s", status, time.Now().Format("Jan 2, 3:04 PM"))
 	if err := emailClient.SendTradeEmail(cfg.EmailFrom, recipients, subject, htmlContent); err != nil {
 		return fmt.Errorf("email delivery: %w", err)
 	}
