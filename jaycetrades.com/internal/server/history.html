@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>JayceTrades | Historical Performance</title>
+  <meta name="description" content="Historical options trading performance with equity curves, exposure analysis, risk metrics, and period-over-period analytics.">
+  <meta name="keywords" content="JayceTrades, options performance, equity curve, P&L history, trading analytics, risk metrics, profit factor, win rate, options history">
+  <meta name="author" content="Jayce Bordelon">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://jaycetrades.com/history">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://jaycetrades.com/history">
+  <meta property="og:title" content="JayceTrades | Historical Performance">
+  <meta property="og:description" content="Track historical options trading performance with equity curves, exposure analytics, and risk metrics.">
+  <meta property="og:site_name" content="JayceTrades">
+  <meta property="og:image" content="https://jaycebordelon.com/images/dawg.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="JayceTrades | Historical Performance">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --background: #fafafa;
+      --foreground: #0f172a;
+      --card: #ffffff;
+      --card-foreground: #0f172a;
+      --primary: #475569;
+      --primary-foreground: #ffffff;
+      --muted: #f1f5f9;
+      --muted-foreground: #64748b;
+      --accent: #94a3b8;
+      --border: #e2e8f0;
+      --input: #e2e8f0;
+      --ring: #475569;
+      --radius: 0.5rem;
+      --green: #16a34a;
+      --green-bg: #dcfce7;
+      --green-light: #f0fdf4;
+      --green-border: #bbf7d0;
+      --red: #dc2626;
+      --red-bg: #fee2e2;
+      --red-light: #fef2f2;
+      --red-border: #fecaca;
+      --blue: #1d4ed8;
+      --blue-bg: #dbeafe;
+      --amber: #b45309;
+      --amber-bg: #fef3c7;
+      --chart-grid: #e2e8f0;
+      --chart-text: #64748b;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: #0f172a;
+        --foreground: #f1f5f9;
+        --card: #1e293b;
+        --card-foreground: #f1f5f9;
+        --primary: #94a3b8;
+        --primary-foreground: #0f172a;
+        --muted: #1e293b;
+        --muted-foreground: #94a3b8;
+        --accent: #cbd5e1;
+        --border: #334155;
+        --input: #334155;
+        --ring: #94a3b8;
+        --green-bg: rgba(22,163,74,0.15);
+        --green-light: rgba(22,163,74,0.08);
+        --green-border: rgba(22,163,74,0.3);
+        --red-bg: rgba(220,38,38,0.15);
+        --red-light: rgba(220,38,38,0.08);
+        --red-border: rgba(220,38,38,0.3);
+        --blue-bg: rgba(29,78,216,0.15);
+        --amber-bg: rgba(180,83,9,0.15);
+        --chart-grid: #334155;
+        --chart-text: #94a3b8;
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background-color: var(--background);
+      color: var(--foreground);
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+    .mono { font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace; }
+    .page { max-width: 1100px; margin: 0 auto; }
+    .main-card {
+      background-color: var(--card); color: var(--card-foreground);
+      border: 1px solid var(--border); border-radius: 0.75rem;
+      box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .header {
+      padding: 16px 28px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px;
+    }
+    .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; text-decoration: none; }
+    .logo-jayce { color: var(--foreground); }
+    .logo-trades { color: var(--primary); }
+    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .nav-link {
+      color: var(--muted-foreground); font-size: 13px; text-decoration: none; transition: color 0.15s;
+      padding: 4px 8px; border-radius: 4px;
+    }
+    .nav-link:hover { color: var(--foreground); }
+    .nav-link.active { color: var(--foreground); font-weight: 600; background: var(--muted); }
+    .mode-toggle {
+      display: flex; background: var(--muted); border: 1px solid var(--border);
+      border-radius: 6px; overflow: hidden;
+    }
+    .mode-btn {
+      background: none; border: none; cursor: pointer;
+      padding: 5px 14px; font-size: 12px; font-weight: 600;
+      color: var(--muted-foreground); font-family: inherit; transition: all 0.15s;
+    }
+    .mode-btn.active { background: var(--primary); color: var(--primary-foreground); }
+    .mode-btn:not(.active):hover { color: var(--foreground); }
+    .date-nav {
+      display: flex; align-items: center;
+      background: var(--muted); border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden;
+    }
+    .date-nav-btn {
+      background: none; border: none; cursor: pointer;
+      padding: 6px 10px; color: var(--muted-foreground);
+      font-size: 14px; font-weight: 600; transition: all 0.15s;
+      display: flex; align-items: center;
+    }
+    .date-nav-btn:hover { color: var(--foreground); background: var(--border); }
+    .date-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .date-nav-label {
+      padding: 6px 14px; font-size: 13px; font-weight: 600;
+      color: var(--foreground); white-space: nowrap;
+      border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+      min-width: 160px; text-align: center;
+    }
+
+    .content { padding: 24px 28px; }
+
+    /* Stats */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 12px; margin-bottom: 24px;
+    }
+    .stats-grid-8 { grid-template-columns: repeat(4, 1fr); }
+    @media (max-width: 640px) { .stats-grid, .stats-grid-8 { grid-template-columns: repeat(2, 1fr); } }
+    .stat-card {
+      background: var(--muted); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; text-align: center;
+    }
+    .stat-value { font-size: 28px; font-weight: 800; line-height: 1.1; }
+    .stat-value-sm { font-size: 20px; font-weight: 800; line-height: 1.1; }
+    .stat-label {
+      font-size: 10px; color: var(--muted-foreground); text-transform: uppercase;
+      letter-spacing: 0.5px; font-weight: 600; margin-top: 4px;
+    }
+    .stat-sub { font-size: 11px; color: var(--muted-foreground); margin-top: 2px; }
+    .win-bar-container {
+      width: 100%; height: 6px; background: var(--red-bg);
+      border-radius: 3px; margin-top: 8px; overflow: hidden;
+    }
+    .win-bar-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.5s ease; }
+
+    .color-green { color: var(--green); }
+    .color-red { color: var(--red); }
+    .color-muted { color: var(--muted-foreground); }
+
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .section-title { font-size: 16px; font-weight: 700; }
+    .section-subtitle { font-size: 12px; color: var(--muted-foreground); }
+    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+    /* Canvas charts */
+    .canvas-wrap {
+      background: var(--muted); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 24px;
+    }
+    .canvas-title {
+      font-size: 14px; font-weight: 700; margin-bottom: 4px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .canvas-subtitle { font-size: 12px; color: var(--muted-foreground); margin-bottom: 16px; }
+    .chart-canvas {
+      width: 100%; height: 260px; display: block;
+    }
+
+    /* Exposure panel */
+    .exposure-panel {
+      background: var(--muted); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 24px;
+    }
+    .exposure-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .exposure-subtitle { font-size: 12px; color: var(--muted-foreground); margin-bottom: 16px; }
+    .exposure-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px;
+    }
+    .exposure-metric-label {
+      font-size: 9px; color: var(--muted-foreground); text-transform: uppercase;
+      letter-spacing: 0.5px; font-weight: 600;
+    }
+    .exposure-metric-value { font-size: 20px; font-weight: 800; margin-top: 2px; }
+    .exposure-metric-sub { font-size: 11px; color: var(--muted-foreground); margin-top: 1px; }
+
+    /* Week daily bars */
+    .week-day-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background 0.1s;
+    }
+    .week-day-row:hover { background: var(--muted); margin: 0 -8px; padding: 10px 8px; border-radius: 4px; }
+    .week-day-row:last-child { border-bottom: none; }
+    .week-day-label { width: 80px; flex-shrink: 0; }
+    .week-day-name { font-size: 14px; font-weight: 700; }
+    .week-day-date { font-size: 11px; color: var(--muted-foreground); }
+    .week-day-stats { font-size: 11px; color: var(--muted-foreground); width: 90px; flex-shrink: 0; }
+    .week-day-bar { flex: 1; height: 28px; background: var(--muted); border-radius: 4px; overflow: hidden; }
+    .week-day-pnl { width: 70px; text-align: right; font-size: 15px; font-weight: 800; flex-shrink: 0; }
+    .chart-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; min-width: 2px; }
+    .chart-bar-profit { background: var(--green); opacity: 0.65; }
+    .chart-bar-loss { background: var(--red); opacity: 0.65; }
+    .week-day-detail { overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.25s ease-out; max-height: 0; opacity: 0; }
+    .week-day-detail.open { max-height: 2000px; opacity: 1; }
+    .week-trade-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 12px; border-radius: 6px; margin-bottom: 4px;
+    }
+    .week-trade-row.profit { background: var(--green-light); border: 1px solid var(--green-border); }
+    .week-trade-row.loss { background: var(--red-light); border: 1px solid var(--red-border); }
+    .week-trade-row.flat { background: var(--muted); border: 1px solid var(--border); }
+    .week-trade-symbol { font-size: 13px; font-weight: 700; width: 70px; font-family: 'JetBrains Mono', monospace; }
+    .week-trade-spec { font-size: 11px; color: var(--muted-foreground); flex: 1; }
+    .week-trade-prices { font-size: 11px; color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace; }
+    .week-trade-pnl { font-size: 13px; font-weight: 700; width: 70px; text-align: right; font-family: 'JetBrains Mono', monospace; }
+    .chart-type {
+      font-size: 9px; font-weight: 700; padding: 2px 5px;
+      border-radius: 3px; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .chart-type-call { background: var(--green-bg); color: var(--green); }
+    .chart-type-put { background: var(--red-bg); color: var(--red); }
+
+    .badge {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    /* Methodology section */
+    .methodology {
+      background: var(--muted); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-top: 24px;
+    }
+    .methodology h3 {
+      font-size: 16px; font-weight: 700; margin-bottom: 16px;
+    }
+    .methodology h4 {
+      font-size: 13px; font-weight: 700; margin: 16px 0 6px;
+      text-transform: uppercase; letter-spacing: 0.5px; color: var(--foreground);
+    }
+    .methodology h4:first-child { margin-top: 0; }
+    .methodology p, .methodology li {
+      font-size: 13px; color: var(--muted-foreground); line-height: 1.7;
+    }
+    .methodology ul { padding-left: 16px; margin: 4px 0; }
+    .methodology li { margin-bottom: 4px; }
+    .methodology code {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      background: var(--border); padding: 1px 5px; border-radius: 3px;
+    }
+    .source-tag {
+      display: inline-block; font-size: 10px; font-weight: 600; padding: 3px 8px;
+      border-radius: 4px; background: var(--border); color: var(--muted-foreground);
+      margin-right: 6px; margin-bottom: 4px;
+    }
+
+    .footer {
+      padding: 20px 28px; border-top: 1px solid var(--border); text-align: center;
+    }
+    .footer-text { color: var(--muted-foreground); font-size: 11px; line-height: 1.5; }
+    .footer-brand { margin-top: 8px; }
+    .footer-brand .logo { font-size: 14px; }
+    .footer-links { margin-top: 8px; }
+    .footer-links a {
+      color: var(--muted-foreground); font-size: 12px; text-decoration: underline;
+      text-underline-offset: 2px; transition: color 0.15s; margin: 0 6px;
+    }
+    .footer-links a:hover { color: var(--foreground); }
+    .empty-state { text-align: center; padding: 60px 20px; }
+    .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+    .empty-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .empty-sub { color: var(--muted-foreground); font-size: 14px; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInScale {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .fade-in { animation: fadeIn 0.35s ease-out both; }
+    .stats-grid .stat-card { animation: fadeInScale 0.35s ease-out both; }
+    .stats-grid .stat-card:nth-child(1) { animation-delay: 0.05s; }
+    .stats-grid .stat-card:nth-child(2) { animation-delay: 0.1s; }
+    .stats-grid .stat-card:nth-child(3) { animation-delay: 0.15s; }
+    .stats-grid .stat-card:nth-child(4) { animation-delay: 0.2s; }
+    .stats-grid .stat-card:nth-child(5) { animation-delay: 0.25s; }
+    .stats-grid .stat-card:nth-child(6) { animation-delay: 0.3s; }
+    .stats-grid .stat-card:nth-child(7) { animation-delay: 0.35s; }
+    .stats-grid .stat-card:nth-child(8) { animation-delay: 0.4s; }
+    .stat-card { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .week-day-row { animation: fadeIn 0.3s ease-out both; }
+
+    @media (max-width: 640px) {
+      .page { padding: 0; }
+      body { padding: 12px 8px; }
+      .header { padding: 12px 16px; gap: 8px; }
+      .header-right { gap: 6px; width: 100%; justify-content: flex-end; }
+      .content { padding: 16px; }
+      .logo { font-size: 20px; }
+      .date-nav-label { min-width: 120px; font-size: 12px; padding: 6px 10px; }
+      .stats-grid { gap: 8px; }
+      .stat-value { font-size: 22px; }
+      .stat-value-sm { font-size: 17px; }
+      .chart-canvas { height: 200px; }
+      .canvas-wrap { padding: 14px; }
+      .exposure-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .exposure-metric-value { font-size: 16px; }
+      .week-day-row { gap: 6px; padding: 8px 0; }
+      .week-day-label { width: 60px; }
+      .week-day-name { font-size: 13px; }
+      .week-day-stats { width: 65px; font-size: 10px; }
+      .week-day-pnl { width: 55px; font-size: 13px; }
+      .week-trade-row { flex-wrap: wrap; gap: 4px; padding: 8px 10px; }
+      .footer { padding: 16px; }
+      .section-title { font-size: 14px; }
+      .mode-btn { padding: 5px 10px; font-size: 11px; }
+    }
+    @media (max-width: 400px) {
+      .header-right { flex-wrap: wrap; }
+      .stats-grid { gap: 6px; }
+      .stat-card { padding: 12px 8px; }
+      .stat-value { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="main-card">
+      <div class="header">
+        <a href="/" style="text-decoration: none;">
+          <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
+        </a>
+        <div class="header-right">
+          <a href="/dashboard" class="nav-link">Dashboard</a>
+          <a href="/history" class="nav-link active">History</a>
+          <a href="/" class="nav-link">Subscribe</a>
+          <div class="mode-toggle">
+            <button class="mode-btn active" id="mode_week" onclick="setMode('week')">Week</button>
+            <button class="mode-btn" id="mode_month" onclick="setMode('month')">Month</button>
+            <button class="mode-btn" id="mode_year" onclick="setMode('year')">Year</button>
+            <button class="mode-btn" id="mode_all" onclick="setMode('all')">All</button>
+          </div>
+          <div class="date-nav">
+            <button class="date-nav-btn" id="prevBtn" onclick="navPrev()" title="Older">&#9664;</button>
+            <span class="date-nav-label" id="dateLabel">Loading...</span>
+            <button class="date-nav-btn" id="nextBtn" onclick="navNext()" title="Newer">&#9654;</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="content" id="mainContent">
+        <div class="empty-state">
+          <div class="empty-icon">&#9203;</div>
+          <div class="empty-title">Loading performance data...</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p class="footer-text">
+          <strong>Disclaimer:</strong> Not financial advice. Options trading involves substantial risk of loss.
+          Past performance does not guarantee future results. All P&amp;L assumes 1 contract per trade.
+        </p>
+        <div class="footer-brand">
+          <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
+        </div>
+        <div class="footer-links">
+          <a href="/dashboard">Live dashboard</a>
+          <a href="/">Subscribe for free email alerts</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── State ──
+    var MODES = ['week','month','year','all'];
+    var mode = 'week';
+    var rangeOffset = 0;
+    var availableDates = [];
+
+    // ── Helpers ──
+    function fmt(n, d) { return Number(n).toFixed(d === undefined ? 2 : d); }
+    function fmtPct(n) { return (n > 0 ? '+' : '') + fmt(n, 0) + '%'; }
+    function fmtPctDec(n) { return (n > 0 ? '+' : '') + fmt(n, 1) + '%'; }
+    function fmtMoney(n) { return '$' + fmt(n); }
+    function fmtMoneyInt(n) { return '$' + fmt(Math.abs(n), 0); }
+    function fmtPnlInt(n) { return (n > 0 ? '+$' : n < 0 ? '-$' : '$') + fmt(Math.abs(n), 0); }
+    function pnlColor(v) { return v > 0 ? 'color-green' : v < 0 ? 'color-red' : 'color-muted'; }
+    function isDark() { return window.matchMedia('(prefers-color-scheme: dark)').matches; }
+    function escapeHtml(text) {
+      var d = document.createElement('div');
+      d.appendChild(document.createTextNode(text));
+      return d.innerHTML;
+    }
+    function formatDayName(dateStr) {
+      var p = dateStr.split('-');
+      var d = new Date(p[0], p[1] - 1, p[2]);
+      return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+    }
+    function formatMonthDay(dateStr) {
+      var p = dateStr.split('-');
+      var d = new Date(p[0], p[1] - 1, p[2]);
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return months[d.getMonth()] + ' ' + d.getDate();
+    }
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    function toDateStr(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+    function todayStr() { return toDateStr(new Date()); }
+
+    // ── Date Range Math ──
+    function getRangeBounds(m, off) {
+      var now = new Date();
+      var start, end;
+      if (m === 'week') {
+        var ref = new Date(now); ref.setDate(ref.getDate() - off * 7);
+        var day = ref.getDay();
+        var diffToMon = (day === 0) ? -6 : 1 - day;
+        start = new Date(ref); start.setDate(ref.getDate() + diffToMon);
+        end = new Date(start); end.setDate(start.getDate() + 4);
+      } else if (m === 'month') {
+        start = new Date(now.getFullYear(), now.getMonth() - off, 1);
+        end = new Date(now.getFullYear(), now.getMonth() - off + 1, 0);
+      } else if (m === 'year') {
+        start = new Date(now.getFullYear() - off, 0, 1);
+        end = new Date(now.getFullYear() - off, 11, 31);
+      } else {
+        return { start: '2020-01-01', end: todayStr() };
+      }
+      return { start: toDateStr(start), end: toDateStr(end) };
+    }
+
+    function getRangeLabel(m, off) {
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      if (m === 'week') {
+        var b = getRangeBounds('week', off);
+        return formatMonthDay(b.start) + ' \u2013 ' + formatMonthDay(b.end);
+      } else if (m === 'month') {
+        var d = new Date(); d.setMonth(d.getMonth() - off);
+        return months[d.getMonth()] + ' ' + d.getFullYear();
+      } else if (m === 'year') {
+        return '' + (new Date().getFullYear() - off);
+      }
+      return 'All Time';
+    }
+
+    function maxRangeOffset(m) {
+      if (availableDates.length === 0) return 0;
+      var oldest = availableDates[availableDates.length - 1];
+      var p = oldest.split('-');
+      var od = new Date(p[0], p[1] - 1, p[2]);
+      var now = new Date();
+      if (m === 'week') return Math.ceil((now.getTime() - od.getTime()) / (7 * 86400000));
+      if (m === 'month') return (now.getFullYear() - od.getFullYear()) * 12 + now.getMonth() - od.getMonth();
+      if (m === 'year') return now.getFullYear() - od.getFullYear();
+      return 0;
+    }
+
+    // ── Persistence ──
+    function saveState() {
+      try { localStorage.setItem('jt_hist', JSON.stringify({ mode: mode, rangeOffset: rangeOffset })); } catch (e) {}
+    }
+    function loadState() {
+      try { var r = localStorage.getItem('jt_hist'); return r ? JSON.parse(r) : null; } catch (e) { return null; }
+    }
+
+    // ── Mode / Nav ──
+    function updateModeButtons() {
+      MODES.forEach(function(m) {
+        var btn = document.getElementById('mode_' + m);
+        if (btn) btn.className = 'mode-btn' + (m === mode ? ' active' : '');
+      });
+    }
+    function setMode(m) {
+      mode = m; rangeOffset = 0;
+      updateModeButtons(); updateRangeNav(); loadRange(); saveState();
+    }
+    function navPrev() {
+      if (mode !== 'all' && rangeOffset < maxRangeOffset(mode)) {
+        rangeOffset++; updateRangeNav(); loadRange(); saveState();
+      }
+    }
+    function navNext() {
+      if (mode !== 'all' && rangeOffset > 0) {
+        rangeOffset--; updateRangeNav(); loadRange(); saveState();
+      }
+    }
+    function updateRangeNav() {
+      document.getElementById('dateLabel').textContent = getRangeLabel(mode, rangeOffset);
+      var prev = document.getElementById('prevBtn'), next = document.getElementById('nextBtn');
+      if (mode === 'all') { prev.disabled = true; next.disabled = true; }
+      else { prev.disabled = rangeOffset >= maxRangeOffset(mode); next.disabled = rangeOffset <= 0; }
+    }
+
+    // ── Data Loading ──
+    function loadRange() {
+      var b = getRangeBounds(mode, rangeOffset);
+      fetch('/api/trades/week?start=' + b.start + '&end=' + b.end)
+        .then(function(r) { return r.json(); })
+        .then(function(data) { renderHistoryView(data); })
+        .catch(function() {});
+    }
+
+    function toggleWeekDay(idx) {
+      var el = document.getElementById('weekday-detail-' + idx);
+      if (el) el.classList.toggle('open');
+    }
+
+    // ── Canvas: Setup ──
+    function setupCanvas(canvas) {
+      var rect = canvas.getBoundingClientRect();
+      var dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      var ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      return { ctx: ctx, w: rect.width, h: rect.height };
+    }
+
+    function getChartColors() {
+      var dark = isDark();
+      return {
+        grid: dark ? '#334155' : '#e2e8f0',
+        text: dark ? '#94a3b8' : '#64748b',
+        green: dark ? '#4ade80' : '#16a34a',
+        red: dark ? '#f87171' : '#dc2626',
+        blue: dark ? '#60a5fa' : '#3b82f6',
+        greenFill: dark ? 'rgba(74,222,128,0.15)' : 'rgba(22,163,74,0.1)',
+        redFill: dark ? 'rgba(248,113,113,0.15)' : 'rgba(220,38,38,0.1)',
+        zero: dark ? '#475569' : '#94a3b8'
+      };
+    }
+
+    // ── Canvas: Equity Curve ──
+    function drawEquityCurve(canvasId, dataPoints) {
+      var canvas = document.getElementById(canvasId);
+      if (!canvas || dataPoints.length === 0) return;
+      var s = setupCanvas(canvas);
+      var ctx = s.ctx, w = s.w, h = s.h;
+      var c = getChartColors();
+      var pad = { top: 24, right: 20, bottom: 36, left: 60 };
+      var pw = w - pad.left - pad.right;
+      var ph = h - pad.top - pad.bottom;
+
+      var minV = 0, maxV = 0;
+      for (var i = 0; i < dataPoints.length; i++) {
+        if (dataPoints[i].cumPnl < minV) minV = dataPoints[i].cumPnl;
+        if (dataPoints[i].cumPnl > maxV) maxV = dataPoints[i].cumPnl;
+      }
+      var margin = Math.max(Math.abs(maxV - minV) * 0.1, 10);
+      minV -= margin; maxV += margin;
+      var range = maxV - minV || 1;
+
+      // Grid
+      ctx.strokeStyle = c.grid; ctx.lineWidth = 0.5;
+      var gridLines = 5;
+      ctx.font = '11px JetBrains Mono, monospace';
+      ctx.fillStyle = c.text; ctx.textAlign = 'right';
+      for (var g = 0; g <= gridLines; g++) {
+        var gy = pad.top + (g / gridLines) * ph;
+        var gVal = maxV - (g / gridLines) * range;
+        ctx.beginPath(); ctx.moveTo(pad.left, gy); ctx.lineTo(w - pad.right, gy); ctx.stroke();
+        ctx.fillText('$' + Math.round(gVal), pad.left - 8, gy + 4);
+      }
+
+      // Zero line
+      if (minV < 0 && maxV > 0) {
+        var zeroY = pad.top + ph * (maxV / range);
+        ctx.strokeStyle = c.zero; ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(pad.left, zeroY); ctx.lineTo(w - pad.right, zeroY); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Line
+      var pts = [];
+      for (var i = 0; i < dataPoints.length; i++) {
+        var x = pad.left + (dataPoints.length === 1 ? pw / 2 : (i / (dataPoints.length - 1)) * pw);
+        var y = pad.top + ph * ((maxV - dataPoints[i].cumPnl) / range);
+        pts.push({ x: x, y: y });
+      }
+
+      // Gradient fill
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.lineTo(pts[pts.length - 1].x, pad.top + ph);
+      ctx.lineTo(pts[0].x, pad.top + ph);
+      ctx.closePath();
+      var lastPnl = dataPoints[dataPoints.length - 1].cumPnl;
+      var grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ph);
+      grad.addColorStop(0, lastPnl >= 0 ? c.greenFill : c.redFill);
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Stroke
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.strokeStyle = lastPnl >= 0 ? c.green : c.red;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Dots at each point
+      for (var i = 0; i < pts.length; i++) {
+        ctx.beginPath();
+        ctx.arc(pts[i].x, pts[i].y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = dataPoints[i].cumPnl >= 0 ? c.green : c.red;
+        ctx.fill();
+      }
+
+      // Date labels
+      ctx.fillStyle = c.text; ctx.textAlign = 'center';
+      ctx.font = '10px Plus Jakarta Sans, sans-serif';
+      var step = Math.max(1, Math.floor(dataPoints.length / 6));
+      for (var i = 0; i < dataPoints.length; i += step) {
+        ctx.fillText(formatMonthDay(dataPoints[i].date), pts[i].x, h - pad.bottom + 18);
+      }
+      // Always label last
+      if (dataPoints.length > 1) {
+        ctx.fillText(formatMonthDay(dataPoints[dataPoints.length - 1].date), pts[pts.length - 1].x, h - pad.bottom + 18);
+      }
+    }
+
+    // ── Canvas: Daily P&L Bars ──
+    function drawDailyPnlBars(canvasId, dayStats) {
+      var canvas = document.getElementById(canvasId);
+      if (!canvas || dayStats.length === 0) return;
+      var s = setupCanvas(canvas);
+      var ctx = s.ctx, w = s.w, h = s.h;
+      var c = getChartColors();
+      var pad = { top: 20, right: 20, bottom: 36, left: 60 };
+      var pw = w - pad.left - pad.right;
+      var ph = h - pad.top - pad.bottom;
+
+      var maxAbs = 1;
+      for (var i = 0; i < dayStats.length; i++) {
+        if (Math.abs(dayStats[i].pnl) > maxAbs) maxAbs = Math.abs(dayStats[i].pnl);
+      }
+      maxAbs *= 1.15;
+
+      // Zero line at center
+      var zeroY = pad.top + ph / 2;
+
+      // Grid
+      ctx.strokeStyle = c.grid; ctx.lineWidth = 0.5;
+      ctx.font = '11px JetBrains Mono, monospace';
+      ctx.fillStyle = c.text; ctx.textAlign = 'right';
+      var gridVals = [maxAbs, maxAbs / 2, 0, -maxAbs / 2, -maxAbs];
+      for (var g = 0; g < gridVals.length; g++) {
+        var gy = zeroY - (gridVals[g] / maxAbs) * (ph / 2);
+        ctx.beginPath(); ctx.moveTo(pad.left, gy); ctx.lineTo(w - pad.right, gy); ctx.stroke();
+        if (gridVals[g] !== 0) ctx.fillText('$' + Math.round(gridVals[g]), pad.left - 8, gy + 4);
+      }
+
+      // Zero
+      ctx.strokeStyle = c.zero; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pad.left, zeroY); ctx.lineTo(w - pad.right, zeroY); ctx.stroke();
+
+      // Bars
+      var barW = Math.min(40, (pw / dayStats.length) * 0.7);
+      var gap = (pw - barW * dayStats.length) / (dayStats.length + 1);
+
+      for (var i = 0; i < dayStats.length; i++) {
+        var x = pad.left + gap + i * (barW + gap);
+        var barH = Math.abs(dayStats[i].pnl) / maxAbs * (ph / 2);
+        var y = dayStats[i].pnl >= 0 ? zeroY - barH : zeroY;
+
+        ctx.fillStyle = dayStats[i].pnl >= 0 ? c.green : c.red;
+        ctx.globalAlpha = 0.7;
+        ctx.beginPath();
+        ctx.roundRect(x, y, barW, barH, 3);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Date label
+        ctx.fillStyle = c.text; ctx.textAlign = 'center';
+        ctx.font = '10px Plus Jakarta Sans, sans-serif';
+        ctx.fillText(formatMonthDay(dayStats[i].date), x + barW / 2, h - pad.bottom + 16);
+      }
+    }
+
+    // ── Canvas: Exposure vs Returns ──
+    function drawExposureVsReturns(canvasId, dayStats) {
+      var canvas = document.getElementById(canvasId);
+      if (!canvas || dayStats.length === 0) return;
+      var s = setupCanvas(canvas);
+      var ctx = s.ctx, w = s.w, h = s.h;
+      var c = getChartColors();
+      var pad = { top: 20, right: 20, bottom: 36, left: 60 };
+      var pw = w - pad.left - pad.right;
+      var ph = h - pad.top - pad.bottom;
+
+      var maxVal = 1;
+      for (var i = 0; i < dayStats.length; i++) {
+        if (dayStats[i].invested > maxVal) maxVal = dayStats[i].invested;
+        if (dayStats[i].returned > maxVal) maxVal = dayStats[i].returned;
+      }
+      maxVal *= 1.15;
+
+      // Grid
+      ctx.strokeStyle = c.grid; ctx.lineWidth = 0.5;
+      ctx.font = '11px JetBrains Mono, monospace';
+      ctx.fillStyle = c.text; ctx.textAlign = 'right';
+      for (var g = 0; g <= 4; g++) {
+        var gy = pad.top + ph - (g / 4) * ph;
+        var gVal = (g / 4) * maxVal;
+        ctx.beginPath(); ctx.moveTo(pad.left, gy); ctx.lineTo(w - pad.right, gy); ctx.stroke();
+        ctx.fillText('$' + Math.round(gVal), pad.left - 8, gy + 4);
+      }
+
+      // Grouped bars
+      var groupW = pw / dayStats.length;
+      var barW = Math.min(18, groupW * 0.35);
+      var barGap = 3;
+
+      for (var i = 0; i < dayStats.length; i++) {
+        var groupX = pad.left + i * groupW + groupW / 2;
+
+        // Invested bar (blue)
+        var invH = (dayStats[i].invested / maxVal) * ph;
+        ctx.fillStyle = c.blue; ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.roundRect(groupX - barW - barGap / 2, pad.top + ph - invH, barW, invH, 3);
+        ctx.fill();
+
+        // Returned bar (green/red)
+        var retH = (dayStats[i].returned / maxVal) * ph;
+        var retColor = dayStats[i].returned >= dayStats[i].invested ? c.green : c.red;
+        ctx.fillStyle = retColor; ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.roundRect(groupX + barGap / 2, pad.top + ph - retH, barW, retH, 3);
+        ctx.fill();
+
+        ctx.globalAlpha = 1;
+
+        // Date
+        ctx.fillStyle = c.text; ctx.textAlign = 'center';
+        ctx.font = '10px Plus Jakarta Sans, sans-serif';
+        ctx.fillText(formatMonthDay(dayStats[i].date), groupX, h - pad.bottom + 16);
+      }
+
+      // Legend
+      ctx.font = '11px Plus Jakarta Sans, sans-serif';
+      var lx = pad.left + 4, ly = pad.top + 4;
+      ctx.fillStyle = c.blue; ctx.globalAlpha = 0.6;
+      ctx.fillRect(lx, ly, 12, 12);
+      ctx.globalAlpha = 1; ctx.fillStyle = c.text;
+      ctx.textAlign = 'left'; ctx.fillText('Invested', lx + 16, ly + 10);
+      ctx.fillStyle = c.green; ctx.globalAlpha = 0.6;
+      ctx.fillRect(lx + 80, ly, 12, 12);
+      ctx.globalAlpha = 1; ctx.fillStyle = c.text;
+      ctx.fillText('Returned', lx + 96, ly + 10);
+    }
+
+    // ── Render: Main History View ──
+    function renderHistoryView(data) {
+      var el = document.getElementById('mainContent');
+
+      if (!data.days || data.days.length === 0) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128200;</div>' +
+          '<div class="empty-title">No trades this period</div>' +
+          '<div class="empty-sub">Navigate to a period with trading activity.</div></div>';
+        return;
+      }
+
+      // Aggregate stats
+      var totalPnl = 0, totalWinners = 0, totalLosers = 0, totalTrades = 0;
+      var bestPnl = -Infinity, worstPnl = Infinity, bestSym = '', worstSym = '';
+      var totalInvested = 0, totalReturn = 0;
+      var grossWins = 0, grossLosses = 0;
+      var dailyReturns = [];
+      var equityPoints = [];
+      var cumPnl = 0;
+      var peakEquity = 0, maxDrawdown = 0;
+      var dayStats = [];
+
+      for (var d = 0; d < data.days.length; d++) {
+        var day = data.days[d];
+        var dayPnl = 0, dayW = 0, dayL = 0, dayHasSummaries = false;
+        var dayInvested = 0, dayReturned = 0;
+        var dayTradeDetails = [];
+
+        for (var i = 0; i < day.trades.length; i++) {
+          var t = day.trades[i].trade, s = day.trades[i].summary;
+          totalTrades++;
+          if (s) {
+            dayHasSummaries = true;
+            var pnl = (s.closing_price - s.entry_price) * 100;
+            var pct = s.entry_price > 0 ? ((s.closing_price - s.entry_price) / s.entry_price * 100) : 0;
+            dayPnl += pnl; totalPnl += pnl;
+            dayInvested += s.entry_price * 100;
+            dayReturned += s.closing_price * 100;
+            totalInvested += s.entry_price * 100;
+            totalReturn += s.closing_price * 100;
+            if (pnl > 0.5) { dayW++; totalWinners++; grossWins += pnl; }
+            else if (pnl < -0.5) { dayL++; totalLosers++; grossLosses += Math.abs(pnl); }
+            if (pnl > bestPnl) { bestPnl = pnl; bestSym = t.symbol; }
+            if (pnl < worstPnl) { worstPnl = pnl; worstSym = t.symbol; }
+            dayTradeDetails.push({
+              symbol: t.symbol, type: t.contract_type,
+              strike: t.strike_price, entry: s.entry_price,
+              close: s.closing_price, pnl: pnl, pct: pct,
+              result: pnl > 0.5 ? 'profit' : pnl < -0.5 ? 'loss' : 'flat'
+            });
+          }
+        }
+
+        cumPnl += dayPnl;
+        if (cumPnl > peakEquity) peakEquity = cumPnl;
+        var dd = peakEquity > 0 ? ((peakEquity - cumPnl) / peakEquity * 100) : 0;
+        if (dd > maxDrawdown) maxDrawdown = dd;
+
+        if (dayHasSummaries && dayInvested > 0) {
+          dailyReturns.push(dayPnl / dayInvested);
+        }
+        equityPoints.push({ date: day.date, cumPnl: cumPnl });
+        dayStats.push({
+          date: day.date, pnl: dayPnl, winners: dayW, losers: dayL,
+          trades: day.trades.length, hasSummaries: dayHasSummaries,
+          invested: dayInvested, returned: dayReturned, details: dayTradeDetails
+        });
+      }
+
+      var winRate = (totalWinners + totalLosers) > 0 ? (totalWinners / (totalWinners + totalLosers) * 100) : 0;
+      var profitFactor = grossLosses > 0 ? (grossWins / grossLosses) : (grossWins > 0 ? Infinity : 0);
+      var avgWin = totalWinners > 0 ? (grossWins / totalWinners) : 0;
+      var avgLoss = totalLosers > 0 ? (grossLosses / totalLosers) : 0;
+      var expectancy = ((winRate / 100) * avgWin) - ((1 - winRate / 100) * avgLoss);
+      var roc = totalInvested > 0 ? (totalPnl / totalInvested * 100) : 0;
+
+      // Sharpe (annualized, using daily returns)
+      var sharpe = 0;
+      if (dailyReturns.length > 1) {
+        var mean = 0;
+        for (var r = 0; r < dailyReturns.length; r++) mean += dailyReturns[r];
+        mean /= dailyReturns.length;
+        var variance = 0;
+        for (var r = 0; r < dailyReturns.length; r++) variance += Math.pow(dailyReturns[r] - mean, 2);
+        variance /= (dailyReturns.length - 1);
+        var stddev = Math.sqrt(variance);
+        if (stddev > 0) sharpe = (mean / stddev) * Math.sqrt(252);
+      }
+
+      var rangeTitle = mode === 'week' ? 'Weekly' : mode === 'month' ? 'Monthly' : mode === 'year' ? 'Yearly' : 'All-Time';
+      var html = '';
+
+      html += '<h1 style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px;">' + rangeTitle + ' Performance</h1>';
+      html += '<p style="color: var(--muted-foreground); font-size: 13px; margin-bottom: 20px;">' +
+        totalTrades + ' trades across ' + data.days.length + ' trading days</p>';
+
+      // Primary stats
+      if (totalWinners + totalLosers > 0) {
+        html += '<div class="stats-grid">';
+        html += '<div class="stat-card"><div class="stat-value ' + pnlColor(totalPnl) + '">' + fmtPnlInt(totalPnl) + '</div><div class="stat-label">Net P&amp;L</div></div>';
+        html += '<div class="stat-card"><div class="stat-value">' + fmt(winRate, 0) + '%</div><div class="stat-label">Win Rate</div>' +
+          '<div class="win-bar-container"><div class="win-bar-fill" style="width:' + winRate + '%;"></div></div></div>';
+        html += '<div class="stat-card"><div class="stat-value ' + pnlColor(roc) + '">' + fmtPctDec(roc) + '</div><div class="stat-label">Return on Capital</div>' +
+          '<div class="stat-sub">P&amp;L / Deployed</div></div>';
+        html += '<div class="stat-card"><div class="stat-value">' +
+          (profitFactor === Infinity ? '&#8734;' : fmt(profitFactor, 2) + 'x') +
+          '</div><div class="stat-label">Profit Factor</div>' +
+          '<div class="stat-sub">&Sigma;wins / &Sigma;losses</div></div>';
+        html += '</div>';
+
+        // Secondary stats
+        html += '<div class="stats-grid stats-grid-8">';
+        html += '<div class="stat-card"><div class="stat-value-sm">' + fmtMoneyInt(totalInvested) + '</div><div class="stat-label">Total Deployed</div>' +
+          '<div class="stat-sub">premiums paid</div></div>';
+        html += '<div class="stat-card"><div class="stat-value-sm color-green">+$' + fmt(avgWin, 0) + '</div><div class="stat-label">Avg Win</div>' +
+          '<div class="stat-sub">' + totalWinners + ' winning trades</div></div>';
+        html += '<div class="stat-card"><div class="stat-value-sm color-red">-$' + fmt(avgLoss, 0) + '</div><div class="stat-label">Avg Loss</div>' +
+          '<div class="stat-sub">' + totalLosers + ' losing trades</div></div>';
+        html += '<div class="stat-card"><div class="stat-value-sm ' + pnlColor(expectancy) + '">' + fmtPnlInt(expectancy) + '</div><div class="stat-label">Expectancy</div>' +
+          '<div class="stat-sub">per trade (E[V])</div></div>';
+        html += '<div class="stat-card"><div class="stat-value-sm">' + fmt(sharpe, 2) + '</div><div class="stat-label">Sharpe Ratio</div>' +
+          '<div class="stat-sub">annualized</div></div>';
+        html += '<div class="stat-card"><div class="stat-value-sm color-red">' + fmt(maxDrawdown, 1) + '%</div><div class="stat-label">Max Drawdown</div>' +
+          '<div class="stat-sub">peak to trough</div></div>';
+        html += '<div class="stat-card"><div class="stat-value-sm color-green">' + fmtPnlInt(bestPnl) + '</div><div class="stat-label">Best Trade</div>' +
+          '<div class="stat-sub">$' + bestSym + '</div></div>';
+        html += '<div class="stat-card"><div class="stat-value-sm color-red">' + fmtPnlInt(worstPnl) + '</div><div class="stat-label">Worst Trade</div>' +
+          '<div class="stat-sub">$' + worstSym + '</div></div>';
+        html += '</div>';
+
+        // Equity curve
+        if (equityPoints.length > 1) {
+          html += '<div class="canvas-wrap">';
+          html += '<div class="canvas-title">Equity Curve</div>';
+          html += '<div class="canvas-subtitle">Cumulative P&amp;L over time, assuming 1 contract per trade. The shaded area represents total accumulated gains or losses.</div>';
+          html += '<canvas id="equityCanvas" class="chart-canvas"></canvas>';
+          html += '</div>';
+        }
+
+        // Daily P&L bars
+        var daysWithPnl = dayStats.filter(function(d) { return d.hasSummaries; });
+        if (daysWithPnl.length > 1) {
+          html += '<div class="canvas-wrap">';
+          html += '<div class="canvas-title">Daily P&amp;L</div>';
+          html += '<div class="canvas-subtitle">Net profit or loss per trading day. Green bars are profitable days, red bars are losing days.</div>';
+          html += '<canvas id="dailyPnlCanvas" class="chart-canvas"></canvas>';
+          html += '</div>';
+        }
+
+        // Exposure vs Returns
+        if (daysWithPnl.length > 1) {
+          html += '<div class="canvas-wrap">';
+          html += '<div class="canvas-title">Exposure vs Returns</div>';
+          html += '<div class="canvas-subtitle">Capital deployed (premiums paid) versus capital returned per day. Blue = invested, green/red = returned.</div>';
+          html += '<canvas id="exposureCanvas" class="chart-canvas"></canvas>';
+          html += '</div>';
+        }
+
+        // Exposure summary panel
+        html += '<div class="exposure-panel">';
+        html += '<div class="exposure-title">Capital Efficiency Analysis</div>';
+        html += '<div class="exposure-subtitle">How efficiently capital was deployed across the period. For long options, max loss equals the premium paid.</div>';
+        html += '<div class="exposure-grid">';
+        html += '<div><div class="exposure-metric-label">Total Deployed</div><div class="exposure-metric-value mono">' + fmtMoneyInt(totalInvested) + '</div><div class="exposure-metric-sub">sum of premiums &times; 100</div></div>';
+        html += '<div><div class="exposure-metric-label">Total Returned</div><div class="exposure-metric-value mono ' + pnlColor(totalReturn - totalInvested) + '">' + fmtMoneyInt(totalReturn) + '</div><div class="exposure-metric-sub">closing values</div></div>';
+        html += '<div><div class="exposure-metric-label">Net P&amp;L</div><div class="exposure-metric-value mono ' + pnlColor(totalPnl) + '">' + fmtPnlInt(totalPnl) + '</div><div class="exposure-metric-sub">returned - deployed</div></div>';
+        html += '<div><div class="exposure-metric-label">ROC</div><div class="exposure-metric-value ' + pnlColor(roc) + '">' + fmtPctDec(roc) + '</div><div class="exposure-metric-sub">return on capital</div></div>';
+        html += '</div></div>';
+      }
+
+      // Daily breakdown
+      html += '<div class="divider"></div>';
+      html += '<div class="section-header"><div class="section-title">Daily Breakdown</div>' +
+        '<div class="section-subtitle">Click day to expand trades</div></div>';
+
+      var maxDayPnl = 1;
+      for (var d = 0; d < dayStats.length; d++) {
+        if (Math.abs(dayStats[d].pnl) > maxDayPnl) maxDayPnl = Math.abs(dayStats[d].pnl);
+      }
+
+      for (var d = 0; d < dayStats.length; d++) {
+        var ds = dayStats[d];
+        var barW = Math.max(2, Math.abs(ds.pnl) / maxDayPnl * 100);
+        var barC = ds.pnl >= 0 ? 'chart-bar-profit' : 'chart-bar-loss';
+
+        html += '<div class="week-day-row" onclick="toggleWeekDay(' + d + ')">' +
+          '<div class="week-day-label"><div class="week-day-name">' + formatDayName(ds.date) + '</div>' +
+            '<div class="week-day-date">' + formatMonthDay(ds.date) + '</div></div>' +
+          '<div class="week-day-stats">' + ds.trades + ' trades' +
+            (ds.hasSummaries ? '<br>' + ds.winners + 'W / ' + ds.losers + 'L' : '') + '</div>' +
+          '<div class="week-day-bar"><div class="chart-bar ' + barC + '" style="width: ' + barW + '%;"></div></div>' +
+          '<div class="week-day-pnl ' + pnlColor(ds.pnl) + '">' + (ds.hasSummaries ? fmtPnlInt(ds.pnl) : '&mdash;') + '</div></div>';
+
+        html += '<div class="week-day-detail" id="weekday-detail-' + d + '">';
+        if (ds.details.length > 0) {
+          // Per-day exposure summary
+          if (ds.invested > 0) {
+            var dayRoc = ds.invested > 0 ? ((ds.returned - ds.invested) / ds.invested * 100) : 0;
+            html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;font-size:11px;color:var(--muted-foreground);">';
+            html += '<span>Deployed: <strong class="mono">$' + fmt(ds.invested, 0) + '</strong></span>';
+            html += '<span>Returned: <strong class="mono">' + fmtMoneyInt(ds.returned) + '</strong></span>';
+            html += '<span>ROC: <strong class="' + pnlColor(dayRoc) + '">' + fmtPctDec(dayRoc) + '</strong></span>';
+            html += '</div>';
+          }
+          for (var j = 0; j < ds.details.length; j++) {
+            var td = ds.details[j];
+            html += '<div class="week-trade-row ' + td.result + '">' +
+              '<div class="week-trade-symbol">$' + td.symbol + ' <span class="chart-type ' +
+                (td.type === 'CALL' ? 'chart-type-call' : 'chart-type-put') + '">' + td.type + '</span></div>' +
+              '<div class="week-trade-spec">$' + fmt(td.strike, 0) + ' strike</div>' +
+              '<div class="week-trade-prices">' + fmtMoney(td.entry) + ' &#8594; ' + fmtMoney(td.close) + '</div>' +
+              '<div class="week-trade-pnl ' + pnlColor(td.pnl) + '">' + fmtPnlInt(td.pnl) + ' <span style="font-size:10px;">' + fmtPct(td.pct) + '</span></div></div>';
+          }
+        } else {
+          html += '<div style="font-size:12px;color:var(--muted-foreground);padding:8px 0;">No EOD data available for this day.</div>';
+        }
+        html += '</div>';
+      }
+
+      // Methodology
+      html += renderMethodology();
+
+      el.innerHTML = '<div class="fade-in">' + html + '</div>';
+
+      // Draw canvases after DOM update
+      requestAnimationFrame(function() {
+        if (equityPoints.length > 1) drawEquityCurve('equityCanvas', equityPoints);
+        var daysWithPnl = dayStats.filter(function(d) { return d.hasSummaries; });
+        if (daysWithPnl.length > 1) {
+          drawDailyPnlBars('dailyPnlCanvas', daysWithPnl);
+          drawExposureVsReturns('exposureCanvas', daysWithPnl);
+        }
+      });
+    }
+
+    // ── Render: Methodology ──
+    function renderMethodology() {
+      return '<div class="methodology">' +
+        '<h3>Methodology &amp; Technical Notes</h3>' +
+
+        '<h4>Trade Selection Pipeline</h4>' +
+        '<ul>' +
+          '<li><strong>9:25 AM ET</strong> &mdash; Sentiment scraper fetches trending tickers from Reddit <code>r/wallstreetbets</code> and <code>r/options</code> (hot + rising posts). Each ticker receives a sentiment score from -1 (bearish) to +1 (bullish) based on post content and vote ratios.</li>' +
+          '<li><strong>AI Analysis</strong> &mdash; GPT-4o (with <code>web_search_preview</code> tool) receives the sentiment data along with current market context. It identifies 10 high-conviction options trades with short-dated expirations (0-7 DTE), each under $200/contract.</li>' +
+          '<li><strong>4:05 PM ET</strong> &mdash; A second GPT-4o call re-evaluates each morning pick against actual closing data via web search, estimating closing option premiums.</li>' +
+        '</ul>' +
+
+        '<h4>Performance Metrics Explained</h4>' +
+        '<ul>' +
+          '<li><strong>Profit Factor</strong> = <code>&Sigma;Gross Wins / &Sigma;Gross Losses</code>. A PF &gt; 1.0 means the system is net profitable. PF &gt; 2.0 is considered strong. <em>Source: Van Tharp, "Trade Your Way to Financial Freedom"</em></li>' +
+          '<li><strong>Expectancy (E[V])</strong> = <code>(Win% &times; Avg Win) - (Loss% &times; Avg Loss)</code>. Represents the average dollar amount you can expect to win (or lose) per trade. Positive expectancy is required for a sustainable system.</li>' +
+          '<li><strong>Sharpe Ratio</strong> = <code>(Mean Daily Return / StdDev Daily Return) &times; &radic;252</code>. Annualized risk-adjusted return measure. A Sharpe &gt; 1.0 is acceptable, &gt; 2.0 is very good. <em>Source: William Sharpe (1966), "Mutual Fund Performance"</em></li>' +
+          '<li><strong>Max Drawdown</strong> = Largest peak-to-trough decline in cumulative P&amp;L, expressed as a percentage. Measures worst-case loss experience. <em>Lower is better.</em></li>' +
+          '<li><strong>Return on Capital (ROC)</strong> = <code>Net P&amp;L / Total Capital Deployed &times; 100</code>. Measures how efficiently premium capital was converted to profit.</li>' +
+        '</ul>' +
+
+        '<h4>Options Pricing Context</h4>' +
+        '<ul>' +
+          '<li>All trades are <strong>long options</strong> (buying calls or puts). Max loss is limited to the premium paid.</li>' +
+          '<li>P&amp;L is calculated as <code>(Closing Premium - Entry Premium) &times; 100</code> per contract (100-share multiplier).</li>' +
+          '<li>Option premiums are <strong>AI-estimated via web search</strong>, not sourced from a real-time options data feed. Actual market execution prices will differ due to bid-ask spread, implied volatility changes, and market microstructure.</li>' +
+          '<li>Greeks (delta, gamma, theta, vega) are not directly modeled. The AI considers these implicitly through its web search of current market data.</li>' +
+        '</ul>' +
+
+        '<h4>Data Sources</h4>' +
+        '<div style="margin:6px 0 10px;">' +
+          '<span class="source-tag">Reddit r/wallstreetbets</span>' +
+          '<span class="source-tag">Reddit r/options</span>' +
+          '<span class="source-tag">OpenAI GPT-4o</span>' +
+          '<span class="source-tag">OpenAI Web Search</span>' +
+        '</div>' +
+
+        '<h4>Important Disclaimers</h4>' +
+        '<ul>' +
+          '<li>This is <strong>not financial advice</strong>. All content is for educational and entertainment purposes only.</li>' +
+          '<li>Past performance does not guarantee future results.</li>' +
+          '<li>Options trading involves substantial risk. You can lose your entire investment.</li>' +
+          '<li>Always consult a licensed financial advisor before making investment decisions.</li>' +
+        '</ul>' +
+      '</div>';
+    }
+
+    // ── Init ──
+    function init() {
+      var saved = loadState();
+      fetch('/api/trades/dates?limit=365')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.dates && data.dates.length > 0) availableDates = data.dates;
+          if (saved) {
+            if (saved.mode && MODES.indexOf(saved.mode) >= 0) mode = saved.mode;
+            if (saved.rangeOffset != null) rangeOffset = saved.rangeOffset;
+          }
+          updateModeButtons();
+          updateRangeNav();
+          loadRange();
+        })
+        .catch(function() { loadRange(); });
+    }
+
+    init();
+
+    // Redraw canvases on resize
+    var resizeTimer;
+    window.addEventListener('resize', function() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function() {
+        // Trigger re-render of current view
+        loadRange();
+      }, 250);
+    });
+  </script>
+</body>
+</html>

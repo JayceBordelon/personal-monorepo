@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"jaycetrades.com/internal/store"
@@ -19,6 +20,9 @@ var subscribeHTML embed.FS
 
 //go:embed dashboard.html
 var dashboardHTML embed.FS
+
+//go:embed history.html
+var historyHTML embed.FS
 
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
@@ -53,6 +57,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/subscribe", s.handleSubscribe)
 	s.mux.HandleFunc("/api/unsubscribe", s.handleUnsubscribe)
 	s.mux.HandleFunc("/dashboard", s.handleDashboard)
+	s.mux.HandleFunc("/history", s.handleHistory)
 	s.mux.HandleFunc("/api/trades/today", s.handleTradesToday)
 	s.mux.HandleFunc("/api/trades/dates", s.handleTradeDates)
 	s.mux.HandleFunc("/api/trades/week", s.handleTradesWeek)
@@ -114,8 +119,24 @@ type weekResponse struct {
 	Days  []weekDay `json:"days"`
 }
 
+func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
+	data, err := historyHTML.ReadFile("history.html")
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write(data)
+}
+
 func (s *Server) handleTradeDates(w http.ResponseWriter, r *http.Request) {
-	dates, err := s.db.GetTradeDates(30)
+	limit := 30
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 365 {
+			limit = n
+		}
+	}
+	dates, err := s.db.GetTradeDates(limit)
 	if err != nil {
 		writeJSON(w, http.StatusOK, map[string]any{"dates": []string{}})
 		return
@@ -295,6 +316,11 @@ func (s *Server) handleSitemap(w http.ResponseWriter, r *http.Request) {
     <loc>https://jaycetrades.com/dashboard</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://jaycetrades.com/history</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>
 `))
