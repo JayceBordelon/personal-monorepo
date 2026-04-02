@@ -279,35 +279,38 @@
 
     /* Chart section */
     .chart-section {
-      border-bottom: 1px solid var(--border);
-      background: var(--surface);
+      background: var(--card);
+      padding: 20px 28px 0;
     }
     .symbol-tabs {
-      display: flex; gap: 4px; padding: 10px 28px 0;
+      display: flex; gap: 6px;
       overflow-x: auto; -webkit-overflow-scrolling: touch;
+      padding-bottom: 14px;
     }
     .symbol-tab {
-      background: none; border: none; cursor: pointer;
-      padding: 5px 12px; font-size: 11px; font-weight: 700;
+      background: var(--muted); border: 1px solid var(--border); cursor: pointer;
+      padding: 7px 16px; font-size: 12px; font-weight: 700;
       color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace;
-      border-radius: 9999px; transition: all 0.15s; white-space: nowrap;
+      border-radius: 6px; transition: all 0.15s; white-space: nowrap;
     }
-    .symbol-tab:hover { color: var(--foreground); background: var(--card-elevated); }
+    .symbol-tab:hover { color: var(--foreground); border-color: var(--accent); }
     .symbol-tab.active {
-      color: var(--foreground); background: var(--card);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      color: var(--foreground); background: var(--card-elevated);
+      border-color: var(--accent);
     }
-    .symbol-tab .tab-pnl { font-size: 9px; margin-left: 4px; font-weight: 600; }
+    .symbol-tab .tab-pnl { font-size: 10px; margin-left: 6px; font-weight: 600; }
     .tv-chart-wrap {
-      height: 420px; background: var(--card);
-      border-top: 1px solid var(--border);
+      height: 480px; background: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
       position: relative;
-      box-shadow: inset 0 1px 4px rgba(0,0,0,0.06);
+      overflow: hidden;
+      margin-bottom: 20px;
     }
     .tv-chart-wrap iframe { border: none !important; }
     .chart-loading {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      color: var(--muted-foreground); font-size: 12px; z-index: 0;
+      color: var(--muted-foreground); font-size: 13px; z-index: 0;
       font-family: 'Inter', sans-serif;
     }
 
@@ -652,8 +655,8 @@
       .detail-grid { gap: 8px; }
       .detail-col { min-width: 85px; }
       .section-title { font-size: 10px; }
-      .symbol-tabs { padding: 8px 14px 0; }
-      .tv-chart-wrap { height: 320px; }
+      .chart-section { padding: 16px 16px 0; }
+      .tv-chart-wrap { height: 360px; }
       .exposure-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
       .exposure-metric-value { font-size: 15px; }
       .morning-technicals { grid-template-columns: repeat(2, 1fr); }
