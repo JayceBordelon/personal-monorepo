@@ -22,32 +22,34 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       color-scheme: light dark;
-      --background: #fafafa;
+      --background: #f8fafc;
       --foreground: #0f172a;
       --card: #ffffff;
       --card-foreground: #0f172a;
-      --primary: #475569;
+      --card-elevated: #f1f5f9;
+      --primary: #2563eb;
       --primary-foreground: #ffffff;
       --muted: #f1f5f9;
       --muted-foreground: #64748b;
-      --accent: #94a3b8;
+      --accent: #3b82f6;
       --border: #e2e8f0;
       --input: #e2e8f0;
-      --ring: #475569;
-      --radius: 0.5rem;
+      --ring: #2563eb;
+      --surface: #eef2f7;
+      --radius: 0.375rem;
       --green: #16a34a;
       --green-bg: #dcfce7;
       --green-light: #f0fdf4;
       --green-border: #bbf7d0;
-      --red: #dc2626;
+      --red: #ef4444;
       --red-bg: #fee2e2;
       --red-light: #fef2f2;
       --red-border: #fecaca;
-      --blue: #1d4ed8;
+      --blue: #2563eb;
       --blue-bg: #dbeafe;
       --amber: #b45309;
       --amber-bg: #fef3c7;
@@ -56,28 +58,33 @@
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --background: #0f172a;
+        --background: #0a0e17;
         --foreground: #f1f5f9;
-        --card: #1e293b;
+        --card: #111827;
         --card-foreground: #f1f5f9;
-        --primary: #94a3b8;
-        --primary-foreground: #0f172a;
-        --muted: #1e293b;
-        --muted-foreground: #94a3b8;
-        --accent: #cbd5e1;
-        --border: #334155;
-        --input: #334155;
-        --ring: #94a3b8;
-        --green-bg: rgba(22,163,74,0.15);
-        --green-light: rgba(22,163,74,0.08);
-        --green-border: rgba(22,163,74,0.3);
-        --red-bg: rgba(220,38,38,0.15);
-        --red-light: rgba(220,38,38,0.08);
-        --red-border: rgba(220,38,38,0.3);
-        --blue-bg: rgba(29,78,216,0.15);
+        --card-elevated: #1a2332;
+        --primary: #3b82f6;
+        --primary-foreground: #ffffff;
+        --muted: #151c28;
+        --muted-foreground: #6b7280;
+        --accent: #3b82f6;
+        --border: #1e293b;
+        --input: #1e293b;
+        --ring: #3b82f6;
+        --surface: #151c28;
+        --green: #10b981;
+        --green-bg: rgba(16,185,129,0.15);
+        --green-light: rgba(16,185,129,0.08);
+        --green-border: rgba(16,185,129,0.3);
+        --red: #ef4444;
+        --red-bg: rgba(239,68,68,0.15);
+        --red-light: rgba(239,68,68,0.08);
+        --red-border: rgba(239,68,68,0.3);
+        --blue: #3b82f6;
+        --blue-bg: rgba(59,130,246,0.15);
         --amber-bg: rgba(180,83,9,0.15);
-        --chart-grid: #334155;
-        --chart-text: #94a3b8;
+        --chart-grid: #1e293b;
+        --chart-text: #6b7280;
       }
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -87,315 +94,386 @@
       background-color: var(--background);
       color: var(--foreground);
       min-height: 100vh;
-      padding: 24px 16px;
     }
+    .ui-text { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     .mono { font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace; }
-    .page { max-width: 1100px; margin: 0 auto; }
-    .main-card {
-      background-color: var(--card); color: var(--card-foreground);
-      border: 1px solid var(--border); border-radius: 0.75rem;
-      box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
-      overflow: hidden;
+    .page { max-width: 100%; margin: 0 auto; }
+
+    /* Top logo bar */
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
     }
-    .header {
-      padding: 16px 28px; display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px;
-    }
-    .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; text-decoration: none; }
+    .logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; text-decoration: none; }
     .logo-jayce { color: var(--foreground); }
-    .logo-trades { color: var(--primary); }
-    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .nav-link {
-      color: var(--muted-foreground); font-size: 13px; text-decoration: none; transition: color 0.15s;
-      padding: 4px 8px; border-radius: 4px;
+    .logo-trades { color: var(--muted-foreground); }
+    .subscribe-link {
+      font-family: 'Inter', sans-serif;
+      color: var(--muted-foreground); font-size: 12px; text-decoration: none;
+      padding: 4px 10px; border-radius: 4px; transition: color 0.15s;
     }
-    .nav-link:hover { color: var(--foreground); }
-    .nav-link.active { color: var(--foreground); font-weight: 600; background: var(--muted); }
+    .subscribe-link:hover { color: var(--foreground); }
+
+    /* Sub-header navigation bar */
+    .sub-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+      flex-wrap: wrap;
+      gap: 0;
+    }
+    .nav-tabs { display: flex; height: 100%; }
+    .nav-tab {
+      font-family: 'Inter', sans-serif;
+      display: flex; align-items: center; justify-content: center;
+      padding: 12px 24px;
+      font-size: 13px; font-weight: 500;
+      color: var(--muted-foreground);
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .nav-tab:hover { color: var(--foreground); }
+    .nav-tab.active {
+      color: var(--foreground); font-weight: 700;
+      border-bottom-color: var(--accent);
+    }
+
+    .sub-header-controls {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 0;
+      flex-wrap: wrap;
+    }
+
     .mode-toggle {
       display: flex; background: var(--muted); border: 1px solid var(--border);
-      border-radius: 6px; overflow: hidden;
+      border-radius: 5px; overflow: hidden;
     }
     .mode-btn {
+      font-family: 'Inter', sans-serif;
       background: none; border: none; cursor: pointer;
-      padding: 5px 14px; font-size: 12px; font-weight: 600;
-      color: var(--muted-foreground); font-family: inherit; transition: all 0.15s;
+      padding: 5px 12px; font-size: 11px; font-weight: 600;
+      color: var(--muted-foreground); transition: all 0.15s;
     }
-    .mode-btn.active { background: var(--primary); color: var(--primary-foreground); }
+    .mode-btn.active { background: var(--accent); color: #fff; }
     .mode-btn:not(.active):hover { color: var(--foreground); }
     .date-nav {
       display: flex; align-items: center;
       background: var(--muted); border: 1px solid var(--border);
-      border-radius: 8px; overflow: hidden;
+      border-radius: 5px; overflow: hidden;
     }
     .date-nav-btn {
+      font-family: 'Inter', sans-serif;
       background: none; border: none; cursor: pointer;
-      padding: 6px 10px; color: var(--muted-foreground);
-      font-size: 14px; font-weight: 600; transition: all 0.15s;
+      padding: 5px 9px; color: var(--muted-foreground);
+      font-size: 12px; font-weight: 600; transition: all 0.15s;
       display: flex; align-items: center;
     }
     .date-nav-btn:hover { color: var(--foreground); background: var(--border); }
     .date-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .date-nav-label {
-      padding: 6px 14px; font-size: 13px; font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      padding: 5px 12px; font-size: 11px; font-weight: 600;
       color: var(--foreground); white-space: nowrap;
       border-left: 1px solid var(--border); border-right: 1px solid var(--border);
-      min-width: 160px; text-align: center;
+      min-width: 140px; text-align: center;
     }
 
-    .content { padding: 24px 28px; }
+    .content { padding: 20px 28px; max-width: 1200px; margin: 0 auto; }
 
     /* Stats */
     .stats-grid {
       display: grid; grid-template-columns: repeat(4, 1fr);
-      gap: 12px; margin-bottom: 24px;
+      gap: 10px; margin-bottom: 20px;
     }
     .stats-grid-8 { grid-template-columns: repeat(4, 1fr); }
     @media (max-width: 640px) { .stats-grid, .stats-grid-8 { grid-template-columns: repeat(2, 1fr); } }
     .stat-card {
-      background: var(--muted); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 16px; text-align: center;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px;
+      border-left: 3px solid var(--accent);
     }
-    .stat-value { font-size: 28px; font-weight: 800; line-height: 1.1; }
-    .stat-value-sm { font-size: 20px; font-weight: 800; line-height: 1.1; }
+    .stat-card-green { border-left-color: var(--green); }
+    .stat-card-red { border-left-color: var(--red); }
+    .stat-card-blue { border-left-color: var(--accent); }
+    .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; line-height: 1.1; }
+    .stat-value-sm { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; line-height: 1.1; }
     .stat-label {
-      font-size: 10px; color: var(--muted-foreground); text-transform: uppercase;
-      letter-spacing: 0.5px; font-weight: 600; margin-top: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 9px; color: var(--muted-foreground); text-transform: uppercase;
+      letter-spacing: 0.8px; font-weight: 600; margin-top: 4px;
     }
-    .stat-sub { font-size: 11px; color: var(--muted-foreground); margin-top: 2px; }
+    .stat-sub { font-family: 'Inter', sans-serif; font-size: 10px; color: var(--muted-foreground); margin-top: 2px; }
     .win-bar-container {
-      width: 100%; height: 6px; background: var(--red-bg);
-      border-radius: 3px; margin-top: 8px; overflow: hidden;
+      width: 100%; height: 4px; background: var(--red-bg);
+      border-radius: 2px; margin-top: 8px; overflow: hidden;
     }
-    .win-bar-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.5s ease; }
+    .win-bar-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.5s ease; }
 
     .color-green { color: var(--green); }
     .color-red { color: var(--red); }
     .color-muted { color: var(--muted-foreground); }
 
     .section-header {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
     }
-    .section-title { font-size: 16px; font-weight: 700; }
-    .section-subtitle { font-size: 12px; color: var(--muted-foreground); }
-    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+    .section-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--muted-foreground);
+    }
+    .section-subtitle { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted-foreground); }
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
 
     /* Canvas charts */
     .canvas-wrap {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 20px;
+    }
+    .canvas-inner {
       background: var(--muted); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 20px; margin-bottom: 24px;
+      border-radius: var(--radius); padding: 12px;
     }
     .canvas-title {
-      font-size: 14px; font-weight: 700; margin-bottom: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px; font-weight: 700; margin-bottom: 2px;
       display: flex; align-items: center; gap: 8px;
+      text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted-foreground);
     }
-    .canvas-subtitle { font-size: 12px; color: var(--muted-foreground); margin-bottom: 16px; }
+    .canvas-subtitle { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted-foreground); margin-bottom: 12px; }
     .chart-canvas {
-      width: 100%; height: 260px; display: block;
+      width: 100%; height: 240px; display: block;
     }
 
     /* Exposure panel */
     .exposure-panel {
-      background: var(--muted); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 20px; margin-bottom: 24px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 20px;
     }
-    .exposure-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-    .exposure-subtitle { font-size: 12px; color: var(--muted-foreground); margin-bottom: 16px; }
+    .exposure-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px; font-weight: 700; margin-bottom: 2px;
+      text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted-foreground);
+    }
+    .exposure-subtitle { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted-foreground); margin-bottom: 14px; }
     .exposure-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px;
     }
     .exposure-metric-label {
+      font-family: 'Inter', sans-serif;
       font-size: 9px; color: var(--muted-foreground); text-transform: uppercase;
-      letter-spacing: 0.5px; font-weight: 600;
+      letter-spacing: 0.8px; font-weight: 600;
     }
-    .exposure-metric-value { font-size: 20px; font-weight: 800; margin-top: 2px; }
-    .exposure-metric-sub { font-size: 11px; color: var(--muted-foreground); margin-top: 1px; }
+    .exposure-metric-value { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; margin-top: 2px; }
+    .exposure-metric-sub { font-family: 'Inter', sans-serif; font-size: 10px; color: var(--muted-foreground); margin-top: 1px; }
 
     /* Week daily bars */
     .week-day-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 0; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 8px; border-bottom: 1px solid var(--border);
       cursor: pointer; transition: background 0.1s;
+      border-radius: 0;
     }
-    .week-day-row:hover { background: var(--muted); margin: 0 -8px; padding: 10px 8px; border-radius: 4px; }
+    .week-day-row:nth-child(odd) { background: var(--muted); }
+    .week-day-row:hover { background: var(--card-elevated); }
     .week-day-row:last-child { border-bottom: none; }
-    .week-day-label { width: 80px; flex-shrink: 0; }
-    .week-day-name { font-size: 14px; font-weight: 700; }
-    .week-day-date { font-size: 11px; color: var(--muted-foreground); }
-    .week-day-stats { font-size: 11px; color: var(--muted-foreground); width: 90px; flex-shrink: 0; }
-    .week-day-bar { flex: 1; height: 28px; background: var(--muted); border-radius: 4px; overflow: hidden; }
-    .week-day-pnl { width: 70px; text-align: right; font-size: 15px; font-weight: 800; flex-shrink: 0; }
-    .chart-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; min-width: 2px; }
+    .week-day-label { width: 72px; flex-shrink: 0; }
+    .week-day-name { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; }
+    .week-day-date { font-family: 'Inter', sans-serif; font-size: 10px; color: var(--muted-foreground); }
+    .week-day-stats { font-family: 'Inter', sans-serif; font-size: 10px; color: var(--muted-foreground); width: 80px; flex-shrink: 0; }
+    .week-day-bar { flex: 1; height: 24px; background: var(--surface); border-radius: 3px; overflow: hidden; }
+    .week-day-pnl { font-family: 'JetBrains Mono', monospace; width: 65px; text-align: right; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .chart-bar { height: 100%; border-radius: 3px; transition: width 0.5s ease; min-width: 2px; }
     .chart-bar-profit { background: var(--green); opacity: 0.65; }
     .chart-bar-loss { background: var(--red); opacity: 0.65; }
     .week-day-detail { overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.25s ease-out; max-height: 0; opacity: 0; }
     .week-day-detail.open { max-height: 2000px; opacity: 1; }
     .week-trade-row {
       display: flex; align-items: center; gap: 8px;
-      padding: 6px 12px; border-radius: 6px; margin-bottom: 4px;
+      padding: 5px 10px; border-radius: 4px; margin-bottom: 3px;
     }
     .week-trade-row.profit { background: var(--green-light); border: 1px solid var(--green-border); }
     .week-trade-row.loss { background: var(--red-light); border: 1px solid var(--red-border); }
     .week-trade-row.flat { background: var(--muted); border: 1px solid var(--border); }
-    .week-trade-symbol { font-size: 13px; font-weight: 700; width: 70px; font-family: 'JetBrains Mono', monospace; }
-    .week-trade-spec { font-size: 11px; color: var(--muted-foreground); flex: 1; }
-    .week-trade-prices { font-size: 11px; color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace; }
-    .week-trade-pnl { font-size: 13px; font-weight: 700; width: 70px; text-align: right; font-family: 'JetBrains Mono', monospace; }
+    .week-trade-symbol { font-size: 12px; font-weight: 700; width: 70px; font-family: 'JetBrains Mono', monospace; }
+    .week-trade-spec { font-family: 'Inter', sans-serif; font-size: 10px; color: var(--muted-foreground); flex: 1; }
+    .week-trade-prices { font-size: 10px; color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace; }
+    .week-trade-pnl { font-size: 12px; font-weight: 700; width: 70px; text-align: right; font-family: 'JetBrains Mono', monospace; }
     .chart-type {
-      font-size: 9px; font-weight: 700; padding: 2px 5px;
+      font-family: 'Inter', sans-serif;
+      font-size: 8px; font-weight: 700; padding: 1px 5px;
       border-radius: 3px; text-transform: uppercase; letter-spacing: 0.3px;
     }
     .chart-type-call { background: var(--green-bg); color: var(--green); }
     .chart-type-put { background: var(--red-bg); color: var(--red); }
 
     .badge {
-      display: inline-block; font-size: 10px; font-weight: 700;
-      padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+      display: inline-block; font-family: 'Inter', sans-serif;
+      font-size: 9px; font-weight: 700;
+      padding: 2px 7px; border-radius: 9999px;
+      text-transform: uppercase; letter-spacing: 0.5px;
     }
 
     /* Methodology section */
     .methodology {
-      background: var(--muted); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 20px; margin-top: 24px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; margin-top: 20px;
     }
     .methodology h3 {
-      font-size: 16px; font-weight: 700; margin-bottom: 16px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px; font-weight: 700; margin-bottom: 14px;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--muted-foreground);
     }
     .methodology h4 {
-      font-size: 13px; font-weight: 700; margin: 16px 0 6px;
-      text-transform: uppercase; letter-spacing: 0.5px; color: var(--foreground);
+      font-family: 'Inter', sans-serif;
+      font-size: 11px; font-weight: 700; margin: 14px 0 5px;
+      text-transform: uppercase; letter-spacing: 0.8px; color: var(--foreground);
     }
     .methodology h4:first-child { margin-top: 0; }
     .methodology p, .methodology li {
-      font-size: 13px; color: var(--muted-foreground); line-height: 1.7;
+      font-size: 12px; color: var(--muted-foreground); line-height: 1.7;
     }
     .methodology ul { padding-left: 16px; margin: 4px 0; }
-    .methodology li { margin-bottom: 4px; }
+    .methodology li { margin-bottom: 3px; }
     .methodology code {
-      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
       background: var(--border); padding: 1px 5px; border-radius: 3px;
     }
     .source-tag {
-      display: inline-block; font-size: 10px; font-weight: 600; padding: 3px 8px;
-      border-radius: 4px; background: var(--border); color: var(--muted-foreground);
-      margin-right: 6px; margin-bottom: 4px;
+      display: inline-block; font-family: 'Inter', sans-serif;
+      font-size: 9px; font-weight: 600; padding: 2px 7px;
+      border-radius: 9999px; background: var(--border); color: var(--muted-foreground);
+      margin-right: 4px; margin-bottom: 4px;
     }
 
+    /* Footer - minimal one-line */
     .footer {
-      padding: 20px 28px; border-top: 1px solid var(--border); text-align: center;
+      padding: 14px 28px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      gap: 16px; flex-wrap: wrap;
     }
-    .footer-text { color: var(--muted-foreground); font-size: 11px; line-height: 1.5; }
-    .footer-brand { margin-top: 8px; }
-    .footer-brand .logo { font-size: 14px; }
-    .footer-links { margin-top: 8px; }
+    .footer-text {
+      font-family: 'Inter', sans-serif;
+      color: var(--muted-foreground); font-size: 10px; line-height: 1.4;
+    }
+    .footer-links { display: flex; gap: 12px; align-items: center; }
     .footer-links a {
-      color: var(--muted-foreground); font-size: 12px; text-decoration: underline;
-      text-underline-offset: 2px; transition: color 0.15s; margin: 0 6px;
+      font-family: 'Inter', sans-serif;
+      color: var(--muted-foreground); font-size: 10px; text-decoration: underline;
+      text-underline-offset: 2px; transition: color 0.15s;
     }
     .footer-links a:hover { color: var(--foreground); }
+
     .empty-state { text-align: center; padding: 60px 20px; }
     .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-    .empty-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-    .empty-sub { color: var(--muted-foreground); font-size: 14px; }
+    .empty-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .empty-sub { color: var(--muted-foreground); font-size: 13px; }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
+      from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
     }
     @keyframes fadeInScale {
-      from { opacity: 0; transform: scale(0.96); }
+      from { opacity: 0; transform: scale(0.97); }
       to { opacity: 1; transform: scale(1); }
     }
-    .fade-in { animation: fadeIn 0.35s ease-out both; }
-    .stats-grid .stat-card { animation: fadeInScale 0.35s ease-out both; }
-    .stats-grid .stat-card:nth-child(1) { animation-delay: 0.05s; }
-    .stats-grid .stat-card:nth-child(2) { animation-delay: 0.1s; }
-    .stats-grid .stat-card:nth-child(3) { animation-delay: 0.15s; }
-    .stats-grid .stat-card:nth-child(4) { animation-delay: 0.2s; }
-    .stats-grid .stat-card:nth-child(5) { animation-delay: 0.25s; }
-    .stats-grid .stat-card:nth-child(6) { animation-delay: 0.3s; }
-    .stats-grid .stat-card:nth-child(7) { animation-delay: 0.35s; }
-    .stats-grid .stat-card:nth-child(8) { animation-delay: 0.4s; }
+    .fade-in { animation: fadeIn 0.2s ease-out both; }
+    .stats-grid .stat-card { animation: fadeInScale 0.2s ease-out both; }
+    .stats-grid .stat-card:nth-child(1) { animation-delay: 0.03s; }
+    .stats-grid .stat-card:nth-child(2) { animation-delay: 0.06s; }
+    .stats-grid .stat-card:nth-child(3) { animation-delay: 0.09s; }
+    .stats-grid .stat-card:nth-child(4) { animation-delay: 0.12s; }
+    .stats-grid .stat-card:nth-child(5) { animation-delay: 0.15s; }
+    .stats-grid .stat-card:nth-child(6) { animation-delay: 0.18s; }
+    .stats-grid .stat-card:nth-child(7) { animation-delay: 0.21s; }
+    .stats-grid .stat-card:nth-child(8) { animation-delay: 0.24s; }
     .stat-card { transition: transform 0.15s ease, box-shadow 0.15s ease; }
-    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .week-day-row { animation: fadeIn 0.3s ease-out both; }
+    .stat-card:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .week-day-row { animation: fadeIn 0.2s ease-out both; }
 
     @media (max-width: 640px) {
-      .page { padding: 0; }
-      body { padding: 12px 8px; }
-      .header { padding: 12px 16px; gap: 8px; }
-      .header-right { gap: 6px; width: 100%; justify-content: flex-end; }
-      .content { padding: 16px; }
-      .logo { font-size: 20px; }
-      .date-nav-label { min-width: 120px; font-size: 12px; padding: 6px 10px; }
-      .stats-grid { gap: 8px; }
-      .stat-value { font-size: 22px; }
-      .stat-value-sm { font-size: 17px; }
-      .chart-canvas { height: 200px; }
-      .canvas-wrap { padding: 14px; }
+      .top-bar { padding: 10px 14px; }
+      .sub-header { padding: 0 14px; }
+      .nav-tab { padding: 10px 14px; font-size: 12px; }
+      .sub-header-controls { gap: 6px; }
+      .content { padding: 14px; }
+      .logo { font-size: 18px; }
+      .date-nav-label { min-width: 110px; font-size: 10px; padding: 5px 8px; }
+      .stats-grid { gap: 6px; }
+      .stat-value { font-size: 20px; }
+      .stat-value-sm { font-size: 15px; }
+      .chart-canvas { height: 190px; }
+      .canvas-wrap { padding: 12px; }
       .exposure-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .exposure-metric-value { font-size: 16px; }
-      .week-day-row { gap: 6px; padding: 8px 0; }
-      .week-day-label { width: 60px; }
-      .week-day-name { font-size: 13px; }
-      .week-day-stats { width: 65px; font-size: 10px; }
-      .week-day-pnl { width: 55px; font-size: 13px; }
-      .week-trade-row { flex-wrap: wrap; gap: 4px; padding: 8px 10px; }
-      .footer { padding: 16px; }
-      .section-title { font-size: 14px; }
-      .mode-btn { padding: 5px 10px; font-size: 11px; }
+      .exposure-metric-value { font-size: 15px; }
+      .week-day-row { gap: 5px; padding: 7px 6px; }
+      .week-day-label { width: 56px; }
+      .week-day-name { font-size: 12px; }
+      .week-day-stats { width: 60px; font-size: 9px; }
+      .week-day-pnl { width: 52px; font-size: 12px; }
+      .week-trade-row { flex-wrap: wrap; gap: 3px; padding: 6px 8px; }
+      .footer { padding: 12px 14px; }
+      .section-title { font-size: 10px; }
+      .mode-btn { padding: 5px 9px; font-size: 10px; }
     }
     @media (max-width: 400px) {
-      .header-right { flex-wrap: wrap; }
-      .stats-grid { gap: 6px; }
-      .stat-card { padding: 12px 8px; }
-      .stat-value { font-size: 20px; }
+      .sub-header-controls { flex-wrap: wrap; }
+      .stats-grid { gap: 5px; }
+      .stat-card { padding: 10px 8px; }
+      .stat-value { font-size: 18px; }
     }
   </style>
 </head>
 <body>
   <div class="page">
-    <div class="main-card">
-      <div class="header">
-        <a href="/" style="text-decoration: none;">
-          <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
-        </a>
-        <div class="header-right">
-          <a href="/dashboard" class="nav-link">Dashboard</a>
-          <a href="/history" class="nav-link active">History</a>
-          <a href="/" class="nav-link">Subscribe</a>
-          <div class="mode-toggle">
-            <button class="mode-btn active" id="mode_week" onclick="setMode('week')">Week</button>
-            <button class="mode-btn" id="mode_month" onclick="setMode('month')">Month</button>
-            <button class="mode-btn" id="mode_year" onclick="setMode('year')">Year</button>
-            <button class="mode-btn" id="mode_all" onclick="setMode('all')">All</button>
-          </div>
-          <div class="date-nav">
-            <button class="date-nav-btn" id="prevBtn" onclick="navPrev()" title="Older">&#9664;</button>
-            <span class="date-nav-label" id="dateLabel">Loading...</span>
-            <button class="date-nav-btn" id="nextBtn" onclick="navNext()" title="Newer">&#9654;</button>
-          </div>
+    <!-- Top logo bar -->
+    <div class="top-bar">
+      <a href="/" style="text-decoration: none;">
+        <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
+      </a>
+      <a href="/" class="subscribe-link">Subscribe</a>
+    </div>
+
+    <!-- Sub-header with nav tabs + controls -->
+    <div class="sub-header">
+      <div class="nav-tabs">
+        <a href="/dashboard" class="nav-tab">Live Dashboard</a>
+        <a href="/history" class="nav-tab active">Historical Analytics</a>
+      </div>
+      <div class="sub-header-controls">
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="mode_week" onclick="setMode('week')">Week</button>
+          <button class="mode-btn" id="mode_month" onclick="setMode('month')">Month</button>
+          <button class="mode-btn" id="mode_year" onclick="setMode('year')">Year</button>
+          <button class="mode-btn" id="mode_all" onclick="setMode('all')">All</button>
+        </div>
+        <div class="date-nav">
+          <button class="date-nav-btn" id="prevBtn" onclick="navPrev()" title="Older">&#9664;</button>
+          <span class="date-nav-label" id="dateLabel">Loading...</span>
+          <button class="date-nav-btn" id="nextBtn" onclick="navNext()" title="Newer">&#9654;</button>
         </div>
       </div>
+    </div>
 
-      <div class="content" id="mainContent">
-        <div class="empty-state">
-          <div class="empty-icon">&#9203;</div>
-          <div class="empty-title">Loading performance data...</div>
-        </div>
+    <div class="content" id="mainContent">
+      <div class="empty-state">
+        <div class="empty-icon">&#9203;</div>
+        <div class="empty-title">Loading performance data...</div>
       </div>
+    </div>
 
-      <div class="footer">
-        <p class="footer-text">
-          <strong>Disclaimer:</strong> Not financial advice. Options trading involves substantial risk of loss.
-          Past performance does not guarantee future results. All P&amp;L assumes 1 contract per trade.
-        </p>
-        <div class="footer-brand">
-          <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
-        </div>
-        <div class="footer-links">
-          <a href="/dashboard">Live dashboard</a>
-          <a href="/">Subscribe for free email alerts</a>
-        </div>
+    <div class="footer">
+      <p class="footer-text">
+        <strong>Disclaimer:</strong> Not financial advice. Options trading involves substantial risk.
+        Past performance does not guarantee future results. All P&amp;L assumes 1 contract per trade.
+      </p>
+      <div class="footer-links">
+        <a href="/dashboard">Live dashboard</a>
+        <a href="/">Subscribe</a>
       </div>
     </div>
   </div>
@@ -548,14 +626,14 @@
     function getChartColors() {
       var dark = isDark();
       return {
-        grid: dark ? '#334155' : '#e2e8f0',
-        text: dark ? '#94a3b8' : '#64748b',
-        green: dark ? '#4ade80' : '#16a34a',
-        red: dark ? '#f87171' : '#dc2626',
-        blue: dark ? '#60a5fa' : '#3b82f6',
-        greenFill: dark ? 'rgba(74,222,128,0.15)' : 'rgba(22,163,74,0.1)',
-        redFill: dark ? 'rgba(248,113,113,0.15)' : 'rgba(220,38,38,0.1)',
-        zero: dark ? '#475569' : '#94a3b8'
+        grid: dark ? '#1e293b' : '#e2e8f0',
+        text: dark ? '#6b7280' : '#64748b',
+        green: dark ? '#10b981' : '#16a34a',
+        red: dark ? '#ef4444' : '#dc2626',
+        blue: dark ? '#3b82f6' : '#2563eb',
+        greenFill: dark ? 'rgba(16,185,129,0.15)' : 'rgba(22,163,74,0.1)',
+        redFill: dark ? 'rgba(239,68,68,0.15)' : 'rgba(220,38,38,0.1)',
+        zero: dark ? '#1e293b' : '#94a3b8'
       };
     }
 
@@ -874,19 +952,19 @@
       var rangeTitle = mode === 'week' ? 'Weekly' : mode === 'month' ? 'Monthly' : mode === 'year' ? 'Yearly' : 'All-Time';
       var html = '';
 
-      html += '<h1 style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px;">' + rangeTitle + ' Performance</h1>';
-      html += '<p style="color: var(--muted-foreground); font-size: 13px; margin-bottom: 20px;">' +
+      html += '<h1 style="font-size: 18px; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 2px;">' + rangeTitle + ' Performance</h1>';
+      html += '<p style="font-family: Inter, sans-serif; color: var(--muted-foreground); font-size: 12px; margin-bottom: 16px;">' +
         totalTrades + ' trades across ' + data.days.length + ' trading days</p>';
 
       // Primary stats
       if (totalWinners + totalLosers > 0) {
         html += '<div class="stats-grid">';
-        html += '<div class="stat-card"><div class="stat-value ' + pnlColor(totalPnl) + '">' + fmtPnlInt(totalPnl) + '</div><div class="stat-label">Net P&amp;L</div></div>';
-        html += '<div class="stat-card"><div class="stat-value">' + fmt(winRate, 0) + '%</div><div class="stat-label">Win Rate</div>' +
+        html += '<div class="stat-card ' + (totalPnl > 0 ? 'stat-card-green' : totalPnl < 0 ? 'stat-card-red' : 'stat-card-blue') + '"><div class="stat-value ' + pnlColor(totalPnl) + '">' + fmtPnlInt(totalPnl) + '</div><div class="stat-label">Net P&amp;L</div></div>';
+        html += '<div class="stat-card stat-card-blue"><div class="stat-value">' + fmt(winRate, 0) + '%</div><div class="stat-label">Win Rate</div>' +
           '<div class="win-bar-container"><div class="win-bar-fill" style="width:' + winRate + '%;"></div></div></div>';
-        html += '<div class="stat-card"><div class="stat-value ' + pnlColor(roc) + '">' + fmtPctDec(roc) + '</div><div class="stat-label">Return on Capital</div>' +
+        html += '<div class="stat-card ' + (roc > 0 ? 'stat-card-green' : roc < 0 ? 'stat-card-red' : 'stat-card-blue') + '"><div class="stat-value ' + pnlColor(roc) + '">' + fmtPctDec(roc) + '</div><div class="stat-label">Return on Capital</div>' +
           '<div class="stat-sub">P&amp;L / Deployed</div></div>';
-        html += '<div class="stat-card"><div class="stat-value">' +
+        html += '<div class="stat-card stat-card-blue"><div class="stat-value">' +
           (profitFactor === Infinity ? '&#8734;' : fmt(profitFactor, 2) + 'x') +
           '</div><div class="stat-label">Profit Factor</div>' +
           '<div class="stat-sub">&Sigma;wins / &Sigma;losses</div></div>';
@@ -894,21 +972,21 @@
 
         // Secondary stats
         html += '<div class="stats-grid stats-grid-8">';
-        html += '<div class="stat-card"><div class="stat-value-sm">' + fmtMoneyInt(totalInvested) + '</div><div class="stat-label">Total Deployed</div>' +
+        html += '<div class="stat-card stat-card-blue"><div class="stat-value-sm">' + fmtMoneyInt(totalInvested) + '</div><div class="stat-label">Total Deployed</div>' +
           '<div class="stat-sub">premiums paid</div></div>';
-        html += '<div class="stat-card"><div class="stat-value-sm color-green">+$' + fmt(avgWin, 0) + '</div><div class="stat-label">Avg Win</div>' +
+        html += '<div class="stat-card stat-card-green"><div class="stat-value-sm color-green">+$' + fmt(avgWin, 0) + '</div><div class="stat-label">Avg Win</div>' +
           '<div class="stat-sub">' + totalWinners + ' winning trades</div></div>';
-        html += '<div class="stat-card"><div class="stat-value-sm color-red">-$' + fmt(avgLoss, 0) + '</div><div class="stat-label">Avg Loss</div>' +
+        html += '<div class="stat-card stat-card-red"><div class="stat-value-sm color-red">-$' + fmt(avgLoss, 0) + '</div><div class="stat-label">Avg Loss</div>' +
           '<div class="stat-sub">' + totalLosers + ' losing trades</div></div>';
-        html += '<div class="stat-card"><div class="stat-value-sm ' + pnlColor(expectancy) + '">' + fmtPnlInt(expectancy) + '</div><div class="stat-label">Expectancy</div>' +
+        html += '<div class="stat-card ' + (expectancy > 0 ? 'stat-card-green' : expectancy < 0 ? 'stat-card-red' : 'stat-card-blue') + '"><div class="stat-value-sm ' + pnlColor(expectancy) + '">' + fmtPnlInt(expectancy) + '</div><div class="stat-label">Expectancy</div>' +
           '<div class="stat-sub">per trade (E[V])</div></div>';
-        html += '<div class="stat-card"><div class="stat-value-sm">' + fmt(sharpe, 2) + '</div><div class="stat-label">Sharpe Ratio</div>' +
+        html += '<div class="stat-card stat-card-blue"><div class="stat-value-sm">' + fmt(sharpe, 2) + '</div><div class="stat-label">Sharpe Ratio</div>' +
           '<div class="stat-sub">annualized</div></div>';
-        html += '<div class="stat-card"><div class="stat-value-sm color-red">' + fmt(maxDrawdown, 1) + '%</div><div class="stat-label">Max Drawdown</div>' +
+        html += '<div class="stat-card stat-card-red"><div class="stat-value-sm color-red">' + fmt(maxDrawdown, 1) + '%</div><div class="stat-label">Max Drawdown</div>' +
           '<div class="stat-sub">peak to trough</div></div>';
-        html += '<div class="stat-card"><div class="stat-value-sm color-green">' + fmtPnlInt(bestPnl) + '</div><div class="stat-label">Best Trade</div>' +
+        html += '<div class="stat-card stat-card-green"><div class="stat-value-sm color-green">' + fmtPnlInt(bestPnl) + '</div><div class="stat-label">Best Trade</div>' +
           '<div class="stat-sub">$' + bestSym + '</div></div>';
-        html += '<div class="stat-card"><div class="stat-value-sm color-red">' + fmtPnlInt(worstPnl) + '</div><div class="stat-label">Worst Trade</div>' +
+        html += '<div class="stat-card stat-card-red"><div class="stat-value-sm color-red">' + fmtPnlInt(worstPnl) + '</div><div class="stat-label">Worst Trade</div>' +
           '<div class="stat-sub">$' + worstSym + '</div></div>';
         html += '</div>';
 
@@ -916,8 +994,8 @@
         if (equityPoints.length > 1) {
           html += '<div class="canvas-wrap">';
           html += '<div class="canvas-title">Equity Curve</div>';
-          html += '<div class="canvas-subtitle">Cumulative P&amp;L over time, assuming 1 contract per trade. The shaded area represents total accumulated gains or losses.</div>';
-          html += '<canvas id="equityCanvas" class="chart-canvas"></canvas>';
+          html += '<div class="canvas-subtitle">Cumulative P&amp;L over time, assuming 1 contract per trade.</div>';
+          html += '<div class="canvas-inner"><canvas id="equityCanvas" class="chart-canvas"></canvas></div>';
           html += '</div>';
         }
 
@@ -926,8 +1004,8 @@
         if (daysWithPnl.length > 1) {
           html += '<div class="canvas-wrap">';
           html += '<div class="canvas-title">Daily P&amp;L</div>';
-          html += '<div class="canvas-subtitle">Net profit or loss per trading day. Green bars are profitable days, red bars are losing days.</div>';
-          html += '<canvas id="dailyPnlCanvas" class="chart-canvas"></canvas>';
+          html += '<div class="canvas-subtitle">Net profit or loss per trading day.</div>';
+          html += '<div class="canvas-inner"><canvas id="dailyPnlCanvas" class="chart-canvas"></canvas></div>';
           html += '</div>';
         }
 
@@ -935,15 +1013,15 @@
         if (daysWithPnl.length > 1) {
           html += '<div class="canvas-wrap">';
           html += '<div class="canvas-title">Exposure vs Returns</div>';
-          html += '<div class="canvas-subtitle">Capital deployed (premiums paid) versus capital returned per day. Blue = invested, green/red = returned.</div>';
-          html += '<canvas id="exposureCanvas" class="chart-canvas"></canvas>';
+          html += '<div class="canvas-subtitle">Capital deployed versus capital returned per day. Blue = invested, green/red = returned.</div>';
+          html += '<div class="canvas-inner"><canvas id="exposureCanvas" class="chart-canvas"></canvas></div>';
           html += '</div>';
         }
 
         // Exposure summary panel
         html += '<div class="exposure-panel">';
         html += '<div class="exposure-title">Capital Efficiency Analysis</div>';
-        html += '<div class="exposure-subtitle">How efficiently capital was deployed across the period. For long options, max loss equals the premium paid.</div>';
+        html += '<div class="exposure-subtitle">How efficiently capital was deployed across the period.</div>';
         html += '<div class="exposure-grid">';
         html += '<div><div class="exposure-metric-label">Total Deployed</div><div class="exposure-metric-value mono">' + fmtMoneyInt(totalInvested) + '</div><div class="exposure-metric-sub">sum of premiums &times; 100</div></div>';
         html += '<div><div class="exposure-metric-label">Total Returned</div><div class="exposure-metric-value mono ' + pnlColor(totalReturn - totalInvested) + '">' + fmtMoneyInt(totalReturn) + '</div><div class="exposure-metric-sub">closing values</div></div>';
@@ -980,7 +1058,7 @@
           // Per-day exposure summary
           if (ds.invested > 0) {
             var dayRoc = ds.invested > 0 ? ((ds.returned - ds.invested) / ds.invested * 100) : 0;
-            html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;font-size:11px;color:var(--muted-foreground);">';
+            html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;font-size:10px;color:var(--muted-foreground);font-family:Inter,sans-serif;">';
             html += '<span>Deployed: <strong class="mono">$' + fmt(ds.invested, 0) + '</strong></span>';
             html += '<span>Returned: <strong class="mono">' + fmtMoneyInt(ds.returned) + '</strong></span>';
             html += '<span>ROC: <strong class="' + pnlColor(dayRoc) + '">' + fmtPctDec(dayRoc) + '</strong></span>';
@@ -996,7 +1074,7 @@
               '<div class="week-trade-pnl ' + pnlColor(td.pnl) + '">' + fmtPnlInt(td.pnl) + ' <span style="font-size:10px;">' + fmtPct(td.pct) + '</span></div></div>';
           }
         } else {
-          html += '<div style="font-size:12px;color:var(--muted-foreground);padding:8px 0;">No EOD data available for this day.</div>';
+          html += '<div style="font-size:11px;color:var(--muted-foreground);padding:8px 0;font-family:Inter,sans-serif;">No EOD data available for this day.</div>';
         }
         html += '</div>';
       }

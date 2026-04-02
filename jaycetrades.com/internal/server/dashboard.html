@@ -48,62 +48,70 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       color-scheme: light dark;
-      --background: #fafafa;
+      --background: #f8fafc;
       --foreground: #0f172a;
       --card: #ffffff;
+      --card-elevated: #f1f5f9;
       --card-foreground: #0f172a;
-      --primary: #475569;
+      --primary: #2563eb;
       --primary-foreground: #ffffff;
       --muted: #f1f5f9;
-      --muted-foreground: #64748b;
+      --muted-foreground: #6b7280;
       --accent: #94a3b8;
       --border: #e2e8f0;
       --input: #e2e8f0;
-      --ring: #475569;
+      --ring: #2563eb;
       --radius: 0.5rem;
-      --green: #16a34a;
-      --green-bg: #dcfce7;
-      --green-light: #f0fdf4;
-      --green-border: #bbf7d0;
-      --red: #dc2626;
+      --green: #10b981;
+      --green-bg: #d1fae5;
+      --green-light: #ecfdf5;
+      --green-border: #a7f3d0;
+      --red: #ef4444;
       --red-bg: #fee2e2;
       --red-light: #fef2f2;
       --red-border: #fecaca;
-      --blue: #1d4ed8;
+      --blue: #2563eb;
       --blue-bg: #dbeafe;
       --amber: #b45309;
       --amber-bg: #fef3c7;
       --chart-grid: #e2e8f0;
-      --chart-text: #64748b;
+      --chart-text: #6b7280;
+      --surface: #f1f5f9;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --background: #0f172a;
-        --foreground: #f1f5f9;
-        --card: #1e293b;
-        --card-foreground: #f1f5f9;
-        --primary: #94a3b8;
-        --primary-foreground: #0f172a;
-        --muted: #1e293b;
-        --muted-foreground: #94a3b8;
-        --accent: #cbd5e1;
-        --border: #334155;
-        --input: #334155;
-        --ring: #94a3b8;
-        --green-bg: rgba(22,163,74,0.15);
-        --green-light: rgba(22,163,74,0.08);
-        --green-border: rgba(22,163,74,0.3);
-        --red-bg: rgba(220,38,38,0.15);
-        --red-light: rgba(220,38,38,0.08);
-        --red-border: rgba(220,38,38,0.3);
-        --blue-bg: rgba(29,78,216,0.15);
-        --amber-bg: rgba(180,83,9,0.15);
-        --chart-grid: #334155;
-        --chart-text: #94a3b8;
+        --background: #0a0e17;
+        --foreground: #e2e8f0;
+        --card: #111827;
+        --card-elevated: #1a2332;
+        --card-foreground: #e2e8f0;
+        --primary: #3b82f6;
+        --primary-foreground: #0a0e17;
+        --muted: #151c28;
+        --muted-foreground: #6b7280;
+        --accent: #94a3b8;
+        --border: #1e293b;
+        --input: #1e293b;
+        --ring: #3b82f6;
+        --green: #10b981;
+        --green-bg: rgba(16,185,129,0.15);
+        --green-light: rgba(16,185,129,0.08);
+        --green-border: rgba(16,185,129,0.3);
+        --red: #ef4444;
+        --red-bg: rgba(239,68,68,0.15);
+        --red-light: rgba(239,68,68,0.08);
+        --red-border: rgba(239,68,68,0.3);
+        --blue: #3b82f6;
+        --blue-bg: rgba(59,130,246,0.15);
+        --amber: #f59e0b;
+        --amber-bg: rgba(245,158,11,0.15);
+        --chart-grid: #1e293b;
+        --chart-text: #6b7280;
+        --surface: #151c28;
       }
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -113,128 +121,165 @@
       background-color: var(--background);
       color: var(--foreground);
       min-height: 100vh;
-      padding: 24px 16px;
+      padding: 0;
     }
+    .ui-text { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     .mono { font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace; }
-    .page { max-width: 1100px; margin: 0 auto; }
-    .main-card {
+    .page { max-width: 1200px; margin: 0 auto; }
+
+    /* Top header bar */
+    .top-bar {
       background-color: var(--card);
-      color: var(--card-foreground);
-      border: 1px solid var(--border);
-      border-radius: 0.75rem;
-      box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
-      overflow: hidden;
-    }
-    .header {
-      padding: 16px 28px;
-      display: flex; align-items: center; justify-content: space-between;
       border-bottom: 1px solid var(--border);
-      flex-wrap: wrap; gap: 12px;
+      padding: 12px 28px;
+      display: flex; align-items: center; justify-content: space-between;
     }
-    .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; text-decoration: none; }
+    .logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; text-decoration: none; }
     .logo-jayce { color: var(--foreground); }
     .logo-trades { color: var(--primary); }
-    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .nav-link {
-      color: var(--muted-foreground); font-size: 13px; text-decoration: none; transition: color 0.15s;
-      padding: 4px 8px; border-radius: 4px;
+    .subscribe-link {
+      color: var(--muted-foreground); font-size: 12px; text-decoration: none;
+      font-family: 'Inter', sans-serif; font-weight: 500; transition: color 0.15s;
+      padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px;
     }
-    .nav-link:hover { color: var(--foreground); }
-    .nav-link.active { color: var(--foreground); font-weight: 600; background: var(--muted); }
+    .subscribe-link:hover { color: var(--foreground); border-color: var(--accent); }
+
+    /* Sub-header nav bar */
+    .sub-bar {
+      background-color: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: stretch; justify-content: space-between;
+      padding: 0 28px;
+    }
+    .nav-tabs { display: flex; align-items: stretch; gap: 0; }
+    .nav-tab {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px; font-weight: 600; color: var(--muted-foreground);
+      text-decoration: none; padding: 12px 20px; display: flex; align-items: center;
+      border-bottom: 2px solid transparent; transition: all 0.15s;
+      letter-spacing: 0.2px;
+    }
+    .nav-tab:hover { color: var(--foreground); background: var(--muted); }
+    .nav-tab.active {
+      color: var(--primary); font-weight: 700;
+      border-bottom-color: var(--primary);
+    }
+    .sub-bar-right { display: flex; align-items: center; gap: 12px; }
     .date-nav {
       display: flex; align-items: center;
       background: var(--muted); border: 1px solid var(--border);
-      border-radius: 8px; overflow: hidden;
+      border-radius: 6px; overflow: hidden;
     }
     .date-nav-btn {
       background: none; border: none; cursor: pointer;
-      padding: 6px 10px; color: var(--muted-foreground);
-      font-size: 14px; font-weight: 600; transition: all 0.15s;
+      padding: 5px 9px; color: var(--muted-foreground);
+      font-size: 12px; font-weight: 600; transition: all 0.15s;
       display: flex; align-items: center;
+      font-family: 'Inter', sans-serif;
     }
     .date-nav-btn:hover { color: var(--foreground); background: var(--border); }
     .date-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .date-nav-label {
-      padding: 6px 14px; font-size: 13px; font-weight: 600;
+      padding: 5px 12px; font-size: 12px; font-weight: 600;
       color: var(--foreground); white-space: nowrap;
       border-left: 1px solid var(--border); border-right: 1px solid var(--border);
-      min-width: 140px; text-align: center;
+      min-width: 130px; text-align: center;
+      font-family: 'Inter', sans-serif;
     }
     .live-dot {
-      width: 8px; height: 8px; border-radius: 50%; background: #4ade80;
+      width: 7px; height: 7px; border-radius: 50%; background: var(--green);
       animation: pulse-dot 2s ease-in-out infinite; flex-shrink: 0;
     }
     @keyframes pulse-dot {
-      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
-      50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(74,222,128,0); }
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+      50% { opacity: 0.7; box-shadow: 0 0 0 5px rgba(16,185,129,0); }
     }
 
     /* Chart section */
     .chart-section {
       border-bottom: 1px solid var(--border);
-      background: var(--muted);
+      background: var(--surface);
     }
     .symbol-tabs {
-      display: flex; gap: 2px; padding: 12px 28px 0;
+      display: flex; gap: 4px; padding: 10px 28px 0;
       overflow-x: auto; -webkit-overflow-scrolling: touch;
     }
     .symbol-tab {
-      background: none; border: 1px solid transparent; cursor: pointer;
-      padding: 6px 14px; font-size: 12px; font-weight: 700;
+      background: none; border: none; cursor: pointer;
+      padding: 5px 12px; font-size: 11px; font-weight: 700;
       color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace;
-      border-radius: 6px 6px 0 0; transition: all 0.15s; white-space: nowrap;
+      border-radius: 9999px; transition: all 0.15s; white-space: nowrap;
     }
-    .symbol-tab:hover { color: var(--foreground); background: var(--card); }
+    .symbol-tab:hover { color: var(--foreground); background: var(--card-elevated); }
     .symbol-tab.active {
       color: var(--foreground); background: var(--card);
-      border-color: var(--border); border-bottom-color: var(--card);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    .symbol-tab .tab-pnl { font-size: 10px; margin-left: 4px; font-weight: 600; }
+    .symbol-tab .tab-pnl { font-size: 9px; margin-left: 4px; font-weight: 600; }
     .tv-chart-wrap {
       height: 420px; background: var(--card);
       border-top: 1px solid var(--border);
       position: relative;
+      box-shadow: inset 0 1px 4px rgba(0,0,0,0.06);
     }
     .tv-chart-wrap iframe { border: none !important; }
     .chart-loading {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      color: var(--muted-foreground); font-size: 13px; z-index: 0;
+      color: var(--muted-foreground); font-size: 12px; z-index: 0;
+      font-family: 'Inter', sans-serif;
     }
 
-    .content { padding: 24px 28px; }
+    .content { padding: 20px 28px; }
 
     /* Stats */
     .stats-grid {
       display: grid; grid-template-columns: repeat(4, 1fr);
-      gap: 12px; margin-bottom: 24px;
+      gap: 10px; margin-bottom: 20px;
     }
     @media (max-width: 640px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
     .stat-card {
-      background: var(--muted); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 16px; text-align: center;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px; text-align: center;
+      border-left: 3px solid var(--primary);
     }
-    .stat-value { font-size: 28px; font-weight: 800; line-height: 1.1; }
+    .stat-card.stat-profit { border-left-color: var(--green); }
+    .stat-card.stat-loss { border-left-color: var(--red); }
+    .stat-card.stat-neutral { border-left-color: var(--primary); }
+    .stat-value {
+      font-size: 24px; font-weight: 800; line-height: 1.1;
+      font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    }
     .stat-label {
-      font-size: 10px; color: var(--muted-foreground); text-transform: uppercase;
-      letter-spacing: 0.5px; font-weight: 600; margin-top: 4px;
+      font-size: 9px; color: var(--muted-foreground); text-transform: uppercase;
+      letter-spacing: 0.8px; font-weight: 600; margin-top: 4px;
+      font-family: 'Inter', sans-serif;
     }
-    .stat-sub { font-size: 11px; color: var(--muted-foreground); margin-top: 2px; }
+    .stat-sub {
+      font-size: 10px; color: var(--muted-foreground); margin-top: 2px;
+      font-family: 'Inter', sans-serif;
+    }
     .win-bar-container {
-      width: 100%; height: 6px; background: var(--red-bg);
+      width: 100%; height: 5px; background: var(--red-bg);
       border-radius: 3px; margin-top: 8px; overflow: hidden;
     }
     .win-bar-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.5s ease; }
 
     /* Exposure panel */
     .exposure-panel {
-      background: var(--muted); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 20px; margin-bottom: 24px;
+      background: linear-gradient(135deg, var(--card) 0%, var(--card-elevated) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px; margin-bottom: 20px;
     }
     .exposure-title {
-      font-size: 14px; font-weight: 700; margin-bottom: 4px;
+      font-size: 11px; font-weight: 700; margin-bottom: 4px;
       display: flex; align-items: center; gap: 8px;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      font-family: 'Inter', sans-serif;
     }
-    .exposure-subtitle { font-size: 12px; color: var(--muted-foreground); margin-bottom: 16px; }
+    .exposure-subtitle {
+      font-size: 11px; color: var(--muted-foreground); margin-bottom: 16px;
+      font-family: 'Inter', sans-serif;
+    }
     .exposure-grid {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 16px;
@@ -242,51 +287,70 @@
     .exposure-metric {}
     .exposure-metric-label {
       font-size: 9px; color: var(--muted-foreground); text-transform: uppercase;
-      letter-spacing: 0.5px; font-weight: 600;
+      letter-spacing: 0.6px; font-weight: 600;
+      font-family: 'Inter', sans-serif;
     }
-    .exposure-metric-value { font-size: 20px; font-weight: 800; margin-top: 2px; }
-    .exposure-metric-sub { font-size: 11px; color: var(--muted-foreground); margin-top: 1px; }
+    .exposure-metric-value {
+      font-size: 18px; font-weight: 800; margin-top: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .exposure-metric-sub {
+      font-size: 10px; color: var(--muted-foreground); margin-top: 1px;
+      font-family: 'Inter', sans-serif;
+    }
     .exposure-bar-wrap {
       margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);
     }
-    .exposure-bar-label { font-size: 11px; color: var(--muted-foreground); margin-bottom: 6px; }
-    .exposure-bar-track { height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; display: flex; }
+    .exposure-bar-label {
+      font-size: 10px; color: var(--muted-foreground); margin-bottom: 6px;
+      font-family: 'Inter', sans-serif;
+    }
+    .exposure-bar-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; display: flex; }
     .exposure-bar-invested { height: 100%; background: var(--blue); opacity: 0.7; transition: width 0.5s; }
     .exposure-bar-returned { height: 100%; background: var(--green); opacity: 0.7; transition: width 0.5s; }
 
     .section-header {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
     }
-    .section-title { font-size: 16px; font-weight: 700; }
-    .section-subtitle { font-size: 12px; color: var(--muted-foreground); }
-    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+    .section-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; font-family: 'Inter', sans-serif;
+    }
+    .section-subtitle {
+      font-size: 11px; color: var(--muted-foreground);
+      font-family: 'Inter', sans-serif;
+    }
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
 
     /* Chart bars */
     .chart-container { margin-bottom: 8px; }
     .chart-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 7px 0; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 0; border-bottom: 1px solid var(--border);
     }
     .chart-row:last-child { border-bottom: none; }
-    .chart-label { width: 120px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
-    .chart-symbol { font-size: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .chart-label { width: 110px; flex-shrink: 0; display: flex; align-items: center; gap: 5px; }
+    .chart-symbol { font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
     .chart-type {
-      font-size: 9px; font-weight: 700; padding: 2px 5px;
-      border-radius: 3px; text-transform: uppercase; letter-spacing: 0.3px;
+      font-size: 8px; font-weight: 700; padding: 1px 5px;
+      border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.3px;
     }
     .chart-type-call { background: var(--green-bg); color: var(--green); }
     .chart-type-put { background: var(--red-bg); color: var(--red); }
     .chart-bar-wrapper {
-      flex: 1; height: 28px; background: var(--muted);
-      border-radius: 4px; overflow: hidden;
+      flex: 1; height: 24px; background: var(--muted);
+      border-radius: 3px; overflow: hidden;
     }
     .chart-bar {
-      height: 100%; border-radius: 4px; transition: width 0.5s ease; min-width: 2px;
+      height: 100%; border-radius: 3px; transition: width 0.5s ease; min-width: 2px;
     }
-    .chart-bar-profit { background: var(--green); opacity: 0.65; }
-    .chart-bar-loss { background: var(--red); opacity: 0.65; }
-    .chart-pnl { width: 80px; text-align: right; font-size: 14px; font-weight: 700; flex-shrink: 0; }
-    .chart-pnl-pct { font-size: 11px; font-weight: 600; margin-left: 4px; }
+    .chart-bar-profit { background: var(--green); opacity: 0.6; }
+    .chart-bar-loss { background: var(--red); opacity: 0.6; }
+    .chart-pnl {
+      width: 75px; text-align: right; font-size: 13px; font-weight: 700; flex-shrink: 0;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .chart-pnl-pct { font-size: 10px; font-weight: 600; margin-left: 3px; }
     .color-green { color: var(--green); }
     .color-red { color: var(--red); }
     .color-muted { color: var(--muted-foreground); }
@@ -295,22 +359,25 @@
     .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .trade-table { width: 100%; border-collapse: collapse; }
     .trade-table th {
-      text-align: left; font-size: 10px; font-weight: 600;
+      text-align: left; font-size: 9px; font-weight: 600;
       color: var(--muted-foreground); text-transform: uppercase;
-      letter-spacing: 0.5px; padding: 8px 10px;
+      letter-spacing: 0.6px; padding: 6px 8px;
       border-bottom: 2px solid var(--border);
+      font-family: 'Inter', sans-serif;
     }
     .trade-table th:last-child, .trade-table td:last-child { text-align: right; }
     .trade-table td {
-      padding: 10px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle;
+      padding: 7px 8px; font-size: 12px; border-bottom: 1px solid var(--border); vertical-align: middle;
     }
     .trade-table tr:last-child td { border-bottom: none; }
-    .trade-table-symbol { font-weight: 700; font-size: 14px; font-family: 'JetBrains Mono', monospace; }
-    .trade-table-detail { color: var(--muted-foreground); font-size: 11px; }
+    .trade-table tbody tr:nth-child(4n+1) { background: var(--muted); }
+    .trade-table-symbol { font-weight: 700; font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+    .trade-table-detail { color: var(--muted-foreground); font-size: 10px; font-family: 'Inter', sans-serif; }
     .badge {
-      display: inline-block; font-size: 10px; font-weight: 700;
-      padding: 3px 8px; border-radius: 4px; text-transform: uppercase;
-      letter-spacing: 0.5px; vertical-align: middle;
+      display: inline-block; font-size: 9px; font-weight: 700;
+      padding: 2px 7px; border-radius: 9999px; text-transform: uppercase;
+      letter-spacing: 0.4px; vertical-align: middle;
+      font-family: 'Inter', sans-serif;
     }
     .badge-call { background: var(--green-bg); color: var(--green); }
     .badge-put { background: var(--red-bg); color: var(--red); }
@@ -326,59 +393,68 @@
 
     .trade-detail-row { display: none; }
     .trade-detail-row.open { display: table-row; }
-    .trade-detail-cell { padding: 0 10px 12px 10px; background: var(--muted); }
+    .trade-detail-cell { padding: 0 8px 10px 8px; background: var(--muted); }
     .trade-detail-inner {
-      padding: 14px 16px; background: var(--card);
+      padding: 12px 14px; background: var(--card);
       border: 1px solid var(--border); border-radius: var(--radius);
     }
-    .detail-grid { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
-    .detail-col { flex: 1; min-width: 120px; }
+    .detail-grid { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+    .detail-col { flex: 1; min-width: 110px; }
     .detail-label {
-      font-size: 9px; color: var(--muted-foreground); text-transform: uppercase;
-      letter-spacing: 0.5px; font-weight: 600;
+      font-size: 8px; color: var(--muted-foreground); text-transform: uppercase;
+      letter-spacing: 0.6px; font-weight: 600;
+      font-family: 'Inter', sans-serif;
     }
-    .detail-value { font-size: 14px; font-weight: 700; margin-top: 2px; }
-    .detail-value-sm { font-size: 13px; font-weight: 600; margin-top: 2px; }
+    .detail-value {
+      font-size: 13px; font-weight: 700; margin-top: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .detail-value-sm { font-size: 12px; font-weight: 600; margin-top: 2px; }
     .detail-thesis {
-      color: var(--muted-foreground); font-size: 13px; line-height: 1.5;
-      margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+      color: var(--muted-foreground); font-size: 12px; line-height: 1.5;
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
     }
     .detail-eod {
-      margin-top: 10px; padding: 12px;
+      margin-top: 8px; padding: 10px;
       border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border);
     }
     .detail-eod.profit { background: var(--green-light); border-color: var(--green-border); }
     .detail-eod.loss { background: var(--red-light); border-color: var(--red-border); }
     .detail-eod-notes {
-      color: var(--muted-foreground); font-size: 12px; line-height: 1.5;
-      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+      color: var(--muted-foreground); font-size: 11px; line-height: 1.5;
+      margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border);
     }
     .clickable { cursor: pointer; }
     .clickable:hover { background: var(--muted); }
     .expand-icon {
       display: inline-block; transition: transform 0.2s;
-      font-size: 10px; color: var(--accent); margin-right: 4px;
+      font-size: 9px; color: var(--accent); margin-right: 3px;
     }
     .expand-icon.open { transform: rotate(90deg); }
 
     /* Morning cards */
     .morning-card {
-      background: var(--muted); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 18px 20px; margin-bottom: 12px;
+      background: linear-gradient(135deg, var(--card) 0%, var(--card-elevated) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 10px;
     }
     .morning-header {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 10px; flex-wrap: wrap; gap: 8px;
     }
-    .morning-symbol { font-size: 18px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
-    .morning-price { font-size: 16px; font-weight: 800; }
+    .morning-symbol { font-size: 16px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+    .morning-price {
+      font-size: 15px; font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+    }
     .morning-specs {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 8px 16px; font-size: 12px; color: var(--muted-foreground);
+      gap: 6px 14px; font-size: 11px; color: var(--muted-foreground);
+      font-family: 'Inter', sans-serif;
     }
     .morning-specs strong { color: var(--foreground); font-weight: 700; }
     .morning-thesis {
-      color: var(--muted-foreground); font-size: 13px; line-height: 1.5;
+      color: var(--muted-foreground); font-size: 12px; line-height: 1.5;
       margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
     }
     .morning-technicals {
@@ -387,101 +463,76 @@
     }
     .tech-metric { }
     .tech-metric-label {
-      font-size: 9px; color: var(--muted-foreground); text-transform: uppercase;
-      letter-spacing: 0.5px; font-weight: 600;
+      font-size: 8px; color: var(--muted-foreground); text-transform: uppercase;
+      letter-spacing: 0.6px; font-weight: 600;
+      font-family: 'Inter', sans-serif;
     }
-    .tech-metric-value { font-size: 14px; font-weight: 700; margin-top: 1px; }
+    .tech-metric-value {
+      font-size: 13px; font-weight: 700; margin-top: 1px;
+      font-family: 'JetBrains Mono', monospace;
+    }
     .tech-metric-explain {
-      font-size: 10px; color: var(--muted-foreground); margin-top: 1px;
-      font-style: italic;
+      font-size: 9px; color: var(--muted-foreground); margin-top: 1px;
+      font-style: italic; font-family: 'Inter', sans-serif;
     }
 
     .info-banner {
       background: var(--blue-bg); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 12px 16px;
-      margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
+      border-radius: var(--radius); padding: 10px 14px;
+      margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
     }
-    .info-banner-icon { font-size: 16px; flex-shrink: 0; }
-    .info-banner-text { font-size: 13px; color: var(--foreground); }
+    .info-banner-icon { font-size: 14px; flex-shrink: 0; }
+    .info-banner-text { font-size: 12px; color: var(--foreground); font-family: 'Inter', sans-serif; }
 
-    /* Technical reference */
-    .tech-ref {
-      background: var(--muted); border: 1px solid var(--border);
-      border-radius: var(--radius); margin-top: 24px; overflow: hidden;
-    }
-    .tech-ref-header {
-      padding: 14px 20px; cursor: pointer; display: flex;
-      align-items: center; justify-content: space-between;
-      transition: background 0.15s;
-    }
-    .tech-ref-header:hover { background: var(--border); }
-    .tech-ref-title { font-size: 14px; font-weight: 700; }
-    .tech-ref-toggle { font-size: 12px; color: var(--muted-foreground); }
-    .tech-ref-body {
-      max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out, opacity 0.3s;
-      opacity: 0;
-    }
-    .tech-ref-body.open { max-height: 3000px; opacity: 1; }
-    .tech-ref-content {
-      padding: 0 20px 20px; font-size: 13px; color: var(--muted-foreground); line-height: 1.7;
-    }
-    .tech-ref-content h4 {
-      color: var(--foreground); font-size: 13px; font-weight: 700;
-      margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .tech-ref-content h4:first-child { margin-top: 0; }
-    .tech-ref-content code {
-      font-family: 'JetBrains Mono', monospace; font-size: 12px;
-      background: var(--border); padding: 1px 5px; border-radius: 3px;
-    }
-    .tech-ref-content ul { padding-left: 16px; margin: 4px 0; }
-    .tech-ref-content li { margin-bottom: 4px; }
-    .source-tag {
-      display: inline-block; font-size: 10px; font-weight: 600; padding: 3px 8px;
-      border-radius: 4px; background: var(--border); color: var(--muted-foreground);
-      margin-right: 6px; margin-bottom: 4px;
-    }
-
+    /* Footer - minimal single line */
     .footer {
-      padding: 20px 28px; border-top: 1px solid var(--border); text-align: center;
+      padding: 14px 28px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; flex-wrap: wrap;
     }
-    .footer-text { color: var(--muted-foreground); font-size: 11px; line-height: 1.5; }
-    .footer-brand { margin-top: 8px; }
-    .footer-brand .logo { font-size: 14px; }
-    .footer-links { margin-top: 8px; }
-    .footer-links a {
-      color: var(--muted-foreground); font-size: 12px; text-decoration: underline;
-      text-underline-offset: 2px; transition: color 0.15s; margin: 0 6px;
+    .footer-text {
+      color: var(--muted-foreground); font-size: 10px;
+      font-family: 'Inter', sans-serif;
     }
-    .footer-links a:hover { color: var(--foreground); }
-    .empty-state { text-align: center; padding: 60px 20px; }
-    .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-    .empty-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-    .empty-sub { color: var(--muted-foreground); font-size: 14px; }
+    .footer-sep { color: var(--border); font-size: 10px; }
+    .footer a {
+      color: var(--muted-foreground); font-size: 10px; text-decoration: underline;
+      text-underline-offset: 2px; transition: color 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+    .footer a:hover { color: var(--foreground); }
+
+    .empty-state { text-align: center; padding: 50px 20px; }
+    .empty-icon { font-size: 40px; margin-bottom: 14px; opacity: 0.4; }
+    .empty-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .empty-sub { color: var(--muted-foreground); font-size: 13px; font-family: 'Inter', sans-serif; }
     .refresh-bar {
       display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
     }
-    .refresh-timer { color: var(--muted-foreground); font-size: 12px; }
+    .refresh-timer {
+      color: var(--muted-foreground); font-size: 11px;
+      font-family: 'Inter', sans-serif;
+    }
 
     /* Animations */
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
+      from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
     }
     @keyframes fadeInScale {
-      from { opacity: 0; transform: scale(0.96); }
+      from { opacity: 0; transform: scale(0.97); }
       to { opacity: 1; transform: scale(1); }
     }
-    .fade-in { animation: fadeIn 0.35s ease-out both; }
-    .fade-in-scale { animation: fadeInScale 0.3s ease-out both; }
-    .stats-grid .stat-card { animation: fadeInScale 0.35s ease-out both; }
-    .stats-grid .stat-card:nth-child(1) { animation-delay: 0.05s; }
-    .stats-grid .stat-card:nth-child(2) { animation-delay: 0.1s; }
-    .stats-grid .stat-card:nth-child(3) { animation-delay: 0.15s; }
-    .stats-grid .stat-card:nth-child(4) { animation-delay: 0.2s; }
-    .chart-row { animation: fadeIn 0.3s ease-out both; }
-    .morning-card { animation: fadeIn 0.3s ease-out both; }
-    .trade-detail-row td { animation: fadeIn 0.25s ease-out; }
+    .fade-in { animation: fadeIn 0.2s ease-out both; }
+    .fade-in-scale { animation: fadeInScale 0.2s ease-out both; }
+    .stats-grid .stat-card { animation: fadeInScale 0.2s ease-out both; }
+    .stats-grid .stat-card:nth-child(1) { animation-delay: 0.03s; }
+    .stats-grid .stat-card:nth-child(2) { animation-delay: 0.06s; }
+    .stats-grid .stat-card:nth-child(3) { animation-delay: 0.09s; }
+    .stats-grid .stat-card:nth-child(4) { animation-delay: 0.12s; }
+    .chart-row { animation: fadeIn 0.2s ease-out both; }
+    .morning-card { animation: fadeIn 0.2s ease-out both; }
+    .trade-detail-row td { animation: fadeIn 0.15s ease-out; }
     .stat-card { transition: transform 0.15s ease, box-shadow 0.15s ease; }
     .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
 
@@ -496,91 +547,90 @@
 
     @media (max-width: 640px) {
       .page { padding: 0; }
-      body { padding: 12px 8px; }
-      .header { padding: 12px 16px; gap: 8px; }
-      .header-right { gap: 6px; width: 100%; justify-content: flex-end; }
-      .content { padding: 16px; }
-      .logo { font-size: 20px; }
-      .date-nav-label { min-width: 110px; font-size: 12px; padding: 6px 10px; }
+      .top-bar { padding: 10px 14px; }
+      .sub-bar { padding: 0 14px; flex-direction: column; gap: 0; }
+      .nav-tabs { width: 100%; }
+      .nav-tab { flex: 1; justify-content: center; font-size: 12px; padding: 10px 12px; }
+      .sub-bar-right { width: 100%; justify-content: flex-end; padding: 8px 0; gap: 8px; }
+      .content { padding: 14px; }
+      .logo { font-size: 18px; }
+      .date-nav-label { min-width: 100px; font-size: 11px; padding: 5px 8px; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-      .stat-value { font-size: 22px; }
-      .chart-label { width: 80px; }
-      .chart-symbol { font-size: 12px; }
-      .chart-type { font-size: 8px; padding: 1px 4px; }
-      .chart-pnl { width: 65px; font-size: 12px; }
-      .chart-pnl-pct { font-size: 10px; }
-      .trade-table th, .trade-table td { padding: 8px 6px; font-size: 12px; }
-      .trade-table-symbol { font-size: 13px; }
+      .stat-value { font-size: 20px; }
+      .chart-label { width: 75px; }
+      .chart-symbol { font-size: 11px; }
+      .chart-type { font-size: 7px; padding: 1px 4px; }
+      .chart-pnl { width: 60px; font-size: 11px; }
+      .chart-pnl-pct { font-size: 9px; }
+      .trade-table th, .trade-table td { padding: 6px 5px; font-size: 11px; }
+      .trade-table-symbol { font-size: 12px; }
       .morning-header { flex-direction: column; align-items: flex-start; }
-      .morning-specs { gap: 6px 10px; font-size: 11px; }
-      .footer { padding: 16px; }
-      .detail-grid { gap: 10px; }
-      .detail-col { min-width: 90px; }
-      .section-title { font-size: 14px; }
-      .symbol-tabs { padding: 10px 16px 0; }
+      .morning-specs { gap: 5px 8px; font-size: 10px; }
+      .footer { padding: 12px 14px; }
+      .detail-grid { gap: 8px; }
+      .detail-col { min-width: 85px; }
+      .section-title { font-size: 10px; }
+      .symbol-tabs { padding: 8px 14px 0; }
       .tv-chart-wrap { height: 320px; }
       .exposure-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .exposure-metric-value { font-size: 16px; }
+      .exposure-metric-value { font-size: 15px; }
       .morning-technicals { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 400px) {
-      .header-right { flex-wrap: wrap; }
-      .chart-label { width: 65px; }
-      .chart-pnl { width: 55px; font-size: 11px; }
+      .sub-bar-right { flex-wrap: wrap; }
+      .chart-label { width: 60px; }
+      .chart-pnl { width: 50px; font-size: 10px; }
       .stats-grid { gap: 6px; }
-      .stat-card { padding: 12px 8px; }
-      .stat-value { font-size: 20px; }
+      .stat-card { padding: 10px 8px; }
+      .stat-value { font-size: 18px; }
     }
   </style>
 </head>
 <body>
   <div class="page">
-    <div class="main-card">
-      <div class="header">
-        <a href="/" style="text-decoration: none;">
-          <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
-        </a>
-        <div class="header-right">
-          <a href="/dashboard" class="nav-link active">Dashboard</a>
-          <a href="/history" class="nav-link">History</a>
-          <a href="/" class="nav-link">Subscribe</a>
-          <div class="date-nav">
-            <button class="date-nav-btn" id="prevBtn" onclick="navPrev()" title="Older">&#9664;</button>
-            <span class="date-nav-label" id="dateLabel">Loading...</span>
-            <button class="date-nav-btn" id="nextBtn" onclick="navNext()" title="Newer">&#9654;</button>
-          </div>
-          <div class="live-dot" id="liveDot" title="Auto-refreshing"></div>
-        </div>
-      </div>
+    <div class="top-bar">
+      <a href="/" style="text-decoration: none;">
+        <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
+      </a>
+      <a href="/" class="subscribe-link ui-text">Subscribe</a>
+    </div>
 
-      <div class="chart-section" id="chartSection" style="display: none;">
-        <div class="symbol-tabs" id="symbolTabs"></div>
-        <div class="tv-chart-wrap" id="tvChartWrap">
-          <div class="chart-loading">Loading chart...</div>
-          <div id="tv_chart" style="width:100%;height:100%;"></div>
-        </div>
+    <div class="sub-bar">
+      <div class="nav-tabs">
+        <a href="/dashboard" class="nav-tab active">Live Dashboard</a>
+        <a href="/history" class="nav-tab">Historical Analytics</a>
       </div>
+      <div class="sub-bar-right">
+        <div class="date-nav">
+          <button class="date-nav-btn" id="prevBtn" onclick="navPrev()" title="Older">&#9664;</button>
+          <span class="date-nav-label" id="dateLabel">Loading...</span>
+          <button class="date-nav-btn" id="nextBtn" onclick="navNext()" title="Newer">&#9654;</button>
+        </div>
+        <div class="live-dot" id="liveDot" title="Auto-refreshing"></div>
+      </div>
+    </div>
 
-      <div class="content" id="mainContent">
-        <div class="empty-state">
-          <div class="empty-icon">&#9203;</div>
-          <div class="empty-title">Loading trades...</div>
-        </div>
+    <div class="chart-section" id="chartSection" style="display: none;">
+      <div class="symbol-tabs" id="symbolTabs"></div>
+      <div class="tv-chart-wrap" id="tvChartWrap">
+        <div class="chart-loading">Loading chart...</div>
+        <div id="tv_chart" style="width:100%;height:100%;"></div>
       </div>
+    </div>
 
-      <div class="footer">
-        <p class="footer-text">
-          <strong>Disclaimer:</strong> Not financial advice. Options trading involves substantial risk of loss.
-          Past performance does not guarantee future results. All P&amp;L assumes 1 contract per trade.
-        </p>
-        <div class="footer-brand">
-          <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
-        </div>
-        <div class="footer-links">
-          <a href="/">Subscribe for free email alerts</a>
-          <a href="/history">View historical performance</a>
-        </div>
+    <div class="content" id="mainContent">
+      <div class="empty-state">
+        <div class="empty-icon">&#9203;</div>
+        <div class="empty-title">Loading trades...</div>
       </div>
+    </div>
+
+    <div class="footer">
+      <span class="footer-text"><strong>Disclaimer:</strong> Not financial advice. Options trading involves substantial risk. Past performance does not guarantee future results.</span>
+      <span class="footer-sep">|</span>
+      <a href="/">Subscribe</a>
+      <span class="footer-sep">|</span>
+      <a href="/history">History</a>
     </div>
   </div>
 
@@ -792,10 +842,6 @@
       if (row) row.classList.toggle('open');
       if (icon) icon.classList.toggle('open');
     }
-    function toggleTechRef() {
-      var body = document.getElementById('techRefBody');
-      if (body) body.classList.toggle('open');
-    }
 
     // ── Render: Exposure Analysis ──
     function renderExposure(trades, hasSummaries) {
@@ -902,24 +948,25 @@
 
       var html = '';
       html += '<div class="refresh-bar">' +
-        '<h1 style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">' +
+        '<h1 class="section-title" style="font-size: 13px; letter-spacing: 1px;">' +
         (hasSummaries ? 'End of Day Results' : "Today's Plays") + '</h1>' +
         '<span class="refresh-timer" id="timer">Refreshes in ' + REFRESH_SECONDS + 's</span></div>';
-      html += '<p style="color: var(--muted-foreground); font-size: 13px; margin-bottom: 20px;">' +
+      html += '<p style="color: var(--muted-foreground); font-size: 12px; margin-bottom: 18px; font-family: Inter, sans-serif;">' +
         data.trades.length + ' options picks' +
         (hasSummaries ? '' : ' &middot; 0-7 DTE &middot; Under $200/contract') + '</p>';
 
       if (hasSummaries) {
         // Stats grid with exposure-aware metrics
+        var pnlClass = totalPnl > 0 ? 'stat-profit' : totalPnl < 0 ? 'stat-loss' : 'stat-neutral';
         html += '<div class="stats-grid">';
-        html += '<div class="stat-card"><div class="stat-value ' + pnlColor(totalPnl) + '">' + fmtPnlInt(totalPnl) + '</div><div class="stat-label">Net P&amp;L</div></div>';
-        html += '<div class="stat-card"><div class="stat-value">' + fmt(winRate, 0) + '%</div><div class="stat-label">Win Rate</div>' +
+        html += '<div class="stat-card ' + pnlClass + '"><div class="stat-value ' + pnlColor(totalPnl) + '">' + fmtPnlInt(totalPnl) + '</div><div class="stat-label">Net P&amp;L</div></div>';
+        html += '<div class="stat-card stat-neutral"><div class="stat-value">' + fmt(winRate, 0) + '%</div><div class="stat-label">Win Rate</div>' +
           '<div class="win-bar-container"><div class="win-bar-fill" style="width: ' + winRate + '%;"></div></div></div>';
-        html += '<div class="stat-card"><div class="stat-value">' +
+        html += '<div class="stat-card stat-neutral"><div class="stat-value">' +
           (profitFactor === Infinity ? '&#8734;' : fmt(profitFactor, 2) + 'x') +
           '</div><div class="stat-label">Profit Factor</div>' +
           '<div class="stat-sub">gross wins / losses</div></div>';
-        html += '<div class="stat-card"><div class="stat-value color-green" style="font-size:20px;">' + fmtPnlInt(bestPnl) + '</div><div class="stat-label">Best Trade</div><div class="stat-sub">$' + bestSym + '</div></div>';
+        html += '<div class="stat-card stat-profit"><div class="stat-value color-green" style="font-size:18px;">' + fmtPnlInt(bestPnl) + '</div><div class="stat-label">Best Trade</div><div class="stat-sub">$' + bestSym + '</div></div>';
         html += '</div>';
 
         html += renderExposure(data.trades, true);
@@ -934,7 +981,6 @@
         html += renderMorningCards(data.trades);
       }
 
-      html += renderTechRef();
       el.innerHTML = '<div class="fade-in">' + html + '</div>';
     }
 
@@ -1028,21 +1074,21 @@
           '<div class="detail-col"><div class="detail-label">Sentiment</div><div style="margin-top:2px;">' + sentimentLabel(t.sentiment_score) +
             (t.mention_count > 0 ? ' <span class="color-muted">&middot; ' + t.mention_count + ' mentions</span>' : '') + '</div></div></div>';
 
-        if (t.catalyst) html += '<div style="font-size:12px;color:var(--muted-foreground);margin-bottom:4px;"><strong style="color:var(--foreground);">Catalyst:</strong> ' + escapeHtml(t.catalyst) + '</div>';
-        if (t.target_price > 0) html += '<div style="font-size:12px;color:var(--muted-foreground);margin-bottom:4px;"><strong style="color:var(--foreground);">Price Target:</strong> <span class="mono color-green">$' + fmt(t.target_price, 2) + '</span> (' + fmtPctDec((t.target_price - t.current_price) / t.current_price * 100) + ' from entry)</div>';
+        if (t.catalyst) html += '<div style="font-size:11px;color:var(--muted-foreground);margin-bottom:4px;"><strong style="color:var(--foreground);">Catalyst:</strong> ' + escapeHtml(t.catalyst) + '</div>';
+        if (t.target_price > 0) html += '<div style="font-size:11px;color:var(--muted-foreground);margin-bottom:4px;"><strong style="color:var(--foreground);">Price Target:</strong> <span class="mono color-green">$' + fmt(t.target_price, 2) + '</span> (' + fmtPctDec((t.target_price - t.current_price) / t.current_price * 100) + ' from entry)</div>';
 
         if (s) {
           var eodClass = pnl > 0.5 ? 'profit' : pnl < -0.5 ? 'loss' : '';
           var roc = s.entry_price > 0 ? (pnl / (s.entry_price * 100) * 100) : 0;
-          html += '<div class="detail-eod ' + eodClass + '"><div style="font-size:12px;font-weight:700;margin-bottom:8px;">End of Day Result</div><div class="detail-grid">' +
+          html += '<div class="detail-eod ' + eodClass + '"><div style="font-size:11px;font-weight:700;margin-bottom:6px;">End of Day Result</div><div class="detail-grid">' +
             '<div class="detail-col"><div class="detail-label">Contract P&amp;L</div><div style="margin-top:4px;">' +
               '<span class="mono" style="color:var(--muted-foreground);">' + fmtMoney(s.entry_price) + '</span>' +
               ' <span style="color:var(--accent);">&#8594;</span> <span class="mono" style="font-weight:700;">' + fmtMoney(s.closing_price) + '</span>' +
-              ' <span class="' + pnlColor(pct) + '" style="font-size:11px;font-weight:700;">' + fmtPct(pct) + '</span></div></div>' +
+              ' <span class="' + pnlColor(pct) + '" style="font-size:10px;font-weight:700;">' + fmtPct(pct) + '</span></div></div>' +
             '<div class="detail-col"><div class="detail-label">Stock Movement</div><div style="margin-top:4px;">' +
               '<span class="mono" style="color:var(--muted-foreground);">' + fmtMoney(s.stock_open) + '</span>' +
               ' <span style="color:var(--accent);">&#8594;</span> <span class="mono" style="font-weight:700;">' + fmtMoney(s.stock_close) + '</span>' +
-              ' <span class="' + pnlColor(stockPct) + '" style="font-size:11px;font-weight:700;">' + fmtPct(stockPct) + '</span></div></div>' +
+              ' <span class="' + pnlColor(stockPct) + '" style="font-size:10px;font-weight:700;">' + fmtPct(stockPct) + '</span></div></div>' +
             '<div class="detail-col"><div class="detail-label">Return on Capital</div><div class="detail-value ' + pnlColor(roc) + '">' + fmtPctDec(roc) + '</div></div>' +
           '</div>';
           if (s.notes) html += '<div class="detail-eod-notes">' + escapeHtml(s.notes) + '</div>';
@@ -1068,12 +1114,12 @@
 
         html += '<div class="morning-card"><div class="morning-header">' +
           '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
-            '<span style="width:26px;height:26px;border-radius:6px;background:var(--primary);color:var(--primary-foreground);font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;">' + (i+1) + '</span>' +
+            '<span style="width:24px;height:24px;border-radius:6px;background:var(--primary);color:var(--primary-foreground);font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;">' + (i+1) + '</span>' +
             '<span class="morning-symbol">$' + t.symbol + '</span>' +
             '<span class="badge ' + tc + '">' + t.contract_type + '</span>' +
             '<span class="badge ' + moneyness.class + '">' + moneyness.label + '</span>' +
             '<span class="badge ' + riskClass(t.risk_level) + '">' + t.risk_level + '</span></div>' +
-          '<div class="morning-price mono">' + fmtMoney(t.estimated_price) + '<span style="font-size:11px;color:var(--muted-foreground);font-weight:500;margin-left:4px;">($' + fmt(t.estimated_price*100,0) + '/contract)</span></div></div>';
+          '<div class="morning-price">' + fmtMoney(t.estimated_price) + '<span style="font-size:10px;color:var(--muted-foreground);font-weight:500;margin-left:4px;">($' + fmt(t.estimated_price*100,0) + '/contract)</span></div></div>';
 
         html += '<div class="morning-specs">' +
           '<span>Strike: <strong class="mono">$' + fmt(t.strike_price, 0) + '</strong></span>' +
@@ -1111,67 +1157,13 @@
         html += '</div>';
 
         if (t.catalyst) {
-          html += '<div style="margin-top:10px;padding:8px 12px;background:var(--amber-bg);border-radius:4px;font-size:12px;">' +
+          html += '<div style="margin-top:10px;padding:8px 12px;background:var(--amber-bg);border-radius:4px;font-size:11px;">' +
             '<strong style="color:var(--amber);">Catalyst:</strong> <span style="color:var(--foreground);">' + escapeHtml(t.catalyst) + '</span></div>';
         }
         if (t.thesis) html += '<div class="morning-thesis"><strong style="color:var(--foreground);">Thesis:</strong> ' + escapeHtml(t.thesis) + '</div>';
         html += '</div>';
       }
       return html;
-    }
-
-    // ── Render: Technical Reference ──
-    function renderTechRef() {
-      return '<div class="tech-ref">' +
-        '<div class="tech-ref-header" onclick="toggleTechRef()">' +
-          '<span class="tech-ref-title">Technical Reference &amp; Methodology</span>' +
-          '<span class="tech-ref-toggle">expand / collapse</span></div>' +
-        '<div class="tech-ref-body" id="techRefBody"><div class="tech-ref-content">' +
-
-        '<h4>Options Terminology</h4>' +
-        '<ul>' +
-          '<li><strong>Premium:</strong> The price paid to buy an option contract. Each contract controls 100 shares, so a $1.50 premium = $150 total cost.</li>' +
-          '<li><strong>Strike Price (K):</strong> The price at which the option holder can buy (call) or sell (put) the underlying stock at expiration.</li>' +
-          '<li><strong>DTE (Days to Expiration):</strong> Trading days remaining until the option contract expires. Shorter DTE = higher theta decay but cheaper premiums.</li>' +
-          '<li><strong>Moneyness:</strong> Describes the relationship between the stock price (S) and strike price (K):<br>' +
-            '&nbsp;&nbsp;<code>CALL: (S - K) / K &times; 100</code> &nbsp; <code>PUT: (K - S) / K &times; 100</code><br>' +
-            '&nbsp;&nbsp;<strong>ITM</strong> (In The Money): Option has intrinsic value. <strong>OTM</strong> (Out of The Money): No intrinsic value. <strong>ATM</strong> (At The Money): S &asymp; K.</li>' +
-          '<li><strong>Breakeven:</strong> The stock price at which the trade neither profits nor loses at expiration.<br>' +
-            '&nbsp;&nbsp;<code>CALL breakeven = K + Premium</code> &nbsp; <code>PUT breakeven = K - Premium</code></li>' +
-          '<li><strong>Profit Factor:</strong> Ratio of gross winning trades to gross losing trades. A value &gt; 1.0 indicates a profitable system. <code>PF = &Sigma;Wins / &Sigma;Losses</code></li>' +
-          '<li><strong>Return on Capital (ROC):</strong> Net P&amp;L divided by total capital deployed. <code>ROC = Net P&amp;L / Total Invested &times; 100</code></li>' +
-        '</ul>' +
-
-        '<h4>Risk Framework</h4>' +
-        '<ul>' +
-          '<li>All trades are <strong>long options</strong> (buying calls or puts). Maximum loss is strictly limited to the premium paid.</li>' +
-          '<li><strong>Risk/Reward Ratio</strong> compares max loss (premium) to expected gain (target - entry): <code>R:R = MaxGain / MaxLoss</code></li>' +
-          '<li><strong>Stop Loss</strong> is the premium level at which to exit a losing position to preserve capital (typically ~50% of entry).</li>' +
-          '<li>Position sizing assumes <strong>1 contract per trade</strong>. Actual exposure should be scaled to your portfolio size and risk tolerance.</li>' +
-        '</ul>' +
-
-        '<h4>Data Sources &amp; Methodology</h4>' +
-        '<div style="margin-top:6px;">' +
-          '<span class="source-tag">Reddit r/wallstreetbets</span>' +
-          '<span class="source-tag">Reddit r/options</span>' +
-          '<span class="source-tag">OpenAI GPT-4o</span>' +
-          '<span class="source-tag">TradingView Charts</span>' +
-        '</div>' +
-        '<ul>' +
-          '<li><strong>Sentiment Scraping:</strong> Trending tickers and sentiment scores are scraped from Reddit r/wallstreetbets and r/options hot/rising posts at 9:25 AM ET.</li>' +
-          '<li><strong>Trade Selection:</strong> GPT-4o with <code>web_search_preview</code> tool analyzes sentiment data against real-time market conditions to generate 10 options plays.</li>' +
-          '<li><strong>EOD Analysis:</strong> At 4:05 PM ET, GPT-4o re-evaluates each morning pick using closing market data via web search.</li>' +
-          '<li><strong>Price Data:</strong> Stock prices shown in trade cards are AI-estimated snapshots from web search. The TradingView chart above shows live market data directly from exchange feeds.</li>' +
-          '<li><strong>P&amp;L Calculation:</strong> <code>(Closing Premium - Entry Premium) &times; 100</code> per contract. Does not account for commissions, slippage, or bid-ask spread.</li>' +
-        '</ul>' +
-
-        '<h4>Important Caveats</h4>' +
-        '<ul>' +
-          '<li>This dashboard is for <strong>educational and entertainment purposes only</strong>. It is not financial advice.</li>' +
-          '<li>Option premiums are <strong>AI-estimated</strong>, not live market quotes. Actual execution prices will differ due to bid-ask spread and market conditions.</li>' +
-          '<li>Past performance does not guarantee future results. Options trading carries substantial risk of loss.</li>' +
-        '</ul>' +
-        '</div></div></div>';
     }
 
     // ── Init ──
