@@ -79,13 +79,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	data, err := subscribeHTML.ReadFile("subscribe.html")
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write(data)
+	http.Redirect(w, r, "/dashboard", http.StatusFound)
 }
 
 func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {

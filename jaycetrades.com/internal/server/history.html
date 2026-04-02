@@ -112,9 +112,85 @@
     .subscribe-link {
       font-family: 'Inter', sans-serif;
       color: var(--muted-foreground); font-size: 12px; text-decoration: none;
-      padding: 4px 10px; border-radius: 4px; transition: color 0.15s;
+      padding: 4px 10px; border-radius: 4px; transition: all 0.15s;
+      background: none; border: 1px solid var(--border); cursor: pointer;
     }
-    .subscribe-link:hover { color: var(--foreground); }
+    .subscribe-link:hover { color: var(--foreground); border-color: var(--muted-foreground); }
+
+    /* Subscribe modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      z-index: 1000; display: none; align-items: center; justify-content: center;
+      padding: 24px; animation: modalFadeIn 0.2s ease-out;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; width: 100%; max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      animation: modalSlideUp 0.25s ease-out;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-header {
+      padding: 20px 24px 0; display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-close {
+      background: none; border: none; cursor: pointer; color: var(--muted-foreground);
+      font-size: 20px; padding: 4px 8px; border-radius: 4px; transition: all 0.15s; line-height: 1;
+    }
+    .modal-close:hover { color: var(--foreground); background: var(--muted); }
+    .modal-body { padding: 16px 24px 24px; }
+    .modal-title { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+    .modal-subtitle { font-size: 13px; color: var(--muted-foreground); margin-top: 4px; line-height: 1.5; }
+    .modal-features { display: flex; gap: 8px; margin: 16px 0; }
+    .modal-feature {
+      flex: 1; background: var(--muted); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px; text-align: center;
+    }
+    .modal-feature-stat { font-size: 18px; font-weight: 800; color: var(--primary); font-family: 'JetBrains Mono', monospace; }
+    .modal-feature-label { font-size: 9px; font-weight: 600; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+    .modal-input {
+      width: 100%; padding: 9px 12px; font-size: 13px; font-weight: 500;
+      color: var(--foreground); background: var(--card); border: 1px solid var(--border);
+      border-radius: 6px; outline: none; transition: border-color 0.15s; font-family: inherit; margin-bottom: 10px;
+    }
+    .modal-input::placeholder { color: var(--muted-foreground); }
+    .modal-input:focus { border-color: var(--primary); }
+    .modal-input-label {
+      display: block; font-size: 11px; font-weight: 600; color: var(--muted-foreground);
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-family: 'Inter', sans-serif;
+    }
+    .modal-submit {
+      width: 100%; padding: 10px; font-size: 13px; font-weight: 700;
+      color: #fff; background: var(--primary); border: none; border-radius: 6px;
+      cursor: pointer; transition: opacity 0.15s; font-family: inherit;
+    }
+    .modal-submit:hover { opacity: 0.85; }
+    .modal-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .modal-alert {
+      margin-top: 10px; padding: 10px 12px; border-radius: 6px;
+      font-size: 12px; font-weight: 600; display: none;
+    }
+    .modal-alert.show { display: block; }
+    .modal-alert-success { background: var(--green-bg); color: var(--green); }
+    .modal-alert-error { background: var(--red-bg); color: var(--red); }
+    .modal-divider { height: 1px; background: var(--border); margin: 16px 0; }
+    .modal-unsub-toggle {
+      color: var(--muted-foreground); font-size: 11px; cursor: pointer;
+      background: none; border: none; font-family: inherit; text-decoration: underline; text-underline-offset: 2px;
+    }
+    .modal-unsub-toggle:hover { color: var(--foreground); }
+    .modal-unsub { display: none; margin-top: 12px; }
+    .modal-unsub.open { display: block; }
+    .modal-unsub-btn {
+      width: 100%; padding: 9px; font-size: 12px; font-weight: 600;
+      color: var(--red); background: none; border: 1px solid var(--border);
+      border-radius: 6px; cursor: pointer; font-family: inherit; transition: border-color 0.15s;
+    }
+    .modal-unsub-btn:hover { border-color: var(--red); }
+    @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes modalSlideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 
     /* Sub-header navigation bar */
     .sub-header {
@@ -435,7 +511,7 @@
       <a href="/" style="text-decoration: none;">
         <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
       </a>
-      <a href="/" class="subscribe-link">Subscribe</a>
+      <button class="subscribe-link" onclick="openModal()">Subscribe</button>
     </div>
 
     <!-- Sub-header with nav tabs + controls -->
@@ -473,7 +549,46 @@
       </p>
       <div class="footer-links">
         <a href="/dashboard">Live dashboard</a>
-        <a href="/">Subscribe</a>
+        <a href="#" onclick="openModal();return false;">Subscribe</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subscribe Modal -->
+  <div class="modal-overlay" id="subscribeModal" onclick="if(event.target===this)closeModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Get free daily trade picks</div>
+          <div class="modal-subtitle">AI-powered options picks delivered to your inbox every morning before market open.</div>
+        </div>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-features">
+          <div class="modal-feature"><div class="modal-feature-stat">10</div><div class="modal-feature-label">Daily Picks</div></div>
+          <div class="modal-feature"><div class="modal-feature-stat">2x</div><div class="modal-feature-label">AM + EOD</div></div>
+          <div class="modal-feature"><div class="modal-feature-stat">$0</div><div class="modal-feature-label">Always Free</div></div>
+        </div>
+        <form id="subscribeForm" onsubmit="return handleSubscribe(event)">
+          <label class="modal-input-label" for="subName">Name (optional)</label>
+          <input class="modal-input" type="text" id="subName" placeholder="Your name" autocomplete="name">
+          <label class="modal-input-label" for="subEmail">Email</label>
+          <input class="modal-input" type="email" id="subEmail" placeholder="you@example.com" required autocomplete="email">
+          <button class="modal-submit" type="submit" id="subBtn">Subscribe</button>
+          <div class="modal-alert modal-alert-success" id="subSuccess"></div>
+          <div class="modal-alert modal-alert-error" id="subError"></div>
+        </form>
+        <div class="modal-divider"></div>
+        <div style="text-align:center;">
+          <button class="modal-unsub-toggle" onclick="document.getElementById('unsubSection').classList.toggle('open')">Need to unsubscribe?</button>
+          <div class="modal-unsub" id="unsubSection">
+            <input class="modal-input" type="email" id="unsubEmail" placeholder="your@email.com" autocomplete="email" style="margin-top:10px;">
+            <button class="modal-unsub-btn" id="unsubBtn" onclick="handleUnsubscribe()">Unsubscribe</button>
+            <div class="modal-alert modal-alert-success" id="unsubSuccess"></div>
+            <div class="modal-alert modal-alert-error" id="unsubError"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1158,6 +1273,77 @@
           loadRange();
         })
         .catch(function() { loadRange(); });
+    }
+
+    // ── Subscribe Modal ──
+    function openModal() {
+      document.getElementById('subscribeModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeModal() {
+      document.getElementById('subscribeModal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
+
+    function hideModalAlerts() {
+      document.querySelectorAll('.modal-alert').forEach(function(el) { el.classList.remove('show'); });
+    }
+    function showModalAlert(id, msg) {
+      hideModalAlerts();
+      var el = document.getElementById(id);
+      el.textContent = msg;
+      el.classList.add('show');
+    }
+
+    function handleSubscribe(e) {
+      e.preventDefault();
+      hideModalAlerts();
+      var btn = document.getElementById('subBtn');
+      var email = document.getElementById('subEmail').value.trim();
+      var name = document.getElementById('subName').value.trim();
+      if (!email) { showModalAlert('subError', 'Please enter your email.'); return false; }
+      btn.disabled = true; btn.textContent = 'Subscribing...';
+      fetch('/api/subscribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, name: name })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.ok) {
+          showModalAlert('subSuccess', "You're subscribed! First picks arrive before the next market open.");
+          document.getElementById('subEmail').value = '';
+          document.getElementById('subName').value = '';
+        } else {
+          showModalAlert('subError', data.message || 'Something went wrong.');
+        }
+      })
+      .catch(function() { showModalAlert('subError', 'Connection error. Please try again.'); })
+      .finally(function() { btn.disabled = false; btn.textContent = 'Subscribe'; });
+      return false;
+    }
+
+    function handleUnsubscribe() {
+      hideModalAlerts();
+      var btn = document.getElementById('unsubBtn');
+      var email = document.getElementById('unsubEmail').value.trim();
+      if (!email) { showModalAlert('unsubError', 'Please enter your email.'); return; }
+      btn.disabled = true; btn.textContent = 'Unsubscribing...';
+      fetch('/api/unsubscribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.ok) {
+          showModalAlert('unsubSuccess', "You've been unsubscribed. Sorry to see you go!");
+          document.getElementById('unsubEmail').value = '';
+        } else {
+          showModalAlert('unsubError', data.message || 'Something went wrong.');
+        }
+      })
+      .catch(function() { showModalAlert('unsubError', 'Connection error.'); })
+      .finally(function() { btn.disabled = false; btn.textContent = 'Unsubscribe'; });
     }
 
     init();
