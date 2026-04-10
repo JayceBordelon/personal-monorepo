@@ -4,13 +4,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
 	return [
 		{
 			url: "https://jaycetrades.com",
-			changeFrequency: "weekly",
-			priority: 1.0,
-		},
-		{
-			url: "https://jaycetrades.com/dashboard",
 			changeFrequency: "daily",
-			priority: 0.9,
+			priority: 1.0,
 		},
 		{
 			url: "https://jaycetrades.com/history",

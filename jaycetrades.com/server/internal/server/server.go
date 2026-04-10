@@ -13,18 +13,23 @@ import (
 	"time"
 
 	"jaycetrades.com/internal/schwab"
+	"jaycetrades.com/internal/email"
 	"jaycetrades.com/internal/store"
+	"jaycetrades.com/internal/templates"
 	"jaycetrades.com/internal/trades"
 )
 
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
 type Server struct {
-	db        *store.Store
-	schwab    *schwab.Client
-	openaiKey string
-	mux       *http.ServeMux
-	port      string
+	db          *store.Store
+	schwab      *schwab.Client
+	emailClient *email.Client
+	emailFrom   string
+	openaiKey   string
+	adminKey    string
+	mux         *http.ServeMux
+	port        string
 }
 
 type subscribeRequest struct {
@@ -41,8 +46,8 @@ type apiResponse struct {
 	Message string `json:"message"`
 }
 
-func New(db *store.Store, schwabClient *schwab.Client, openaiKey string, port string) *Server {
-	s := &Server{db: db, schwab: schwabClient, openaiKey: openaiKey, mux: http.NewServeMux(), port: port}
+func New(db *store.Store, schwabClient *schwab.Client, emailClient *email.Client, emailFrom, openaiKey, adminKey, port string) *Server {
+	s := &Server{db: db, schwab: schwabClient, emailClient: emailClient, emailFrom: emailFrom, openaiKey: openaiKey, adminKey: adminKey, mux: http.NewServeMux(), port: port}
 	s.routes()
 	return s
 }
@@ -51,6 +56,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/health", s.handleHealth)
 	s.mux.HandleFunc("/auth/schwab", s.handleSchwabAuth)
 	s.mux.HandleFunc("/auth/callback", s.handleSchwabCallback)
+	s.mux.HandleFunc("/admin/announce", s.handleAnnounce)
 
 	// API routes — require internal header (requests must come from the website)
 	s.mux.HandleFunc("/api/subscribe", requireInternal(s.handleSubscribe))
@@ -591,4 +597,74 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+// ── Admin: Broadcast Announcement ──
+
+type announceRequest struct {
+	Subject  string                        `json:"subject"`
+	Badge    string                        `json:"badge"`
+	Headline string                        `json:"headline"`
+	Sections []templates.AnnouncementSection `json:"sections"`
+	CTAText  string                        `json:"cta_text"`
+	CTAURL   string                        `json:"cta_url"`
+}
+
+func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, apiResponse{OK: false, Message: "method not allowed"})
+		return
+	}
+
+	// Require admin key
+	key := r.Header.Get("X-Admin-Key")
+	if s.adminKey == "" || key != s.adminKey {
+		writeJSON(w, http.StatusUnauthorized, apiResponse{OK: false, Message: "unauthorized"})
+		return
+	}
+
+	var req announceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, apiResponse{OK: false, Message: "invalid JSON"})
+		return
+	}
+
+	if req.Subject == "" || req.Headline == "" {
+		writeJSON(w, http.StatusBadRequest, apiResponse{OK: false, Message: "subject and headline are required"})
+		return
+	}
+
+	data := templates.AnnouncementData{
+		Subject:  req.Subject,
+		Badge:    req.Badge,
+		Headline: req.Headline,
+		Sections: req.Sections,
+		CTAText:  req.CTAText,
+		CTAURL:   req.CTAURL,
+	}
+	if data.Badge == "" {
+		data.Badge = "Announcement"
+	}
+
+	htmlContent, err := templates.RenderAnnouncementEmail(data)
+	if err != nil {
+		log.Printf("Error rendering announcement: %v", err)
+		writeJSON(w, http.StatusInternalServerError, apiResponse{OK: false, Message: "template render failed"})
+		return
+	}
+
+	recipients, err := s.db.GetActiveEmails()
+	if err != nil || len(recipients) == 0 {
+		writeJSON(w, http.StatusInternalServerError, apiResponse{OK: false, Message: "no active subscribers"})
+		return
+	}
+
+	if err := s.emailClient.SendTradeEmail(s.emailFrom, recipients, req.Subject, htmlContent); err != nil {
+		log.Printf("Error sending announcement: %v", err)
+		writeJSON(w, http.StatusInternalServerError, apiResponse{OK: false, Message: "email delivery failed"})
+		return
+	}
+
+	log.Printf("Announcement sent to %d subscribers: %s", len(recipients), req.Subject)
+	writeJSON(w, http.StatusOK, apiResponse{OK: true, Message: fmt.Sprintf("sent to %d subscribers", len(recipients))})
 }

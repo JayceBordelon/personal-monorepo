@@ -19,6 +19,7 @@ type Config struct {
 	SchwabAppKey       string
 	SchwabSecret       string
 	SchwabCallbackURL  string
+	AdminKey           string
 }
 
 func Load() *Config {
@@ -79,5 +80,6 @@ func Load() *Config {
 		SchwabAppKey:       os.Getenv("SCHWAB_APP_KEY"),
 		SchwabSecret:       os.Getenv("SCHWAB_SECRET"),
 		SchwabCallbackURL:  schwabCallback,
+		AdminKey:           os.Getenv("ADMIN_KEY"),
 	}
 }

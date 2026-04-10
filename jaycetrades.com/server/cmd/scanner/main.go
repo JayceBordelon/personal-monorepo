@@ -160,7 +160,7 @@ func main() {
 	c.Start()
 
 	// Start HTTP API server in background
-	srv := server.New(db, schwabClient, cfg.OpenAIAPIKey, cfg.ServerPort)
+	srv := server.New(db, schwabClient, emailClient, cfg.EmailFrom, cfg.OpenAIAPIKey, cfg.AdminKey, cfg.ServerPort)
 	go srv.Start()
 
 	log.Printf("Options trade scanner started")
@@ -355,7 +355,7 @@ func sendStartupTestEmail(cfg *config.Config, db *store.Store, schwabClient *sch
 		CronClose:    cfg.CronScheduleClose,
 		CronWeekly:   cfg.CronScheduleWeekly,
 		ServerPort:   cfg.ServerPort,
-		DashboardURL: "https://jaycetrades.com/dashboard",
+		DashboardURL: "https://jaycetrades.com",
 		Model:        "gpt-5.4",
 	}
 
@@ -682,7 +682,7 @@ func runWeeklyEmail(cfg *config.Config, db *store.Store, emailClient *email.Clie
 		BestPnL:       bestPnL,
 		WorstTrade:    worstTrade,
 		WorstPnL:      worstPnL,
-		DashboardURL:  "https://jaycetrades.com/dashboard",
+		DashboardURL:  "https://jaycetrades.com",
 	}
 
 	htmlContent, err := templates.RenderWeeklyEmail(data)

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-//go:embed email.html summary.html test.html error.html weekly.html
+//go:embed email.html summary.html test.html error.html weekly.html announce.html
 var templateFS embed.FS
 
 type Trade struct {
@@ -258,7 +258,7 @@ func VerifyTemplates() HealthCheck {
 		TotalTrades: 1, TotalWinners: 1, TotalPnL: 60.0,
 		WinRate: 100.0, TotalInvested: 150.0, TotalReturn: 210.0,
 		BestTrade: "SPY", BestPnL: 60.0, WorstTrade: "SPY", WorstPnL: 60.0,
-		DashboardURL: "https://jaycetrades.com/dashboard",
+		DashboardURL: "https://jaycetrades.com",
 	}
 	if _, err := RenderWeeklyEmail(sampleWeekly); err != nil {
 		return HealthCheck{Name: "Email Templates", Status: "fail", Detail: err.Error(), Latency: fmtLatency(start)}
@@ -371,4 +371,39 @@ func RenderSummaryEmail(summaryTrades []SummaryTrade) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+// ── Announcement Email ──
+
+type AnnouncementSection struct {
+	Title string
+	Body  string
+}
+
+type AnnouncementData struct {
+	Subject  string
+	Badge    string
+	Headline string
+	Date     string
+	Sections []AnnouncementSection
+	CTAText  string
+	CTAURL   string
+}
+
+func RenderAnnouncementEmail(data AnnouncementData) (string, error) {
+	tmpl, err := template.New("announce.html").Funcs(funcMap).ParseFS(templateFS, "announce.html")
+	if err != nil {
+		return "", fmt.Errorf("failed to parse announcement template: %w", err)
+	}
+
+	if data.Date == "" {
+		data.Date = time.Now().Format("Monday, Jan 2, 2006")
+	}
+
+	var bufAnnounce bytes.Buffer
+	if err := tmpl.Execute(&bufAnnounce, data); err != nil {
+		return "", err
+	}
+
+	return bufAnnounce.String(), nil
 }

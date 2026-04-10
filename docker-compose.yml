@@ -73,7 +73,7 @@ services:
       - "app=trading-server"
       - "traefik.enable=true"
       # API/auth/health routes — higher priority
-      - "traefik.http.routers.trading-api.rule=(Host(`jaycetrades.com`) || Host(`www.jaycetrades.com`)) && (PathPrefix(`/api`) || PathPrefix(`/auth`) || Path(`/health`))"
+      - "traefik.http.routers.trading-api.rule=(Host(`jaycetrades.com`) || Host(`www.jaycetrades.com`)) && (PathPrefix(`/api`) || PathPrefix(`/auth`) || PathPrefix(`/admin`) || Path(`/health`))"
       - "traefik.http.routers.trading-api.entrypoints=websecure"
       - "traefik.http.routers.trading-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.trading-api.priority=20"
