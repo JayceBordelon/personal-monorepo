@@ -79,7 +79,10 @@ PostgreSQL hosted on Digital Ocean Managed Databases. Connection string is in `.
 
 - `DATABASE_URL` — PostgreSQL connection string (required, no default)
 - `RESEND_API_KEY` — Email delivery
-- `OPENAI_API_KEY` — Trade analysis LLM
+- `OPENAI_API_KEY` — GPT trade analyzer (required to run cron jobs)
+- `OPENAI_MODEL` — Override the default OpenAI model (default: latest from `config.DefaultOpenAIModel`)
+- `ANTHROPIC_API_KEY` — Claude trade validator (optional; validation skipped if missing or stub)
+- `ANTHROPIC_MODEL` — Override the default Anthropic model (default: latest from `config.DefaultAnthropicModel`)
 - `SCHWAB_APP_KEY` / `SCHWAB_SECRET` — Market data OAuth
 - `ADMIN_KEY` — Protects `/admin/announce` broadcast endpoint
 - `EMAIL_RECIPIENTS` — Seed subscribers on first boot
@@ -141,7 +144,7 @@ Visit `https://vibetradez.com/auth/schwab` in a browser. Tokens are stored in th
 ```bash
 curl https://vibetradez.com/health | jq
 ```
-Returns per-service status for database, LLM (OpenAI), Schwab, and API with latencies.
+Returns per-service status for database, OpenAI, Anthropic, Schwab, and API with latencies. Both LLM checks go through the official SDKs and warn (instead of fail) when a stub local key is detected.
 
 ### Docker commands on production
 ```bash
@@ -153,9 +156,26 @@ docker compose restart trading-server           # Restart Go server
 docker compose up -d --force-recreate trading-server  # Full recreate
 ```
 
-## Planned Migration
+## Dual-Model Trade Analysis
 
-The trade analysis LLM is currently OpenAI GPT-5.4 (strong at sentiment analysis). A migration to Anthropic Claude is planned. This will require changes in `server/internal/trades/analyzer.go` (API client), `server/internal/trades/prompt.go` (prompt format), and the health check model probe in `server/internal/server/server.go`.
+The morning trade pipeline uses **two language models in sequence**:
+
+1. **OpenAI (GPT-5.4 by default)** generates 10 ranked trade ideas via `vibetradez.com/server/internal/trades/analyzer.go`. The analyzer uses the official `github.com/openai/openai-go/v3` SDK against the Responses API with multi-round Schwab `get_stock_quotes` / `get_option_chain` function tools and built-in `web_search`. Each trade comes back with a 1-10 conviction `score` and a free-form `rationale` defending the score.
+2. **Anthropic (Claude Opus 4.6 by default)** then validates GPT's picks via `vibetradez.com/server/internal/trades/validator.go`. Claude is fed GPT's full output and the same Schwab + `web_search` tool surface (using `github.com/anthropics/anthropic-sdk-go`). It returns its own independent 1-10 `score`, a substantive `rationale`, and an optional `concerns` array of red flags.
+3. `cmd/scanner/main.go` merges Claude's scores into the trades, computes `combined_score = (gpt + claude) / 2`, and re-ranks the picks by combined score with Claude as the tiebreaker. Both per-model scores and rationales persist to the `trades` table and surface on the dashboard.
+
+If `ANTHROPIC_API_KEY` is missing or matches a local stub, validation is skipped silently and trades persist with `claude_score = 0`. The `/api/model-comparison` endpoint backtests "if you had only followed each model's ranking" and powers the `/models` page.
+
+### Model version refresh policy
+
+Both models are configured via env vars (`OPENAI_MODEL`, `ANTHROPIC_MODEL`) with defaults defined as constants in `vibetradez.com/server/internal/config/config.go` (`DefaultOpenAIModel`, `DefaultAnthropicModel`).
+
+**Any time work touches the trade analyzer, validator, or these defaults, fetch the official Go SDK documentation and refresh the defaults to the current latest production model.** OpenAI and Anthropic publish new model versions regularly; if a default sits stale, trade quality degrades silently. The two pages to read are:
+
+- Anthropic Go SDK: <https://platform.claude.com/docs/en/api/sdks/go>
+- OpenAI Go SDK: <https://developers.openai.com/api/docs/libraries?language=golang>
+
+When updating, also bump the `OPENAI_MODEL` / `ANTHROPIC_MODEL` defaults baked into `vibetradez.com/local/docker-compose.local.yml` so the local dev stack matches.
 
 ## CI/CD Pipeline
 
@@ -166,5 +186,5 @@ Triggered on push to `main` or manual dispatch. Runs on the production server vi
 3. **Build** — `docker compose build --no-cache` all services
 4. **Deploy** — `docker rollout` for web apps, `docker compose up -d --force-recreate` for background services
 5. **Cleanup** — `docker system prune -af --volumes` to reclaim disk space
-6. **Health Check** — Verify all endpoints + granular `/health` for trading server services (database, LLM, Schwab, API)
+6. **Health Check** — Verify all endpoints + granular `/health` for trading server services (database, openai, anthropic, schwab, api). The healthcheck step iterates `services | keys[]` so any new service added to the granular `/health` response is automatically gated without YAML changes.
 7. **Notify** — Email with full pipeline status, commit info, and health results
