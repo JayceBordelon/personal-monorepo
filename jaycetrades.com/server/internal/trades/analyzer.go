@@ -1,37 +1,49 @@
 package trades
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"strings"
 	"time"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/option"
+	"github.com/openai/openai-go/v3/responses"
+	"github.com/openai/openai-go/v3/shared"
 
 	"jaycetrades.com/internal/schwab"
 	"jaycetrades.com/internal/sentiment"
 )
+
+const openaiModel = "gpt-5.4"
 
 type Trade struct {
 	Symbol         string  `json:"symbol"`
 	ContractType   string  `json:"contract_type"` // CALL or PUT
 	StrikePrice    float64 `json:"strike_price"`
 	Expiration     string  `json:"expiration"`
-	DTE            int     `json:"dte"` // Days to expiration
+	DTE            int     `json:"dte"`
 	EstimatedPrice float64 `json:"estimated_price"`
 	Thesis         string  `json:"thesis"`
 	SentimentScore float64 `json:"sentiment_score"`
-	// Additional fields for better trade context
-	CurrentPrice float64 `json:"current_price"` // Current stock price
-	TargetPrice  float64 `json:"target_price"`  // Price target for the underlying
-	StopLoss     float64 `json:"stop_loss"`     // Exit premium if trade goes against you
-	ProfitTarget float64 `json:"profit_target"` // Exit premium for taking profits
-	RiskLevel    string  `json:"risk_level"`    // LOW, MEDIUM, HIGH
-	Catalyst     string  `json:"catalyst"`      // Upcoming event driving the trade
-	MentionCount int     `json:"mention_count"` // WSB mention count
-	Rank         int     `json:"rank"`          // 1 = highest conviction, 10 = lowest
+	CurrentPrice   float64 `json:"current_price"`
+	TargetPrice    float64 `json:"target_price"`
+	StopLoss       float64 `json:"stop_loss"`
+	ProfitTarget   float64 `json:"profit_target"`
+	RiskLevel      string  `json:"risk_level"`
+	Catalyst       string  `json:"catalyst"`
+	MentionCount   int     `json:"mention_count"`
+	Rank           int     `json:"rank"`
+
+	// Dual-model scoring. Each side rates the trade 1-10 and explains why.
+	// Rank above is the final ordering after combining both scores.
+	GPTScore        int     `json:"gpt_score"`
+	GPTRationale    string  `json:"gpt_rationale"`
+	ClaudeScore     int     `json:"claude_score"`
+	ClaudeRationale string  `json:"claude_rationale"`
+	CombinedScore   float64 `json:"combined_score"`
 }
 
 type TradeSummary struct {
@@ -46,66 +58,49 @@ type TradeSummary struct {
 	Notes        string  `json:"notes"`
 }
 
+// Validation is Claude's per-trade output: a score and rationale that
+// either confirms or challenges GPT's pick.
+type Validation struct {
+	Symbol    string   `json:"symbol"`
+	Score     int      `json:"score"`
+	Rationale string   `json:"rationale"`
+	Concerns  []string `json:"concerns,omitempty"`
+}
+
 type Analyzer struct {
-	apiKey     string
-	schwab     *schwab.Client
-	httpClient *http.Client
+	client openai.Client
+	schwab *schwab.Client
 }
 
 func NewAnalyzer(apiKey string, schwabClient *schwab.Client) *Analyzer {
 	return &Analyzer{
-		apiKey: apiKey,
+		client: openai.NewClient(
+			option.WithAPIKey(apiKey),
+			option.WithRequestTimeout(120*time.Second),
+		),
 		schwab: schwabClient,
-		httpClient: &http.Client{
-			Timeout: 120 * time.Second,
-		},
 	}
 }
 
-// Responses API request structure (supports web search + function tools)
-type responsesAPIRequest struct {
-	Model              string      `json:"model"`
-	Input              interface{} `json:"input"` // string or []inputItem
-	Tools              []tool      `json:"tools,omitempty"`
-	Temperature        float64     `json:"temperature,omitempty"`
-	PreviousResponseID string      `json:"previous_response_id,omitempty"`
-}
-
-type tool struct {
-	Type        string                 `json:"type"`
-	Name        string                 `json:"name,omitempty"`
-	Description string                 `json:"description,omitempty"`
-	Parameters  map[string]interface{} `json:"parameters,omitempty"`
-}
-
-type functionCallOutputItem struct {
-	Type   string `json:"type"` // "function_call_output"
-	CallID string `json:"call_id"`
-	Output string `json:"output"`
-}
-
-// Responses API response structure
-type responsesAPIResponse struct {
-	ID         string       `json:"id"`
-	Output     []outputItem `json:"output"`
-	OutputText string       `json:"output_text"`
-	Error      *struct {
-		Message string `json:"message"`
-	} `json:"error,omitempty"`
-}
-
-type outputItem struct {
-	Type      string        `json:"type"`
-	ID        string        `json:"id,omitempty"`
-	CallID    string        `json:"call_id,omitempty"`
-	Name      string        `json:"name,omitempty"`
-	Arguments string        `json:"arguments,omitempty"`
-	Content   []contentItem `json:"content,omitempty"`
-}
-
-type contentItem struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
+// gptTradeOutput is the JSON shape we ask GPT to return. We map it onto
+// Trade and stamp GPTScore / GPTRationale from the score / rationale fields.
+type gptTradeOutput struct {
+	Symbol         string  `json:"symbol"`
+	ContractType   string  `json:"contract_type"`
+	StrikePrice    float64 `json:"strike_price"`
+	Expiration     string  `json:"expiration"`
+	DTE            int     `json:"dte"`
+	EstimatedPrice float64 `json:"estimated_price"`
+	CurrentPrice   float64 `json:"current_price"`
+	TargetPrice    float64 `json:"target_price"`
+	StopLoss       float64 `json:"stop_loss"`
+	ProfitTarget   float64 `json:"profit_target"`
+	RiskLevel      string  `json:"risk_level"`
+	Catalyst       string  `json:"catalyst"`
+	Thesis         string  `json:"thesis"`
+	Score          int     `json:"score"`
+	Rationale      string  `json:"rationale"`
+	Rank           int     `json:"rank"`
 }
 
 func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.TickerMention) ([]Trade, error) {
@@ -124,10 +119,31 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 		return nil, err
 	}
 
-	var trades []Trade
-	content = stripMarkdownCodeBlock(content)
-	if err := json.Unmarshal([]byte(content), &trades); err != nil {
+	var raw []gptTradeOutput
+	if err := json.Unmarshal([]byte(stripMarkdownCodeBlock(content)), &raw); err != nil {
 		return nil, fmt.Errorf("failed to parse trades from OpenAI response: %w", err)
+	}
+
+	trades := make([]Trade, 0, len(raw))
+	for _, r := range raw {
+		trades = append(trades, Trade{
+			Symbol:         r.Symbol,
+			ContractType:   r.ContractType,
+			StrikePrice:    r.StrikePrice,
+			Expiration:     r.Expiration,
+			DTE:            r.DTE,
+			EstimatedPrice: r.EstimatedPrice,
+			Thesis:         r.Thesis,
+			CurrentPrice:   r.CurrentPrice,
+			TargetPrice:    r.TargetPrice,
+			StopLoss:       r.StopLoss,
+			ProfitTarget:   r.ProfitTarget,
+			RiskLevel:      r.RiskLevel,
+			Catalyst:       r.Catalyst,
+			Rank:           r.Rank,
+			GPTScore:       r.Score,
+			GPTRationale:   r.Rationale,
+		})
 	}
 
 	// Enrich with sentiment data
@@ -135,7 +151,7 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 		Score    float64
 		Mentions int
 	}
-	sentimentMap := make(map[string]sentimentInfo)
+	sentimentMap := make(map[string]sentimentInfo, len(sentimentData))
 	for _, s := range sentimentData {
 		sentimentMap[s.Symbol] = sentimentInfo{Score: s.Sentiment, Mentions: s.Mentions}
 	}
@@ -166,181 +182,133 @@ func (a *Analyzer) GetEndOfDayAnalysis(ctx context.Context, morningTrades []Trad
 	}
 
 	var summaries []TradeSummary
-	content = stripMarkdownCodeBlock(content)
-	if err := json.Unmarshal([]byte(content), &summaries); err != nil {
+	if err := json.Unmarshal([]byte(stripMarkdownCodeBlock(content)), &summaries); err != nil {
 		return nil, fmt.Errorf("failed to parse summaries from OpenAI response: %w", err)
 	}
-
 	return summaries, nil
 }
 
 // ── Multi-turn function calling with Schwab market data tools ──
 
-func (a *Analyzer) buildTools() []tool {
-	tools := []tool{{Type: "web_search_preview"}}
-
-	if a.schwab != nil && a.schwab.IsConnected() {
-		tools = append(tools, tool{
-			Type:        "function",
-			Name:        "get_stock_quotes",
-			Description: "Get real-time stock quotes from Schwab. Returns last price, bid, ask, open, high, low, volume, and day change for each symbol.",
-			Parameters: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"symbols": map[string]interface{}{
-						"type":        "string",
-						"description": "Comma-separated stock ticker symbols (e.g. 'AAPL,MSFT,TSLA')",
-					},
-				},
-				"required":             []string{"symbols"},
-				"additionalProperties": false,
-			},
-		}, tool{
-			Type:        "function",
-			Name:        "get_option_chain",
-			Description: "Get live option chain from Schwab for a symbol. Returns bid/ask/last/mark, greeks (delta, gamma, theta, vega), open interest, and volume for matching contracts.",
-			Parameters: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"symbol": map[string]interface{}{
-						"type":        "string",
-						"description": "Stock ticker symbol (e.g. 'AAPL')",
-					},
-					"contract_type": map[string]interface{}{
-						"type":        "string",
-						"enum":        []string{"CALL", "PUT", "ALL"},
-						"description": "Filter by contract type. Default ALL.",
-					},
-					"from_date": map[string]interface{}{
-						"type":        "string",
-						"description": "Start date for expiration range (YYYY-MM-DD). Defaults to today.",
-					},
-					"to_date": map[string]interface{}{
-						"type":        "string",
-						"description": "End date for expiration range (YYYY-MM-DD). Defaults to 7 days out.",
-					},
-					"strike": map[string]interface{}{
-						"type":        "number",
-						"description": "Filter to a specific strike price.",
-					},
-				},
-				"required":             []string{"symbol"},
-				"additionalProperties": false,
-			},
-		})
+func (a *Analyzer) buildTools() []responses.ToolUnionParam {
+	tools := []responses.ToolUnionParam{
+		{OfWebSearchPreview: &responses.WebSearchPreviewToolParam{}},
 	}
 
+	if a.schwab != nil && a.schwab.IsConnected() {
+		tools = append(tools,
+			responses.ToolUnionParam{OfFunction: &responses.FunctionToolParam{
+				Name:        "get_stock_quotes",
+				Description: openai.String("Get real-time stock quotes from Schwab. Returns last price, bid, ask, open, high, low, volume, and day change for each symbol."),
+				Parameters:  schwabQuotesSchema,
+			}},
+			responses.ToolUnionParam{OfFunction: &responses.FunctionToolParam{
+				Name:        "get_option_chain",
+				Description: openai.String("Get live option chain from Schwab for a symbol. Returns bid/ask/last/mark, greeks (delta, gamma, theta, vega), open interest, and volume for matching contracts."),
+				Parameters:  schwabOptionChainSchema,
+			}},
+		)
+	}
 	return tools
+}
+
+var schwabQuotesSchema = map[string]any{
+	"type": "object",
+	"properties": map[string]any{
+		"symbols": map[string]any{
+			"type":        "string",
+			"description": "Comma-separated stock ticker symbols (e.g. 'AAPL,MSFT,TSLA')",
+		},
+	},
+	"required":             []string{"symbols"},
+	"additionalProperties": false,
+}
+
+var schwabOptionChainSchema = map[string]any{
+	"type": "object",
+	"properties": map[string]any{
+		"symbol": map[string]any{
+			"type":        "string",
+			"description": "Stock ticker symbol (e.g. 'AAPL')",
+		},
+		"contract_type": map[string]any{
+			"type":        "string",
+			"enum":        []string{"CALL", "PUT", "ALL"},
+			"description": "Filter by contract type. Default ALL.",
+		},
+		"from_date": map[string]any{
+			"type":        "string",
+			"description": "Start date for expiration range (YYYY-MM-DD). Defaults to today.",
+		},
+		"to_date": map[string]any{
+			"type":        "string",
+			"description": "End date for expiration range (YYYY-MM-DD). Defaults to 7 days out.",
+		},
+		"strike": map[string]any{
+			"type":        "number",
+			"description": "Filter to a specific strike price.",
+		},
+	},
+	"required":             []string{"symbol"},
+	"additionalProperties": false,
 }
 
 func (a *Analyzer) callWithTools(ctx context.Context, prompt string, temp float64) (string, error) {
 	tools := a.buildTools()
 
-	reqBody := responsesAPIRequest{
-		Model:       "gpt-5.4",
-		Input:       prompt,
+	params := responses.ResponseNewParams{
+		Model:       shared.ResponsesModel(openaiModel),
+		Input:       responses.ResponseNewParamsInputUnion{OfString: openai.String(prompt)},
 		Tools:       tools,
-		Temperature: temp,
+		Temperature: openai.Float(temp),
 	}
 
 	const maxRounds = 10
 	for round := 0; round < maxRounds; round++ {
-		apiResp, err := a.sendRequest(ctx, reqBody)
+		resp, err := a.client.Responses.New(ctx, params)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("openai responses.new: %w", err)
 		}
 
-		// Collect any function calls from the output.
-		var funcCalls []outputItem
-		for _, item := range apiResp.Output {
+		var funcCalls []responses.ResponseFunctionToolCall
+		for _, item := range resp.Output {
 			if item.Type == "function_call" {
-				funcCalls = append(funcCalls, item)
+				funcCalls = append(funcCalls, item.AsFunctionCall())
 			}
 		}
 
-		// If no function calls, we have the final text.
 		if len(funcCalls) == 0 {
-			content := extractText(apiResp)
-			if content == "" {
+			text := resp.OutputText()
+			if text == "" {
 				return "", fmt.Errorf("empty response from OpenAI")
 			}
-			return content, nil
+			return text, nil
 		}
 
-		// Execute each function call and build outputs for the next round.
-		var outputs []interface{}
+		outputs := make(responses.ResponseInputParam, 0, len(funcCalls))
 		for _, fc := range funcCalls {
 			result := a.executeFunction(ctx, fc.Name, fc.Arguments)
 			log.Printf("Tool call: %s → %d bytes", fc.Name, len(result))
-			outputs = append(outputs, functionCallOutputItem{
-				Type:   "function_call_output",
-				CallID: fc.CallID,
-				Output: result,
+			outputs = append(outputs, responses.ResponseInputItemUnionParam{
+				OfFunctionCallOutput: &responses.ResponseInputItemFunctionCallOutputParam{
+					CallID: fc.CallID,
+					Output: responses.ResponseInputItemFunctionCallOutputOutputUnionParam{
+						OfString: openai.String(result),
+					},
+				},
 			})
 		}
 
-		// Continue conversation with function results.
-		reqBody = responsesAPIRequest{
-			Model:              "gpt-5.4",
-			Input:              outputs,
+		params = responses.ResponseNewParams{
+			Model:              shared.ResponsesModel(openaiModel),
+			Input:              responses.ResponseNewParamsInputUnion{OfInputItemList: outputs},
 			Tools:              tools,
-			Temperature:        temp,
-			PreviousResponseID: apiResp.ID,
+			Temperature:        openai.Float(temp),
+			PreviousResponseID: openai.String(resp.ID),
 		}
 	}
 
 	return "", fmt.Errorf("exceeded max function call rounds (%d)", maxRounds)
-}
-
-func (a *Analyzer) sendRequest(ctx context.Context, reqBody responsesAPIRequest) (*responsesAPIResponse, error) {
-	body, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal OpenAI request: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/responses", bytes.NewBuffer(body))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+a.apiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := a.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to call OpenAI API: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	var apiResp responsesAPIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return nil, fmt.Errorf("failed to decode OpenAI response: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		errMsg := "unknown error"
-		if apiResp.Error != nil {
-			errMsg = apiResp.Error.Message
-		}
-		return nil, fmt.Errorf("openAI API returned status %d: %s", resp.StatusCode, errMsg)
-	}
-
-	return &apiResp, nil
-}
-
-func extractText(resp *responsesAPIResponse) string {
-	if resp.OutputText != "" {
-		return resp.OutputText
-	}
-	for _, item := range resp.Output {
-		if item.Type == "message" && len(item.Content) > 0 {
-			for _, c := range item.Content {
-				if c.Type == "output_text" && c.Text != "" {
-					return c.Text
-				}
-			}
-		}
-	}
-	return ""
 }
 
 func (a *Analyzer) executeFunction(ctx context.Context, name, arguments string) string {
@@ -354,7 +322,7 @@ func (a *Analyzer) executeFunction(ctx context.Context, name, arguments string) 
 	}
 }
 
-func (a *Analyzer) execGetStockQuotes(ctx context.Context, arguments string) string {
+func (a *Analyzer) execGetStockQuotes(_ context.Context, arguments string) string {
 	var args struct {
 		Symbols string `json:"symbols"`
 	}
@@ -376,7 +344,7 @@ func (a *Analyzer) execGetStockQuotes(ctx context.Context, arguments string) str
 	return string(result)
 }
 
-func (a *Analyzer) execGetOptionChain(ctx context.Context, arguments string) string {
+func (a *Analyzer) execGetOptionChain(_ context.Context, arguments string) string {
 	var args struct {
 		Symbol       string  `json:"symbol"`
 		ContractType string  `json:"contract_type"`
@@ -388,7 +356,6 @@ func (a *Analyzer) execGetOptionChain(ctx context.Context, arguments string) str
 		return `{"error": "invalid arguments"}`
 	}
 
-	// Default date range: today to 7 days out.
 	if args.FromDate == "" {
 		args.FromDate = time.Now().Format("2006-01-02")
 	}
@@ -405,16 +372,13 @@ func (a *Analyzer) execGetOptionChain(ctx context.Context, arguments string) str
 	return string(result)
 }
 
-// stripMarkdownCodeBlock removes markdown code block formatting from a string.
-// OpenAI sometimes returns JSON wrapped in ```json ... ``` blocks.
+// stripMarkdownCodeBlock removes ```json fences if a model wraps its JSON.
 func stripMarkdownCodeBlock(s string) string {
 	s = strings.TrimSpace(s)
 	if strings.HasPrefix(s, "```") {
-		// Remove opening fence (with optional language identifier)
 		if idx := strings.Index(s, "\n"); idx != -1 {
 			s = s[idx+1:]
 		}
-		// Remove closing fence
 		if idx := strings.LastIndex(s, "```"); idx != -1 {
 			s = s[:idx]
 		}

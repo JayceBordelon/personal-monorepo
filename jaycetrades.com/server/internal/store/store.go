@@ -63,8 +63,19 @@ func migrate(db *sql.DB) error {
 			catalyst TEXT NOT NULL DEFAULT '',
 			mention_count INTEGER NOT NULL DEFAULT 0,
 			rank INTEGER NOT NULL DEFAULT 0,
+			gpt_score INTEGER NOT NULL DEFAULT 0,
+			gpt_rationale TEXT NOT NULL DEFAULT '',
+			claude_score INTEGER NOT NULL DEFAULT 0,
+			claude_rationale TEXT NOT NULL DEFAULT '',
+			combined_score DOUBLE PRECISION NOT NULL DEFAULT 0,
 			created_at TIMESTAMPTZ DEFAULT NOW()
 		);
+
+		ALTER TABLE trades ADD COLUMN IF NOT EXISTS gpt_score INTEGER NOT NULL DEFAULT 0;
+		ALTER TABLE trades ADD COLUMN IF NOT EXISTS gpt_rationale TEXT NOT NULL DEFAULT '';
+		ALTER TABLE trades ADD COLUMN IF NOT EXISTS claude_score INTEGER NOT NULL DEFAULT 0;
+		ALTER TABLE trades ADD COLUMN IF NOT EXISTS claude_rationale TEXT NOT NULL DEFAULT '';
+		ALTER TABLE trades ADD COLUMN IF NOT EXISTS combined_score DOUBLE PRECISION NOT NULL DEFAULT 0;
 
 		CREATE INDEX IF NOT EXISTS idx_trades_date ON trades(date);
 
@@ -206,8 +217,9 @@ func (s *Store) SaveMorningTrades(date string, tradeList []trades.Trade) error {
 			date, symbol, contract_type, strike_price, expiration, dte,
 			estimated_price, thesis, sentiment_score, current_price,
 			target_price, stop_loss, profit_target, risk_level,
-			catalyst, mention_count, rank
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+			catalyst, mention_count, rank,
+			gpt_score, gpt_rationale, claude_score, claude_rationale, combined_score
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
@@ -220,6 +232,7 @@ func (s *Store) SaveMorningTrades(date string, tradeList []trades.Trade) error {
 			t.EstimatedPrice, t.Thesis, t.SentimentScore, t.CurrentPrice,
 			t.TargetPrice, t.StopLoss, t.ProfitTarget, t.RiskLevel,
 			t.Catalyst, t.MentionCount, t.Rank,
+			t.GPTScore, t.GPTRationale, t.ClaudeScore, t.ClaudeRationale, t.CombinedScore,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert trade %s: %w", t.Symbol, err)
@@ -234,7 +247,8 @@ func (s *Store) GetMorningTrades(date string) ([]trades.Trade, error) {
 		SELECT symbol, contract_type, strike_price, expiration, dte,
 			estimated_price, thesis, sentiment_score, current_price,
 			target_price, stop_loss, profit_target, risk_level,
-			catalyst, mention_count, rank
+			catalyst, mention_count, rank,
+			gpt_score, gpt_rationale, claude_score, claude_rationale, combined_score
 		FROM trades WHERE date = $1 ORDER BY rank, id
 	`, date)
 	if err != nil {
@@ -250,6 +264,7 @@ func (s *Store) GetMorningTrades(date string) ([]trades.Trade, error) {
 			&t.EstimatedPrice, &t.Thesis, &t.SentimentScore, &t.CurrentPrice,
 			&t.TargetPrice, &t.StopLoss, &t.ProfitTarget, &t.RiskLevel,
 			&t.Catalyst, &t.MentionCount, &t.Rank,
+			&t.GPTScore, &t.GPTRationale, &t.ClaudeScore, &t.ClaudeRationale, &t.CombinedScore,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan trade row: %w", err)
@@ -329,7 +344,8 @@ func (s *Store) GetTradesForDateRange(startDate, endDate string) (map[string][]t
 		SELECT date, symbol, contract_type, strike_price, expiration, dte,
 			estimated_price, thesis, sentiment_score, current_price,
 			target_price, stop_loss, profit_target, risk_level,
-			catalyst, mention_count, rank
+			catalyst, mention_count, rank,
+			gpt_score, gpt_rationale, claude_score, claude_rationale, combined_score
 		FROM trades WHERE date >= $1 AND date <= $2 ORDER BY date, rank, id
 	`, startDate, endDate)
 	if err != nil {
@@ -346,6 +362,7 @@ func (s *Store) GetTradesForDateRange(startDate, endDate string) (map[string][]t
 			&t.EstimatedPrice, &t.Thesis, &t.SentimentScore, &t.CurrentPrice,
 			&t.TargetPrice, &t.StopLoss, &t.ProfitTarget, &t.RiskLevel,
 			&t.Catalyst, &t.MentionCount, &t.Rank,
+			&t.GPTScore, &t.GPTRationale, &t.ClaudeScore, &t.ClaudeRationale, &t.CombinedScore,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan trade row: %w", err)
