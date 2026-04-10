@@ -6,6 +6,14 @@ on:
       project_path:
         required: true
         type: string
+      service:
+        required: true
+        type: string
+        description: |
+          Compose service to build. One of:
+            - jaycebordelon-com    (the portfolio site)
+            - trading-frontend     (the vibetradez Next.js app)
+            - trading-server       (the vibetradez Go API)
     outputs:
       status:
         description: "Build status"
@@ -16,7 +24,7 @@ on:
 
 jobs:
   build:
-    name: Docker Build
+    name: Build (${{ inputs.service }})
     runs-on: ubuntu-latest
     outputs:
       status: ${{ steps.build_status.outputs.status }}
@@ -24,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build application
+      - name: Build service
         id: build_run
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -35,15 +43,40 @@ jobs:
             set -e
             cd ${{ inputs.project_path }}
 
-            rm -rf jaycebordelon.com/.next jaycebordelon.com/node_modules/.cache
-            rm -rf vibetradez.com/client/.next vibetradez.com/client/node_modules/.cache
-
-            COMMIT_SHA=$(git rev-parse HEAD)
+            SERVICE="${{ inputs.service }}"
             SHORT_SHA=$(git rev-parse --short HEAD)
 
-            # Build all services
-            docker compose build --no-cache jaycebordelon-com trading-server trading-frontend
-            docker tag jaycebordelon.com:latest "jaycebordelon.com:${SHORT_SHA}"
+            # Per-service workdir cleanup so a stale .next or
+            # node_modules/.cache from a previous build doesn't poison
+            # the new image. Only the directory belonging to this
+            # service gets touched.
+            case "$SERVICE" in
+              jaycebordelon-com)
+                rm -rf jaycebordelon.com/.next jaycebordelon.com/node_modules/.cache
+                ;;
+              trading-frontend)
+                rm -rf vibetradez.com/client/.next vibetradez.com/client/node_modules/.cache
+                ;;
+              trading-server)
+                # Go service has no node/next caches
+                ;;
+              *)
+                echo "Unknown service: $SERVICE" >&2
+                exit 1
+                ;;
+            esac
+
+            # Build only this one service. The compose project picks
+            # the right Dockerfile and build context from
+            # docker-compose.yml.
+            docker compose build --no-cache "$SERVICE"
+
+            # Tag the portfolio image with the short SHA so older
+            # tagged images can be pruned by cleanup.yml. Only the
+            # portfolio uses this tagging convention today.
+            if [ "$SERVICE" = "jaycebordelon-com" ]; then
+              docker tag jaycebordelon.com:latest "jaycebordelon.com:${SHORT_SHA}"
+            fi
 
       - name: Set build status
         id: build_status
@@ -54,5 +87,5 @@ jobs:
             echo "error=" >> $GITHUB_OUTPUT
           else
             echo "status=✗ FAILED" >> $GITHUB_OUTPUT
-            echo "error=Docker build failed - check build logs and dependencies" >> $GITHUB_OUTPUT
+            echo "error=Docker build failed for ${{ inputs.service }} - check build logs and dependencies" >> $GITHUB_OUTPUT
           fi

@@ -31,18 +31,39 @@ jobs:
     with:
       project_path: /home/jayce/personal-monorepo
 
-  build:
-    name: Build
+  build_portfolio:
+    name: Build / Portfolio
     needs: sync
     if: success()
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
       project_path: /home/jayce/personal-monorepo
+      service: jaycebordelon-com
+
+  build_frontend:
+    name: Build / Trading Frontend
+    needs: sync
+    if: success()
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      project_path: /home/jayce/personal-monorepo
+      service: trading-frontend
+
+  build_server:
+    name: Build / Trading Server
+    needs: sync
+    if: success()
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      project_path: /home/jayce/personal-monorepo
+      service: trading-server
 
   deploy:
     name: Deploy
-    needs: build
+    needs: [build_portfolio, build_frontend, build_server]
     if: success()
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
@@ -67,7 +88,7 @@ jobs:
 
   notify:
     name: Notify
-    needs: [sync, lint, build, deploy, cleanup, healthcheck]
+    needs: [sync, lint, build_portfolio, build_frontend, build_server, deploy, cleanup, healthcheck]
     if: always()
     uses: ./.github/workflows/notify.yml
     secrets: inherit
@@ -76,8 +97,10 @@ jobs:
       sync_error: ${{ needs.sync.outputs.error || '' }}
       lint_status: ${{ needs.lint.result == 'success' && needs.lint.outputs.status || (needs.lint.result == 'skipped' && '○ Not Run' || '✗ FAILED') }}
       lint_error: ${{ needs.lint.outputs.error || '' }}
-      build_status: ${{ needs.build.result == 'success' && needs.build.outputs.status || (needs.build.result == 'skipped' && '○ Not Run' || '✗ FAILED') }}
-      build_error: ${{ needs.build.outputs.error || '' }}
+      build_status: |
+        Portfolio: ${{ needs.build_portfolio.result == 'success' && needs.build_portfolio.outputs.status || (needs.build_portfolio.result == 'skipped' && '○ Not Run' || '✗ FAILED') }} • Frontend: ${{ needs.build_frontend.result == 'success' && needs.build_frontend.outputs.status || (needs.build_frontend.result == 'skipped' && '○ Not Run' || '✗ FAILED') }} • Server: ${{ needs.build_server.result == 'success' && needs.build_server.outputs.status || (needs.build_server.result == 'skipped' && '○ Not Run' || '✗ FAILED') }}
+      build_error: |
+        ${{ needs.build_portfolio.outputs.error || '' }}${{ needs.build_frontend.outputs.error && format(' | {0}', needs.build_frontend.outputs.error) || '' }}${{ needs.build_server.outputs.error && format(' | {0}', needs.build_server.outputs.error) || '' }}
       deploy_status: ${{ needs.deploy.result == 'success' && needs.deploy.outputs.status || (needs.deploy.result == 'skipped' && '○ Not Run' || '✗ FAILED') }}
       deploy_error: ${{ needs.deploy.outputs.error || '' }}
       deploy_commit_sha: ${{ needs.deploy.outputs.commit_sha || github.sha }}
