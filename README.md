@@ -1,11 +1,11 @@
-# vibetradez.com
+# personal-monorepo
 
 Jayce Bordelon's production monorepo. Two public services and the infrastructure that runs them, all deployed to a single Digital Ocean droplet behind Traefik.
 
 ## What's in here
 
 ```
-vibetradez.com/   (the repo)
+personal-monorepo/
 ├── jaycebordelon.com/   Personal portfolio + blog (Next.js 16, MDX, Framer Motion)
 ├── vibetradez.com/      Options trading service
 │   ├── server/          Go API (cron jobs, dual-model LLM analysis, Schwab market data, Resend email)

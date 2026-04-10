@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_PATH: /home/jayce/vibetradez.com
-  REPO_URL: git@github.com:JayceBordelon/vibetradez.com.git
+  PROJECT_PATH: /home/jayce/personal-monorepo
+  REPO_URL: git@github.com:JayceBordelon/personal-monorepo.git
 
 jobs:
   sync:
