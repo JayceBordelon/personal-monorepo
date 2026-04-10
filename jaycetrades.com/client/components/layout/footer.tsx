@@ -6,6 +6,18 @@ export function Footer() {
 				trading involves substantial risk. Past performance does not
 				guarantee future results.
 			</span>
+			<span className="text-border">|</span>
+			<span>
+				Built by{" "}
+				<a
+					href="https://jaycebordelon.com"
+					target="_blank"
+					rel="noopener noreferrer"
+					className="underline underline-offset-2 transition-colors hover:text-foreground"
+				>
+					Jayce Bordelon
+				</a>
+			</span>
 		</div>
 	);
 }
