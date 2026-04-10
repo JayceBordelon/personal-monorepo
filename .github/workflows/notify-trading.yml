@@ -54,6 +54,59 @@ jobs:
             echo "result=PASSED" >> $GITHUB_OUTPUT
           fi
 
+      - name: Fetch health check
+        id: health
+        run: |
+          # Wait a moment for the trading server to finish restarting
+          sleep 15
+
+          HEALTH_JSON=$(curl -sf --max-time 15 "https://vibetradez.com/health" 2>/dev/null || echo '{}')
+
+          ROWS=""
+          if echo "$HEALTH_JSON" | jq -e '.services' > /dev/null 2>&1; then
+            UPTIME=$(echo "$HEALTH_JSON" | jq -r '.uptime // "unknown"')
+            OK=$(echo "$HEALTH_JSON" | jq -r '.ok')
+
+            for svc in $(echo "$HEALTH_JSON" | jq -r '.services | keys[]'); do
+              SVC_STATUS=$(echo "$HEALTH_JSON" | jq -r ".services[\"$svc\"].status")
+              SVC_DETAIL=$(echo "$HEALTH_JSON" | jq -r ".services[\"$svc\"].detail // \"-\"")
+              SVC_LATENCY=$(echo "$HEALTH_JSON" | jq -r ".services[\"$svc\"].latency // \"-\"")
+
+              if [ "$SVC_STATUS" = "ok" ]; then
+                COLOR="#10a37f"
+                ICON="&#9679;"
+                BADGE_BG="#ecfdf5"
+                BADGE_COLOR="#059669"
+                BADGE_TEXT="OK"
+              elif [ "$SVC_STATUS" = "warn" ]; then
+                COLOR="#b45309"
+                ICON="&#9679;"
+                BADGE_BG="#fef3c7"
+                BADGE_COLOR="#b45309"
+                BADGE_TEXT="WARN"
+              else
+                COLOR="#ef4444"
+                ICON="&#9679;"
+                BADGE_BG="#fef2f2"
+                BADGE_COLOR="#ef4444"
+                BADGE_TEXT="FAIL"
+              fi
+
+              ROWS="${ROWS}<tr><td style=\"padding: 8px 12px; border-bottom: 1px solid #f1f5f9;\"><span style=\"color: ${COLOR}; font-size: 11px;\">${ICON}</span> <span style=\"color: #0f172a; font-size: 13px; font-weight: 600;\">${svc}</span><br><span style=\"color: #94a3b8; font-size: 11px;\">${SVC_DETAIL}</span></td><td style=\"padding: 8px 8px; border-bottom: 1px solid #f1f5f9; text-align: center; vertical-align: top;\"><span style=\"font-family: monospace; font-size: 11px; color: #64748b;\">${SVC_LATENCY}</span></td><td style=\"padding: 8px 12px; border-bottom: 1px solid #f1f5f9; text-align: right; vertical-align: top;\"><span style=\"background: ${BADGE_BG}; color: ${BADGE_COLOR}; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 9999px;\">${BADGE_TEXT}</span></td></tr>"
+            done
+
+            echo "uptime=$UPTIME" >> $GITHUB_OUTPUT
+            echo "all_ok=$OK" >> $GITHUB_OUTPUT
+          else
+            ROWS="<tr><td colspan=\"3\" style=\"padding: 12px; color: #94a3b8; font-size: 13px;\">Health endpoint unavailable</td></tr>"
+            echo "uptime=unknown" >> $GITHUB_OUTPUT
+            echo "all_ok=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "rows<<EOF" >> $GITHUB_OUTPUT
+          echo "$ROWS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Send deploy notification
         uses: dawidd6/action-send-mail@v3
         with:
@@ -240,6 +293,20 @@ jobs:
                         <span class="info-label">Timestamp</span><br>
                         <span class="info-value">${{ inputs.commit_timestamp }}</span>
                       </div>
+                    </div>
+                  </div>
+
+                  <div class="section">
+                    <h3>Service Health <span style="font-weight: 500; text-transform: none; letter-spacing: normal; color: #94a3b8;">&middot; uptime ${{ steps.health.outputs.uptime }}</span></h3>
+                    <div class="info-box" style="padding: 0; overflow: hidden;">
+                      <table width="100%" cellspacing="0" cellpadding="0" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+                        <tr style="background-color: #f8fafc;">
+                          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;"><span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8;">Service</span></td>
+                          <td style="padding: 8px 8px; border-bottom: 1px solid #e2e8f0; text-align: center;"><span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8;">Latency</span></td>
+                          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right;"><span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8;">Status</span></td>
+                        </tr>
+                        ${{ steps.health.outputs.rows }}
+                      </table>
                     </div>
                   </div>
 
