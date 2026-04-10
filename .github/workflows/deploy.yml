@@ -81,11 +81,6 @@ jobs:
             # Restart trading server (no rollout needed for background service)
             docker compose up -d --force-recreate trading-server
 
-            docker image prune -f
-            docker images "jaycebordelon.com" --format "{{.ID}} {{.CreatedAt}}" | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f || true
-
-            docker system prune -af --volumes
-
       - name: Set deploy status
         id: deploy_status
         if: always()

@@ -49,6 +49,15 @@ jobs:
     with:
       project_path: /home/jayce/personal-monorepo
 
+  cleanup:
+    name: Cleanup
+    needs: deploy
+    if: success()
+    uses: ./.github/workflows/cleanup.yml
+    secrets: inherit
+    with:
+      project_path: /home/jayce/personal-monorepo
+
   healthcheck:
     name: Health Check
     needs: deploy
@@ -58,7 +67,7 @@ jobs:
 
   notify:
     name: Notify
-    needs: [sync, lint, build, deploy, healthcheck]
+    needs: [sync, lint, build, deploy, cleanup, healthcheck]
     if: always()
     uses: ./.github/workflows/notify.yml
     secrets: inherit
@@ -76,6 +85,8 @@ jobs:
       deploy_commit_message: ${{ needs.deploy.outputs.commit_message || 'No message' }}
       deploy_commit_author: ${{ needs.deploy.outputs.commit_author || github.actor }}
       deploy_commit_timestamp: ${{ needs.deploy.outputs.commit_timestamp || 'Unknown' }}
+      cleanup_status: ${{ needs.cleanup.result == 'success' && needs.cleanup.outputs.status || (needs.cleanup.result == 'skipped' && '○ Not Run' || '✗ FAILED') }}
+      cleanup_error: ${{ needs.cleanup.outputs.error || '' }}
       healthcheck_status: ${{ needs.healthcheck.result == 'success' && needs.healthcheck.outputs.status || (needs.healthcheck.result == 'skipped' && '○ Not Run' || '✗ FAILED') }}
       healthcheck_error: ${{ needs.healthcheck.outputs.error || '' }}
       healthcheck_results: ${{ needs.healthcheck.outputs.results || 'No results' }}

@@ -1,0 +1,72 @@
+name: Post-Deploy Cleanup
+
+on:
+  workflow_call:
+    inputs:
+      project_path:
+        required: true
+        type: string
+    outputs:
+      status:
+        description: "Cleanup status"
+        value: ${{ jobs.cleanup.outputs.status }}
+      error:
+        description: "Cleanup error message"
+        value: ${{ jobs.cleanup.outputs.error }}
+      reclaimed:
+        description: "Space reclaimed"
+        value: ${{ jobs.cleanup.outputs.reclaimed }}
+
+jobs:
+  cleanup:
+    name: Docker Cleanup
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.cleanup_status.outputs.status }}
+      error: ${{ steps.cleanup_status.outputs.error }}
+      reclaimed: ${{ steps.cleanup_status.outputs.reclaimed }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prune Docker resources
+        id: cleanup_run
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+
+            echo "── Pre-cleanup disk usage ──"
+            BEFORE=$(df / --output=used -B1 | tail -1 | tr -d ' ')
+
+            # Remove dangling images, stopped containers, unused networks, and build cache
+            docker system prune -af --volumes 2>&1
+
+            # Remove stale tagged images (keep latest 3 per service)
+            for IMAGE in "jaycebordelon.com" "personal-monorepo-trading-server" "personal-monorepo-trading-frontend"; do
+              docker images "$IMAGE" --format "{{.ID}} {{.CreatedAt}}" 2>/dev/null | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f 2>/dev/null || true
+            done
+
+            echo "── Post-cleanup disk usage ──"
+            AFTER=$(df / --output=used -B1 | tail -1 | tr -d ' ')
+
+            RECLAIMED=$(( (BEFORE - AFTER) / 1048576 ))
+            if [ "$RECLAIMED" -lt 0 ]; then RECLAIMED=0; fi
+            echo "Reclaimed approximately ${RECLAIMED}MB"
+            echo "RECLAIMED=${RECLAIMED}MB" >> /tmp/cleanup_result
+
+      - name: Set cleanup status
+        id: cleanup_status
+        if: always()
+        run: |
+          if [ "${{ steps.cleanup_run.outcome }}" == "success" ]; then
+            echo "status=✓ PASSED" >> $GITHUB_OUTPUT
+            echo "error=" >> $GITHUB_OUTPUT
+            echo "reclaimed=see logs" >> $GITHUB_OUTPUT
+          else
+            echo "status=✗ FAILED" >> $GITHUB_OUTPUT
+            echo "error=Docker cleanup failed — manual intervention may be needed" >> $GITHUB_OUTPUT
+            echo "reclaimed=unknown" >> $GITHUB_OUTPUT
+          fi

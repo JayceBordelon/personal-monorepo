@@ -55,6 +55,14 @@ on:
         required: false
         type: string
         default: "Unknown"
+      cleanup_status:
+        required: false
+        type: string
+        default: "✓ PASSED"
+      cleanup_error:
+        required: false
+        type: string
+        default: ""
       healthcheck_status:
         required: false
         type: string
@@ -80,9 +88,10 @@ jobs:
           LINT="${{ inputs.lint_status }}"
           BUILD="${{ inputs.build_status }}"
           DEPLOY="${{ inputs.deploy_status }}"
+          CLEANUP="${{ inputs.cleanup_status }}"
           HEALTH="${{ inputs.healthcheck_status }}"
 
-          if [[ "$SYNC" == *"FAILED"* ]] || [[ "$LINT" == *"FAILED"* ]] || [[ "$BUILD" == *"FAILED"* ]] || [[ "$DEPLOY" == *"FAILED"* ]] || [[ "$HEALTH" == *"FAILED"* ]]; then
+          if [[ "$SYNC" == *"FAILED"* ]] || [[ "$LINT" == *"FAILED"* ]] || [[ "$BUILD" == *"FAILED"* ]] || [[ "$DEPLOY" == *"FAILED"* ]] || [[ "$CLEANUP" == *"FAILED"* ]] || [[ "$HEALTH" == *"FAILED"* ]]; then
             echo "status=FAILED" >> $GITHUB_OUTPUT
           else
             echo "status=PASSED" >> $GITHUB_OUTPUT
@@ -100,6 +109,9 @@ jobs:
           fi
           if [[ "$DEPLOY" == *"FAILED"* ]]; then
             ERRORS="${ERRORS}Deploy: ${{ inputs.deploy_error }}<br>"
+          fi
+          if [[ "$CLEANUP" == *"FAILED"* ]]; then
+            ERRORS="${ERRORS}Cleanup: ${{ inputs.cleanup_error }}<br>"
           fi
           if [[ "$HEALTH" == *"FAILED"* ]]; then
             ERRORS="${ERRORS}Health: ${{ inputs.healthcheck_error }}<br>"
@@ -373,7 +385,11 @@ jobs:
                         <span class="stage-status ${{ contains(inputs.deploy_status, 'FAILED') && 'failed' || (contains(inputs.deploy_status, 'Not Run') && 'skipped' || 'passed') }}">${{ inputs.deploy_status || '✓ PASSED' }}</span>
                       </div>
                       <div class="stage">
-                        <span class="stage-name">5. Health Check</span>
+                        <span class="stage-name">5. Post-Deploy Cleanup</span>
+                        <span class="stage-status ${{ contains(inputs.cleanup_status, 'FAILED') && 'failed' || (contains(inputs.cleanup_status, 'Not Run') && 'skipped' || 'passed') }}">${{ inputs.cleanup_status || '✓ PASSED' }}</span>
+                      </div>
+                      <div class="stage">
+                        <span class="stage-name">6. Health Check</span>
                         <span class="stage-status ${{ contains(inputs.healthcheck_status, 'FAILED') && 'failed' || (contains(inputs.healthcheck_status, 'Not Run') && 'skipped' || 'passed') }}">${{ inputs.healthcheck_status || '✓ PASSED' }}</span>
                       </div>
                     </div>

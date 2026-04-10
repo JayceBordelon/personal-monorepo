@@ -118,11 +118,25 @@ jobs:
             # Restart trading server (no rollout needed for background service)
             docker compose up -d --force-recreate trading-server
 
-            # Cleanup old images
-            docker image prune -f
-            docker images "jaycebordelon.com" --format "{{.ID}} {{.CreatedAt}}" | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f || true
-            # System Cleanup
+  cleanup:
+    name: Post-Deploy Cleanup
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prune Docker resources
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
             docker system prune -af --volumes
+            for IMAGE in "jaycebordelon.com" "personal-monorepo-trading-server" "personal-monorepo-trading-frontend"; do
+              docker images "$IMAGE" --format "{{.ID}} {{.CreatedAt}}" 2>/dev/null | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f 2>/dev/null || true
+            done
 
   healthcheck:
     name: Health Check
