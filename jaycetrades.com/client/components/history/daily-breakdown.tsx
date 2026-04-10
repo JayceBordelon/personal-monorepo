@@ -40,8 +40,8 @@ export function DailyBreakdown({ dayStats }: { dayStats: DayStat[] }) {
 
 	return (
 		<div className="space-y-1">
-			{dayStats.map((ds, i) => (
-				<DayRow key={ds.date} ds={ds} index={i} maxAbsPnl={maxAbsPnl} />
+			{dayStats.map((ds) => (
+				<DayRow key={ds.date} ds={ds} maxAbsPnl={maxAbsPnl} />
 			))}
 		</div>
 	);
@@ -49,21 +49,16 @@ export function DailyBreakdown({ dayStats }: { dayStats: DayStat[] }) {
 
 function DayRow({
 	ds,
-	index,
 	maxAbsPnl,
 }: {
 	ds: DayStat;
-	index: number;
 	maxAbsPnl: number;
 }) {
 	const barWidth = Math.round((Math.abs(ds.pnl) / maxAbsPnl) * 100);
 	const isPositive = ds.pnl >= 0;
 
 	return (
-		<Collapsible
-			className="animate-in fade-in slide-in-from-bottom-1 duration-300"
-			style={{ animationDelay: `${Math.min(index, 20) * 20}ms` }}
-		>
+		<Collapsible className="animate-in fade-in fill-mode-backwards duration-200">
 			<CollapsibleTrigger
 				className={cn(
 					"group flex w-full items-center gap-3 rounded-md border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/50",
@@ -105,7 +100,7 @@ function DayRow({
 				</div>
 			</CollapsibleTrigger>
 
-			<CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+			<CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
 				<div className="mt-1 rounded-md border bg-muted/30 px-4 py-3">
 					{ds.details.length > 0 ? (
 						<div className="space-y-2">

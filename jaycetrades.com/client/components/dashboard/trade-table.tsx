@@ -119,6 +119,7 @@ export function TradeTable({ trades }: TradeTableProps) {
 							<TableHead className="w-10" />
 							<TableHead className="w-10 text-center">#</TableHead>
 							<TableHead>Trade</TableHead>
+							<TableHead className="text-center">Scores</TableHead>
 							<TableHead className="text-right">Entry</TableHead>
 							<TableHead className="text-right">Close</TableHead>
 							<TableHead className="text-right">Stock</TableHead>
@@ -127,7 +128,7 @@ export function TradeTable({ trades }: TradeTableProps) {
 					</TableHeader>
 					<TableBody>
 						{trades.map((dt) => (
-							<DesktopTradeRow key={dt.trade.rank} dt={dt} />
+							<DesktopTradeRow key={dt.trade.symbol} dt={dt} />
 						))}
 					</TableBody>
 				</Table>
@@ -135,8 +136,8 @@ export function TradeTable({ trades }: TradeTableProps) {
 
 			{/* Mobile cards */}
 			<div className="space-y-3 md:hidden">
-				{trades.map((dt, index) => (
-					<TradeRowCard key={dt.trade.rank} dt={dt} index={index} />
+				{trades.map((dt) => (
+					<TradeRowCard key={dt.trade.symbol} dt={dt} />
 				))}
 			</div>
 		</div>
@@ -196,6 +197,12 @@ function DesktopTradeRow({ dt }: { dt: DashboardTrade }) {
 						</Badge>
 					</div>
 				</TableCell>
+				<TableCell className="text-center text-xs tabular-nums">
+					<ScorePill
+						gpt={trade.gpt_score}
+						claude={trade.claude_score}
+					/>
+				</TableCell>
 				<TableCell className="text-right font-mono text-sm tabular-nums">
 					{row.entry}
 				</TableCell>
@@ -206,9 +213,7 @@ function DesktopTradeRow({ dt }: { dt: DashboardTrade }) {
 					className={cn(
 						"text-right font-mono text-sm tabular-nums",
 						row.hasSummary
-							? row.stockMove >= 0
-								? "text-green"
-								: "text-red"
+							? pnlColor(row.stockMove)
 							: "text-muted-foreground",
 					)}
 				>
@@ -227,8 +232,8 @@ function DesktopTradeRow({ dt }: { dt: DashboardTrade }) {
 			</TableRow>
 			{open && (
 				<TableRow className="hover:bg-transparent">
-					<TableCell colSpan={7} className="bg-muted/30 p-0">
-						<div className="animate-in fade-in slide-in-from-top-1 duration-200">
+					<TableCell colSpan={8} className="bg-muted/30 p-0">
+						<div className="animate-in fade-in fill-mode-backwards duration-150">
 							<TradeDetail dt={dt} />
 						</div>
 					</TableCell>
@@ -238,8 +243,23 @@ function DesktopTradeRow({ dt }: { dt: DashboardTrade }) {
 	);
 }
 
+function ScorePill({ gpt, claude }: { gpt: number; claude: number }) {
+	if (gpt === 0 && claude === 0) {
+		return <span className="text-muted-foreground">—</span>;
+	}
+	return (
+		<span className="inline-flex items-center gap-1 rounded-md border bg-muted/40 px-1.5 py-0.5 font-semibold">
+			<span className="text-muted-foreground">G</span>
+			<span>{gpt || "—"}</span>
+			<span className="text-muted-foreground">·</span>
+			<span className="text-muted-foreground">C</span>
+			<span>{claude || "—"}</span>
+		</span>
+	);
+}
+
 // ---- Mobile card ----
-function TradeRowCard({ dt, index }: { dt: DashboardTrade; index: number }) {
+function TradeRowCard({ dt }: { dt: DashboardTrade }) {
 	const [open, setOpen] = useState(false);
 	const { trade } = dt;
 	const moneyness = calcMoneyness(trade);
@@ -248,10 +268,9 @@ function TradeRowCard({ dt, index }: { dt: DashboardTrade; index: number }) {
 	return (
 		<Card
 			className={cn(
-				"animate-in fade-in slide-in-from-bottom-1 duration-300 border-l-2",
+				"animate-in fade-in fill-mode-backwards duration-200 border-l-2",
 				row.accentBorder,
 			)}
-			style={{ animationDelay: `${index * 40}ms` }}
 		>
 			<CardContent className="space-y-3 p-4">
 				<div className="flex flex-wrap items-center gap-1.5">
@@ -383,6 +402,41 @@ function TradeDetail({
 					</span>{" "}
 					{trade.thesis}
 				</p>
+			)}
+
+			{(trade.gpt_rationale || trade.claude_rationale) && (
+				<div className="space-y-3 rounded-md border bg-card-elevated p-3">
+					{trade.gpt_rationale && (
+						<div>
+							<div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+								<span>OpenAI analysis</span>
+								{trade.gpt_score > 0 && (
+									<span className="rounded bg-background px-1.5 py-0.5 tabular-nums text-foreground">
+										{trade.gpt_score}/10
+									</span>
+								)}
+							</div>
+							<p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+								{trade.gpt_rationale}
+							</p>
+						</div>
+					)}
+					{trade.claude_rationale && (
+						<div>
+							<div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+								<span>Claude analysis</span>
+								{trade.claude_score > 0 && (
+									<span className="rounded bg-background px-1.5 py-0.5 tabular-nums text-foreground">
+										{trade.claude_score}/10
+									</span>
+								)}
+							</div>
+							<p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+								{trade.claude_rationale}
+							</p>
+						</div>
+					)}
+				</div>
 			)}
 
 			{summary && (

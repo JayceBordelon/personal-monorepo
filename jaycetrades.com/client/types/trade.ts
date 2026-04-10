@@ -15,6 +15,11 @@ export interface Trade {
 	catalyst: string;
 	mention_count: number;
 	rank: number;
+	gpt_score: number;
+	gpt_rationale: string;
+	claude_score: number;
+	claude_rationale: string;
+	combined_score: number;
 }
 
 export interface TradeSummary {

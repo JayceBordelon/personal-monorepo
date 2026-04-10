@@ -20,7 +20,7 @@ import {
 	sentimentColor,
 	sentimentLabel,
 } from "@/lib/calculations";
-import { fmt, fmtMoney, fmtMoneyInt } from "@/lib/format";
+import { fmt, fmtMoney, fmtMoneyInt, pnlColor } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { DashboardTrade, LiveQuotesResponse } from "@/types/trade";
 
@@ -32,12 +32,11 @@ interface MorningCardsProps {
 export function MorningCards({ trades, liveQuotes }: MorningCardsProps) {
 	return (
 		<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			{trades.map((dt, index) => (
+			{trades.map((dt) => (
 				<MorningCard
-					key={dt.trade.rank}
+					key={dt.trade.symbol}
 					dt={dt}
 					liveQuotes={liveQuotes}
-					index={index}
 				/>
 			))}
 		</div>
@@ -47,7 +46,6 @@ export function MorningCards({ trades, liveQuotes }: MorningCardsProps) {
 interface MorningCardProps {
 	dt: DashboardTrade;
 	liveQuotes?: LiveQuotesResponse | null;
-	index: number;
 }
 
 function MorningCard({ dt, liveQuotes }: MorningCardProps) {
@@ -68,11 +66,7 @@ function MorningCard({ dt, liveQuotes }: MorningCardProps) {
 	const hasLiveData =
 		Boolean(liveQuotes?.connected) && (liveStock || liveOption);
 
-	const liveStockChangeColor = liveStock
-		? liveStock.net_change >= 0
-			? "text-green"
-			: "text-red"
-		: "";
+	const liveStockChangeColor = liveStock ? pnlColor(liveStock.net_change) : "";
 
 	const stockPriceValue = liveStock ? (
 		<span
@@ -82,9 +76,11 @@ function MorningCard({ dt, liveQuotes }: MorningCardProps) {
 			)}
 		>
 			{fmtMoney(liveStock.last_price)}
-			<span className="ml-1 text-xs">
-				{liveStock.net_change >= 0 ? "\u2191" : "\u2193"}
-			</span>
+			{liveStock.net_change !== 0 && (
+				<span className="ml-1 text-xs">
+					{liveStock.net_change > 0 ? "\u2191" : "\u2193"}
+				</span>
+			)}
 		</span>
 	) : (
 		fmtMoney(trade.current_price)
@@ -97,8 +93,10 @@ function MorningCard({ dt, liveQuotes }: MorningCardProps) {
 				? "outline"
 				: "secondary";
 
+	const hasDualScore = trade.gpt_score > 0 && trade.claude_score > 0;
+
 	return (
-		<Card className="group animate-in fade-in duration-200 transition-all hover:-translate-y-0.5 hover:shadow-md">
+		<Card className="group animate-in fade-in fill-mode-backwards duration-200 transition-all hover:-translate-y-0.5 hover:shadow-md">
 			<CardContent className="space-y-4 p-5">
 				{/* Tier 1: header */}
 				<div className="flex flex-wrap items-center gap-1.5">
@@ -118,6 +116,15 @@ function MorningCard({ dt, liveQuotes }: MorningCardProps) {
 					</Badge>
 					<Badge variant={moneyness.variant}>{moneyness.label}</Badge>
 					<Badge variant={riskBadgeVariant}>{trade.risk_level}</Badge>
+					{hasDualScore && (
+						<div className="ml-auto flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-0.5 text-[11px] font-semibold tabular-nums">
+							<span className="text-muted-foreground">GPT</span>
+							<span>{trade.gpt_score}</span>
+							<span className="text-muted-foreground">·</span>
+							<span className="text-muted-foreground">Claude</span>
+							<span>{trade.claude_score}</span>
+						</div>
+					)}
 				</div>
 
 				{/* Tier 1: premium */}
@@ -227,6 +234,41 @@ function MorningCard({ dt, liveQuotes }: MorningCardProps) {
 								<p className="text-sm leading-relaxed text-muted-foreground">
 									{trade.thesis}
 								</p>
+							)}
+
+							{(trade.gpt_rationale || trade.claude_rationale) && (
+								<div className="space-y-3 rounded-md border bg-muted/30 p-3">
+									{trade.gpt_rationale && (
+										<div>
+											<div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+												<span>OpenAI analysis</span>
+												{trade.gpt_score > 0 && (
+													<span className="rounded bg-background px-1.5 py-0.5 tabular-nums text-foreground">
+														{trade.gpt_score}/10
+													</span>
+												)}
+											</div>
+											<p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+												{trade.gpt_rationale}
+											</p>
+										</div>
+									)}
+									{trade.claude_rationale && (
+										<div>
+											<div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+												<span>Claude analysis</span>
+												{trade.claude_score > 0 && (
+													<span className="rounded bg-background px-1.5 py-0.5 tabular-nums text-foreground">
+														{trade.claude_score}/10
+													</span>
+												)}
+											</div>
+											<p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+												{trade.claude_rationale}
+											</p>
+										</div>
+									)}
+								</div>
 							)}
 
 							{hasLiveData && (
