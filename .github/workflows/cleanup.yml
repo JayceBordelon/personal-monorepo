@@ -41,8 +41,13 @@ jobs:
             echo "── Pre-cleanup disk usage ──"
             BEFORE=$(df / --output=used -B1 | tail -1 | tr -d ' ')
 
-            # Remove dangling images, stopped containers, unused networks, and build cache
-            docker system prune -af --volumes 2>&1
+            # Remove dangling images, stopped containers, unused networks,
+            # and build cache. Crucially, NO `--volumes` flag — we never
+            # want to prune named volumes, because the traefik_letsencrypt
+            # volume holds the Let's Encrypt cert state. Wiping it forces
+            # a full re-issuance which can hit the 5-certs-per-7-days
+            # rate limit and break TLS for hours.
+            docker system prune -af 2>&1
 
             # Remove stale tagged images (keep latest 3 per service)
             for IMAGE in "jaycebordelon.com" "vibetradez.com-trading-server" "vibetradez.com-trading-frontend"; do
