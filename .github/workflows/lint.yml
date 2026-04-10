@@ -46,7 +46,7 @@ jobs:
             fi
 
             # Lint Go
-            cd jaycetrades.com && golangci-lint run ./...
+            cd jaycetrades.com/server && golangci-lint run ./...
 
       - name: Set lint status
         id: lint_status

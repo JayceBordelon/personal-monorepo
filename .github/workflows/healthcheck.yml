@@ -30,6 +30,8 @@ jobs:
           ENDPOINTS=(
             "https://jaycebordelon.com"
             "https://www.jaycebordelon.com"
+            "https://jaycetrades.com"
+            "https://jaycetrades.com/dashboard"
           )
 
           FAILED=0
@@ -47,6 +49,37 @@ jobs:
               FAILED=1
             fi
           done
+
+          # Granular trading server health
+          RESULTS="${RESULTS}\n── Trading Server Services ──\n"
+          HEALTH_JSON=$(curl -s --max-time 10 "https://jaycetrades.com/health" || echo '{}')
+
+          if echo "$HEALTH_JSON" | jq -e '.services' > /dev/null 2>&1; then
+            UPTIME=$(echo "$HEALTH_JSON" | jq -r '.uptime // "unknown"')
+            RESULTS="${RESULTS}Uptime: ${UPTIME}\n"
+
+            for svc in $(echo "$HEALTH_JSON" | jq -r '.services | keys[]'); do
+              SVC_STATUS=$(echo "$HEALTH_JSON" | jq -r ".services[\"$svc\"].status")
+              SVC_DETAIL=$(echo "$HEALTH_JSON" | jq -r ".services[\"$svc\"].detail // \"-\"")
+              SVC_LATENCY=$(echo "$HEALTH_JSON" | jq -r ".services[\"$svc\"].latency // \"-\"")
+
+              if [ "$SVC_STATUS" = "ok" ]; then
+                ICON="✓"
+              elif [ "$SVC_STATUS" = "warn" ]; then
+                ICON="⚠"
+              else
+                ICON="✗"
+                FAILED=1
+                FAILED_ENDPOINTS="${FAILED_ENDPOINTS}Trading server: $svc is $SVC_STATUS ($SVC_DETAIL)\n"
+              fi
+
+              RESULTS="${RESULTS}${ICON} ${svc}: ${SVC_DETAIL} (${SVC_LATENCY})\n"
+            done
+          else
+            RESULTS="${RESULTS}✗ Could not parse health response\n"
+            FAILED=1
+            FAILED_ENDPOINTS="${FAILED_ENDPOINTS}Trading server health endpoint unreachable or malformed\n"
+          fi
 
           echo "results<<EOF" >> $GITHUB_OUTPUT
           echo -e "$RESULTS" >> $GITHUB_OUTPUT

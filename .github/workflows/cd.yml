@@ -56,7 +56,7 @@ jobs:
             fi
 
             # Lint Go
-            cd jaycetrades.com && golangci-lint run ./...
+            cd jaycetrades.com/server && golangci-lint run ./...
 
   build:
     name: Build
@@ -76,12 +76,13 @@ jobs:
             cd ${{ env.PROJECT_PATH }}
 
             rm -rf jaycebordelon.com/.next jaycebordelon.com/node_modules/.cache
+            rm -rf jaycetrades.com/client/.next jaycetrades.com/client/node_modules/.cache
 
             COMMIT_SHA=$(git rev-parse HEAD)
             SHORT_SHA=$(git rev-parse --short HEAD)
 
-            # Build both services
-            docker compose build --no-cache jaycebordelon-com trading-server
+            # Build all services
+            docker compose build --no-cache jaycebordelon-com trading-server trading-frontend
             docker tag jaycebordelon.com:latest "jaycebordelon.com:${SHORT_SHA}"
 
   deploy:
@@ -110,8 +111,9 @@ jobs:
             set -e
             cd ${{ env.PROJECT_PATH }}
 
-            # Zero-downtime rolling deployment of web app
+            # Zero-downtime rolling deployment of web apps
             docker rollout jaycebordelon-com --timeout 120 --wait-after-healthy 30
+            docker rollout trading-frontend --timeout 120 --wait-after-healthy 30
 
             # Restart trading server (no rollout needed for background service)
             docker compose up -d --force-recreate trading-server
@@ -138,6 +140,8 @@ jobs:
           ENDPOINTS=(
             "https://jaycebordelon.com"
             "https://www.jaycebordelon.com"
+            "https://jaycetrades.com"
+            "https://jaycetrades.com/dashboard"
           )
 
           FAILED=0
@@ -145,7 +149,7 @@ jobs:
 
           for endpoint in "${ENDPOINTS[@]}"; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$endpoint" || echo "000")
-            
+
             if [[ "$STATUS" =~ ^2[0-9]{2}$ ]]; then
               RESULTS="${RESULTS}✓ $endpoint ($STATUS)\n"
             else
@@ -153,6 +157,35 @@ jobs:
               FAILED=1
             fi
           done
+
+          # Granular trading server health
+          RESULTS="${RESULTS}\n── Trading Server Services ──\n"
+          HEALTH_JSON=$(curl -s --max-time 10 "https://jaycetrades.com/health" || echo '{}')
+
+          if echo "$HEALTH_JSON" | jq -e '.services' > /dev/null 2>&1; then
+            UPTIME=$(echo "$HEALTH_JSON" | jq -r '.uptime // "unknown"')
+            RESULTS="${RESULTS}Uptime: ${UPTIME}\n"
+
+            for svc in $(echo "$HEALTH_JSON" | jq -r '.services | keys[]'); do
+              SVC_STATUS=$(echo "$HEALTH_JSON" | jq -r ".services[\"$svc\"].status")
+              SVC_DETAIL=$(echo "$HEALTH_JSON" | jq -r ".services[\"$svc\"].detail // \"-\"")
+              SVC_LATENCY=$(echo "$HEALTH_JSON" | jq -r ".services[\"$svc\"].latency // \"-\"")
+
+              if [ "$SVC_STATUS" = "ok" ]; then
+                ICON="✓"
+              elif [ "$SVC_STATUS" = "warn" ]; then
+                ICON="⚠"
+              else
+                ICON="✗"
+                FAILED=1
+              fi
+
+              RESULTS="${RESULTS}${ICON} ${svc}: ${SVC_DETAIL} (${SVC_LATENCY})\n"
+            done
+          else
+            RESULTS="${RESULTS}✗ Could not parse health response\n"
+            FAILED=1
+          fi
 
           echo "results<<EOF" >> $GITHUB_OUTPUT
           echo -e "$RESULTS" >> $GITHUB_OUTPUT
@@ -343,6 +376,8 @@ jobs:
                     <div style="line-height: 2;">
                       <a href="https://jaycebordelon.com">https://jaycebordelon.com</a><br>
                       <a href="https://www.jaycebordelon.com">https://www.jaycebordelon.com</a><br>
+                      <a href="https://jaycetrades.com">https://jaycetrades.com</a><br>
+                      <a href="https://jaycetrades.com/dashboard">https://jaycetrades.com/dashboard</a><br>
                       <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ needs.deploy.outputs.commit_sha }}">View Commit</a>
                     </div>
                   </div>

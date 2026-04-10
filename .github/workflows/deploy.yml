@@ -74,8 +74,9 @@ jobs:
             set -e
             cd ${{ inputs.project_path }}
 
-            # Rolling deployment for web app
+            # Rolling deployment for web apps
             docker rollout jaycebordelon-com --timeout 120 --wait-after-healthy 30
+            docker rollout trading-frontend --timeout 120 --wait-after-healthy 30
 
             # Restart trading server (no rollout needed for background service)
             docker compose up -d --force-recreate trading-server

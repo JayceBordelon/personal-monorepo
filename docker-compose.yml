@@ -59,27 +59,9 @@ services:
       - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.replacement=https://jaycebordelon.com$${2}"
       - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.permanent=true"
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: postgres
-    environment:
-      POSTGRES_USER: jaycetrades
-      POSTGRES_PASSWORD: jaycetrades
-      POSTGRES_DB: jaycetrades
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - app-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jaycetrades"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   trading-server:
     build:
-      context: ./jaycetrades.com
+      context: ./jaycetrades.com/server
     env_file:
       - .env
     expose:
@@ -87,20 +69,46 @@ services:
     networks:
       - app-network
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     labels:
       - "app=trading-server"
       - "traefik.enable=true"
-      - "traefik.http.routers.trading.rule=Host(`jaycetrades.com`) || Host(`www.jaycetrades.com`)"
-      - "traefik.http.routers.trading.entrypoints=websecure"
-      - "traefik.http.routers.trading.tls.certresolver=letsencrypt"
-      - "traefik.http.services.trading.loadbalancer.server.port=8080"
+      # API/auth/health routes — higher priority
+      - "traefik.http.routers.trading-api.rule=(Host(`jaycetrades.com`) || Host(`www.jaycetrades.com`)) && (PathPrefix(`/api`) || PathPrefix(`/auth`) || Path(`/health`))"
+      - "traefik.http.routers.trading-api.entrypoints=websecure"
+      - "traefik.http.routers.trading-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.trading-api.priority=20"
+      - "traefik.http.services.trading-api.loadbalancer.server.port=8080"
+
+  trading-frontend:
+    build:
+      context: ./jaycetrades.com/client
+    environment:
+      - API_URL=http://trading-server:8080
+    expose:
+      - "3001"
+    networks:
+      - app-network
+    restart: unless-stopped
+    depends_on:
+      - trading-server
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "app=trading-frontend"
+      - "traefik.enable=true"
+      # Catch-all frontend — lower priority
+      - "traefik.http.routers.trading-frontend.rule=Host(`jaycetrades.com`) || Host(`www.jaycetrades.com`)"
+      - "traefik.http.routers.trading-frontend.entrypoints=websecure"
+      - "traefik.http.routers.trading-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.trading-frontend.priority=10"
+      - "traefik.http.services.trading-frontend.loadbalancer.server.port=3001"
 
 volumes:
   traefik_letsencrypt:
-  postgres_data:
 
 networks:
   app-network:

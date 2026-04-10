@@ -36,12 +36,13 @@ jobs:
             cd ${{ inputs.project_path }}
 
             rm -rf jaycebordelon.com/.next jaycebordelon.com/node_modules/.cache
+            rm -rf jaycetrades.com/client/.next jaycetrades.com/client/node_modules/.cache
 
             COMMIT_SHA=$(git rev-parse HEAD)
             SHORT_SHA=$(git rev-parse --short HEAD)
 
-            # Build both services
-            docker compose build --no-cache jaycebordelon-com trading-server
+            # Build all services
+            docker compose build --no-cache jaycebordelon-com trading-server trading-frontend
             docker tag jaycebordelon.com:latest "jaycebordelon.com:${SHORT_SHA}"
 
       - name: Set build status
