@@ -81,6 +81,15 @@ jobs:
             # Restart trading server (no rollout needed for background service)
             docker compose up -d --force-recreate trading-server
 
+            # Ensure Traefik is up. The deploy steps above only touch the
+            # three application services; if Traefik was ever stopped (a
+            # crash, a manual restart, or a previous cleanup that pruned
+            # its image while it was down) the entire site is unreachable
+            # because nothing is listening on 80/443. This idempotent
+            # `up -d traefik` is a no-op when Traefik is already running
+            # and brings it back when it isn't.
+            docker compose up -d traefik
+
       - name: Set deploy status
         id: deploy_status
         if: always()
