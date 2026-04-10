@@ -30,8 +30,8 @@ jobs:
           ENDPOINTS=(
             "https://jaycebordelon.com"
             "https://www.jaycebordelon.com"
-            "https://jaycetrades.com"
-            "https://jaycetrades.com/dashboard"
+            "https://vibetradez.com"
+            "https://vibetradez.com/dashboard"
           )
 
           FAILED=0
@@ -52,7 +52,7 @@ jobs:
 
           # Granular trading server health
           RESULTS="${RESULTS}\n── Trading Server Services ──\n"
-          HEALTH_JSON=$(curl -s --max-time 10 "https://jaycetrades.com/health" || echo '{}')
+          HEALTH_JSON=$(curl -s --max-time 10 "https://vibetradez.com/health" || echo '{}')
 
           if echo "$HEALTH_JSON" | jq -e '.services' > /dev/null 2>&1; then
             UPTIME=$(echo "$HEALTH_JSON" | jq -r '.uptime // "unknown"')

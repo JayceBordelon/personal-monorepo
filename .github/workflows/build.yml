@@ -36,7 +36,7 @@ jobs:
             cd ${{ inputs.project_path }}
 
             rm -rf jaycebordelon.com/.next jaycebordelon.com/node_modules/.cache
-            rm -rf jaycetrades.com/client/.next jaycetrades.com/client/node_modules/.cache
+            rm -rf vibetradez.com/client/.next vibetradez.com/client/node_modules/.cache
 
             COMMIT_SHA=$(git rev-parse HEAD)
             SHORT_SHA=$(git rev-parse --short HEAD)

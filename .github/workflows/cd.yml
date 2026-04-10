@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_PATH: /home/jayce/personal-monorepo
-  REPO_URL: git@github.com:JayceBordelon/personal-monorepo.git
+  PROJECT_PATH: /home/jayce/vibetradez.com
+  REPO_URL: git@github.com:JayceBordelon/vibetradez.com.git
 
 jobs:
   sync:
@@ -56,7 +56,7 @@ jobs:
             fi
 
             # Lint Go
-            cd jaycetrades.com/server && golangci-lint run ./...
+            cd vibetradez.com/server && golangci-lint run ./...
 
   build:
     name: Build
@@ -76,7 +76,7 @@ jobs:
             cd ${{ env.PROJECT_PATH }}
 
             rm -rf jaycebordelon.com/.next jaycebordelon.com/node_modules/.cache
-            rm -rf jaycetrades.com/client/.next jaycetrades.com/client/node_modules/.cache
+            rm -rf vibetradez.com/client/.next vibetradez.com/client/node_modules/.cache
 
             COMMIT_SHA=$(git rev-parse HEAD)
             SHORT_SHA=$(git rev-parse --short HEAD)
@@ -134,7 +134,7 @@ jobs:
           script: |
             set -e
             docker system prune -af --volumes
-            for IMAGE in "jaycebordelon.com" "personal-monorepo-trading-server" "personal-monorepo-trading-frontend"; do
+            for IMAGE in "jaycebordelon.com" "vibetradez.com-trading-server" "vibetradez.com-trading-frontend"; do
               docker images "$IMAGE" --format "{{.ID}} {{.CreatedAt}}" 2>/dev/null | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f 2>/dev/null || true
             done
 
@@ -154,8 +154,8 @@ jobs:
           ENDPOINTS=(
             "https://jaycebordelon.com"
             "https://www.jaycebordelon.com"
-            "https://jaycetrades.com"
-            "https://jaycetrades.com/dashboard"
+            "https://vibetradez.com"
+            "https://vibetradez.com/dashboard"
           )
 
           FAILED=0
@@ -174,7 +174,7 @@ jobs:
 
           # Granular trading server health
           RESULTS="${RESULTS}\n── Trading Server Services ──\n"
-          HEALTH_JSON=$(curl -s --max-time 10 "https://jaycetrades.com/health" || echo '{}')
+          HEALTH_JSON=$(curl -s --max-time 10 "https://vibetradez.com/health" || echo '{}')
 
           if echo "$HEALTH_JSON" | jq -e '.services' > /dev/null 2>&1; then
             UPTIME=$(echo "$HEALTH_JSON" | jq -r '.uptime // "unknown"')
@@ -390,8 +390,8 @@ jobs:
                     <div style="line-height: 2;">
                       <a href="https://jaycebordelon.com">https://jaycebordelon.com</a><br>
                       <a href="https://www.jaycebordelon.com">https://www.jaycebordelon.com</a><br>
-                      <a href="https://jaycetrades.com">https://jaycetrades.com</a><br>
-                      <a href="https://jaycetrades.com/dashboard">https://jaycetrades.com/dashboard</a><br>
+                      <a href="https://vibetradez.com">https://vibetradez.com</a><br>
+                      <a href="https://vibetradez.com/dashboard">https://vibetradez.com/dashboard</a><br>
                       <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ needs.deploy.outputs.commit_sha }}">View Commit</a>
                     </div>
                   </div>

@@ -60,8 +60,9 @@ services:
       - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.permanent=true"
 
   trading-server:
+    image: vibetradez.com-trading-server:latest
     build:
-      context: ./jaycetrades.com/server
+      context: ./vibetradez.com/server
     env_file:
       - .env
     expose:
@@ -73,15 +74,16 @@ services:
       - "app=trading-server"
       - "traefik.enable=true"
       # API/auth/health routes — higher priority
-      - "traefik.http.routers.trading-api.rule=(Host(`jaycetrades.com`) || Host(`www.jaycetrades.com`)) && (PathPrefix(`/api`) || PathPrefix(`/auth`) || PathPrefix(`/admin`) || Path(`/health`))"
+      - "traefik.http.routers.trading-api.rule=(Host(`vibetradez.com`) || Host(`www.vibetradez.com`)) && (PathPrefix(`/api`) || PathPrefix(`/auth`) || PathPrefix(`/admin`) || Path(`/health`))"
       - "traefik.http.routers.trading-api.entrypoints=websecure"
       - "traefik.http.routers.trading-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.trading-api.priority=20"
       - "traefik.http.services.trading-api.loadbalancer.server.port=8080"
 
   trading-frontend:
+    image: vibetradez.com-trading-frontend:latest
     build:
-      context: ./jaycetrades.com/client
+      context: ./vibetradez.com/client
     environment:
       - API_URL=http://trading-server:8080
     expose:
@@ -101,7 +103,7 @@ services:
       - "app=trading-frontend"
       - "traefik.enable=true"
       # Catch-all frontend — lower priority
-      - "traefik.http.routers.trading-frontend.rule=Host(`jaycetrades.com`) || Host(`www.jaycetrades.com`)"
+      - "traefik.http.routers.trading-frontend.rule=Host(`vibetradez.com`) || Host(`www.vibetradez.com`)"
       - "traefik.http.routers.trading-frontend.entrypoints=websecure"
       - "traefik.http.routers.trading-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.trading-frontend.priority=10"

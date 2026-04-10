@@ -7,13 +7,13 @@ Jayce Bordelon's production monorepo. All services are deployed to a single Digi
 **Single-server monolithic deployment.** Traefik routes incoming HTTPS requests to the correct container by hostname and path:
 
 - `jaycebordelon.com` / `www.jaycebordelon.com` → Next.js portfolio (port 3000)
-- `jaycetrades.com` → `/api/*`, `/auth/*`, `/admin/*`, `/health` → Go API server (port 8080, priority 20)
-- `jaycetrades.com` → everything else → Next.js trading frontend (port 3001, priority 10)
+- `vibetradez.com` → `/api/*`, `/auth/*`, `/admin/*`, `/health` → Go API server (port 8080, priority 20)
+- `vibetradez.com` → everything else → Next.js trading frontend (port 3001, priority 10)
 
 ## Project Structure
 
 ```
-personal-monorepo/
+vibetradez.com/   (the repo)
 ├── jaycebordelon.com/           # Personal portfolio & blog
 │   ├── app/                     # Next.js 16 App Router pages
 │   ├── components/              # React components + shadcn/ui
@@ -22,7 +22,7 @@ personal-monorepo/
 │   ├── Dockerfile               # Multi-stage Node.js build
 │   └── package.json             # Next.js 16, React 19, Tailwind v4
 │
-├── jaycetrades.com/
+├── vibetradez.com/
 │   ├── server/                  # Go API server (trading backend)
 │   │   ├── cmd/scanner/         # Main entry point, cron jobs, workflows
 │   │   ├── internal/
@@ -67,8 +67,8 @@ personal-monorepo/
 | Project | Stack |
 |---------|-------|
 | jaycebordelon.com | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui (new-york), MDX, Framer Motion |
-| jaycetrades.com/client | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui (new-york), Recharts v3, TradingView Lightweight Charts |
-| jaycetrades.com/server | Go 1.23, PostgreSQL (Digital Ocean managed), OpenAI GPT-5.4, Schwab Market Data API, Resend email |
+| vibetradez.com/client | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui (new-york), Recharts v3, TradingView Lightweight Charts |
+| vibetradez.com/server | Go 1.23, PostgreSQL (Digital Ocean managed), OpenAI GPT-5.4, Schwab Market Data API, Resend email |
 | Infrastructure | Docker Compose, Traefik v2.10, Let's Encrypt, Digital Ocean Droplet |
 
 ## Database
@@ -79,7 +79,10 @@ PostgreSQL hosted on Digital Ocean Managed Databases. Connection string is in `.
 
 - `DATABASE_URL` — PostgreSQL connection string (required, no default)
 - `RESEND_API_KEY` — Email delivery
-- `OPENAI_API_KEY` — Trade analysis LLM
+- `OPENAI_API_KEY` — GPT trade analyzer (required to run cron jobs)
+- `OPENAI_MODEL` — Override the default OpenAI model (default: latest from `config.DefaultOpenAIModel`)
+- `ANTHROPIC_API_KEY` — Claude trade validator (optional; validation skipped if missing or stub)
+- `ANTHROPIC_MODEL` — Override the default Anthropic model (default: latest from `config.DefaultAnthropicModel`)
 - `SCHWAB_APP_KEY` / `SCHWAB_SECRET` — Market data OAuth
 - `ADMIN_KEY` — Protects `/admin/announce` broadcast endpoint
 - `EMAIL_RECIPIENTS` — Seed subscribers on first boot
@@ -92,16 +95,48 @@ Run these checks before every push. CI will fail if they don't pass:
 
 ```bash
 # Go
-cd jaycetrades.com/server && gofmt -w . && go vet ./...
+cd vibetradez.com/server && gofmt -w . && go vet ./...
 
 # Next.js (both projects)
 cd jaycebordelon.com && npx biome check .
-cd jaycetrades.com/client && npx biome check .
+cd vibetradez.com/client && npx biome check .
 ```
 
 ### Always read the latest documentation
 
 When working with Next.js, shadcn/ui, Tailwind CSS, Recharts, or any external library, **always fetch and read the current documentation** before writing code. Do not rely on recalled syntax or API signatures — they may be outdated. This applies even if it takes extra time. Incorrect assumptions about APIs cause more rework than the time saved by skipping docs.
+
+### Recharts (currently pinned at v3)
+
+`vibetradez.com/client` uses **Recharts ^3.8.0** wrapped by the shadcn `ChartContainer` primitive at `components/ui/chart.tsx`. Recharts 3 was a hard break from 2 — read the migration guide before touching any chart code.
+
+**Reference URLs:**
+
+- v2 → v3 migration guide: <https://github.com/recharts/recharts/wiki/3.0-migration-guide>
+- Release notes (changelog after 2.x lives only here): <https://github.com/recharts/recharts/releases>
+- npm: <https://www.npmjs.com/package/recharts>
+
+**v3 breaking changes that bite us in this codebase:**
+
+- `CategoricalChartState` is gone. Anything that used to read internal chart state via `Customized` or props now must use hooks (`useActiveTooltipLabel`, etc.).
+- Many "internal" cloned props are gone: `Scatter.points`, `Area.points`, `Legend.payload`, `activeIndex`. If you see code reading any of these, it's broken on v3.
+- `<Customized />` no longer receives extra props.
+- `ref.current.current` on `ResponsiveContainer` is gone.
+- `XAxis` / `YAxis` axis lines now render even when there are no ticks.
+- Multiple `YAxis` instances render in alphabetical order of `yAxisId`, not render order.
+- `CartesianGrid` requires explicit `xAxisId` / `yAxisId` to match the axes it pairs with.
+- SVG z-order is the JSX render order — to put a series on top, render it last.
+- `Area`'s `connectNulls=true` now treats null datapoints as zero instead of skipping them.
+- `Pie.blendStroke` is removed; use `stroke="none"`.
+- `<Cell>` is **deprecated** as of v3.7 and will be removed in v4. Migrate per-bar/per-slice colors to the chart element's `shape` prop instead. We still use `Cell` in `daily-pnl-chart.tsx` and `daily-breakdown.tsx` — leave them alone for now but plan a migration before bumping major.
+- Tooltip custom-content prop type is now `TooltipContentProps`, not `TooltipProps`.
+- Since v3.3, every chart accepts a `responsive` prop directly, so `ResponsiveContainer` wrapping is **optional**. Our shadcn `ChartContainer` still wraps with `ResponsiveContainer` for the inline-style fallback.
+
+**Project-specific rules for chart components:**
+
+- Always render charts through `ChartContainer` from `@/components/ui/chart` — it owns the `ResponsiveContainer`, the `--color-*` CSS variable injection, and the tooltip context.
+- Never call `.map()` directly on a `data` prop you receive from a parent without a fallback. The `Cannot read properties of null (reading 'map')` runtime crash on `/history` was caused by the server returning `{"days": null}` for an empty range and `filterByRank` calling `data.days.map(...)` unguarded. The lesson: any boundary that produces JSON arrays must initialize them as empty slices server-side (Go nil slice → JSON `null`), and any client function that consumes them must `?? []` them defensively. Same pattern applies to `comparison.go`, `cmd/scanner/main.go`, and any future endpoint that returns lists.
+- When passing data into Recharts components, the data prop must be an array, not null/undefined. A guard like `data && data.length > 0 && <BarChart data={data} ...>` is the safest pattern.
 
 ### Always use feature branches
 
@@ -113,7 +148,7 @@ Both Next.js frontends share the same design tokens (CSS variables in `globals.c
 
 ## API Protection
 
-All `/api/*` routes on the trading server require the `X-JT-Source` header. Without it, requests return 403. The Next.js frontend includes this header on every fetch call. The `/admin/announce` endpoint requires `X-Admin-Key` header matching the `ADMIN_KEY` env var.
+All `/api/*` routes on the trading server require the `X-VT-Source` header. Without it, requests return 403. The Next.js frontend includes this header on every fetch call. The `/admin/announce` endpoint requires `X-Admin-Key` header matching the `ADMIN_KEY` env var.
 
 ## Trading Server Workflows
 
@@ -128,34 +163,51 @@ Market holidays are hardcoded in `cmd/scanner/main.go`. Jobs skip on holidays an
 
 ### Send announcement to all subscribers
 ```bash
-curl -X POST https://jaycetrades.com/admin/announce \
+curl -X POST https://vibetradez.com/admin/announce \
   -H "X-Admin-Key: <ADMIN_KEY>" \
   -H "Content-Type: application/json" \
   -d '{"subject": "...", "badge": "...", "headline": "...", "sections": [{"title": "...", "body": "..."}], "cta_text": "...", "cta_url": "..."}'
 ```
 
 ### Re-authorize Schwab OAuth
-Visit `https://jaycetrades.com/auth/schwab` in a browser. Tokens are stored in the `oauth_tokens` table and auto-refresh.
+Visit `https://vibetradez.com/auth/schwab` in a browser. Tokens are stored in the `oauth_tokens` table and auto-refresh.
 
 ### Check server health
 ```bash
-curl https://jaycetrades.com/health | jq
+curl https://vibetradez.com/health | jq
 ```
-Returns per-service status for database, LLM (OpenAI), Schwab, and API with latencies.
+Returns per-service status for database, OpenAI, Anthropic, Schwab, and API with latencies. Both LLM checks go through the official SDKs and warn (instead of fail) when a stub local key is detected.
 
 ### Docker commands on production
 ```bash
 ssh jayce@<server>
-cd ~/personal-monorepo
+cd ~/vibetradez.com
 docker compose logs trading-server --tail 50    # View Go server logs
 docker compose logs trading-frontend --tail 50  # View Next.js logs
 docker compose restart trading-server           # Restart Go server
 docker compose up -d --force-recreate trading-server  # Full recreate
 ```
 
-## Planned Migration
+## Dual-Model Trade Analysis
 
-The trade analysis LLM is currently OpenAI GPT-5.4 (strong at sentiment analysis). A migration to Anthropic Claude is planned. This will require changes in `server/internal/trades/analyzer.go` (API client), `server/internal/trades/prompt.go` (prompt format), and the health check model probe in `server/internal/server/server.go`.
+The morning trade pipeline uses **two language models in sequence**:
+
+1. **OpenAI (GPT-5.4 by default)** generates 10 ranked trade ideas via `vibetradez.com/server/internal/trades/analyzer.go`. The analyzer uses the official `github.com/openai/openai-go/v3` SDK against the Responses API with multi-round Schwab `get_stock_quotes` / `get_option_chain` function tools and built-in `web_search`. Each trade comes back with a 1-10 conviction `score` and a free-form `rationale` defending the score.
+2. **Anthropic (Claude Opus 4.6 by default)** then validates GPT's picks via `vibetradez.com/server/internal/trades/validator.go`. Claude is fed GPT's full output and the same Schwab + `web_search` tool surface (using `github.com/anthropics/anthropic-sdk-go`). It returns its own independent 1-10 `score`, a substantive `rationale`, and an optional `concerns` array of red flags.
+3. `cmd/scanner/main.go` merges Claude's scores into the trades, computes `combined_score = (gpt + claude) / 2`, and re-ranks the picks by combined score with Claude as the tiebreaker. Both per-model scores and rationales persist to the `trades` table and surface on the dashboard.
+
+If `ANTHROPIC_API_KEY` is missing or matches a local stub, validation is skipped silently and trades persist with `claude_score = 0`. The `/api/model-comparison` endpoint backtests "if you had only followed each model's ranking" and powers the `/models` page.
+
+### Model version refresh policy
+
+Both models are configured via env vars (`OPENAI_MODEL`, `ANTHROPIC_MODEL`) with defaults defined as constants in `vibetradez.com/server/internal/config/config.go` (`DefaultOpenAIModel`, `DefaultAnthropicModel`).
+
+**Any time work touches the trade analyzer, validator, or these defaults, fetch the official Go SDK documentation and refresh the defaults to the current latest production model.** OpenAI and Anthropic publish new model versions regularly; if a default sits stale, trade quality degrades silently. The two pages to read are:
+
+- Anthropic Go SDK: <https://platform.claude.com/docs/en/api/sdks/go>
+- OpenAI Go SDK: <https://developers.openai.com/api/docs/libraries?language=golang>
+
+When updating, also bump the `OPENAI_MODEL` / `ANTHROPIC_MODEL` defaults baked into `vibetradez.com/local/docker-compose.local.yml` so the local dev stack matches.
 
 ## CI/CD Pipeline
 
@@ -166,5 +218,5 @@ Triggered on push to `main` or manual dispatch. Runs on the production server vi
 3. **Build** — `docker compose build --no-cache` all services
 4. **Deploy** — `docker rollout` for web apps, `docker compose up -d --force-recreate` for background services
 5. **Cleanup** — `docker system prune -af --volumes` to reclaim disk space
-6. **Health Check** — Verify all endpoints + granular `/health` for trading server services (database, LLM, Schwab, API)
+6. **Health Check** — Verify all endpoints + granular `/health` for trading server services (database, openai, anthropic, schwab, api). The healthcheck step iterates `services | keys[]` so any new service added to the granular `/health` response is automatically gated without YAML changes.
 7. **Notify** — Email with full pipeline status, commit info, and health results
