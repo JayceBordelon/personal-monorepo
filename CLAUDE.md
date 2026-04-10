@@ -13,7 +13,7 @@ Jayce Bordelon's production monorepo. All services are deployed to a single Digi
 ## Project Structure
 
 ```
-personal-monorepo/
+vibetradez.com/   (the repo)
 ├── jaycebordelon.com/           # Personal portfolio & blog
 │   ├── app/                     # Next.js 16 App Router pages
 │   ├── components/              # React components + shadcn/ui
@@ -149,7 +149,7 @@ Returns per-service status for database, OpenAI, Anthropic, Schwab, and API with
 ### Docker commands on production
 ```bash
 ssh jayce@<server>
-cd ~/personal-monorepo
+cd ~/vibetradez.com
 docker compose logs trading-server --tail 50    # View Go server logs
 docker compose logs trading-frontend --tail 50  # View Next.js logs
 docker compose restart trading-server           # Restart Go server

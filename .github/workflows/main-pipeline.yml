@@ -10,8 +10,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PROJECT_PATH: /home/jayce/personal-monorepo
-  REPO_URL: git@github.com:JayceBordelon/personal-monorepo.git
+  PROJECT_PATH: /home/jayce/vibetradez.com
+  REPO_URL: git@github.com:JayceBordelon/vibetradez.com.git
 
 jobs:
   sync:
@@ -19,8 +19,8 @@ jobs:
     uses: ./.github/workflows/sync.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/personal-monorepo
-      repo_url: git@github.com:JayceBordelon/personal-monorepo.git
+      project_path: /home/jayce/vibetradez.com
+      repo_url: git@github.com:JayceBordelon/vibetradez.com.git
 
   lint:
     name: Lint
@@ -29,7 +29,7 @@ jobs:
     uses: ./.github/workflows/lint.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/personal-monorepo
+      project_path: /home/jayce/vibetradez.com
 
   build:
     name: Build
@@ -38,7 +38,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/personal-monorepo
+      project_path: /home/jayce/vibetradez.com
 
   deploy:
     name: Deploy
@@ -47,7 +47,7 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/personal-monorepo
+      project_path: /home/jayce/vibetradez.com
 
   cleanup:
     name: Cleanup
@@ -56,7 +56,7 @@ jobs:
     uses: ./.github/workflows/cleanup.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/personal-monorepo
+      project_path: /home/jayce/vibetradez.com
 
   healthcheck:
     name: Health Check

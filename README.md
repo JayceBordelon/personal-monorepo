@@ -1,11 +1,11 @@
-# personal-monorepo
+# vibetradez.com
 
 Jayce Bordelon's production monorepo. Two public services and the infrastructure that runs them, all deployed to a single Digital Ocean droplet behind Traefik.
 
 ## What's in here
 
 ```
-personal-monorepo/
+vibetradez.com/   (the repo)
 ├── jaycebordelon.com/   Personal portfolio + blog (Next.js 16, MDX, Framer Motion)
 ├── vibetradez.com/      Options trading service
 │   ├── server/          Go API (cron jobs, dual-model LLM analysis, Schwab market data, Resend email)
@@ -23,9 +23,9 @@ personal-monorepo/
 | `jaycebordelon.com` / `www.jaycebordelon.com` | `jaycebordelon-com` | 3000 | All paths (Next.js portfolio) |
 | `vibetradez.com` / `www.vibetradez.com` | `trading-server` | 8080 | `/api/*`, `/auth/*`, `/admin/*`, `/health` (priority 20) |
 | `vibetradez.com` / `www.vibetradez.com` | `trading-frontend` | 3001 | Everything else (priority 10, Next.js trading UI) |
-| `jaycetrades.com` / `jayceb.com` | — | — | 301 redirect to the new domain |
+| `jayceb.com` / `www.jayceb.com` | — | — | 301 redirect to `jaycebordelon.com` |
 
-Traefik handles TLS (Let's Encrypt) and routes by hostname + path priority. Both old domains (`jaycetrades.com`, `jayceb.com`) are kept around as permanent redirects so existing links don't break.
+Traefik handles TLS (Let's Encrypt) and routes by hostname + path priority. The legacy `jayceb.com` portfolio domain is kept around as a permanent redirect so existing links don't break.
 
 ## Trading service highlights
 

@@ -60,6 +60,7 @@ services:
       - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.permanent=true"
 
   trading-server:
+    image: vibetradez.com-trading-server:latest
     build:
       context: ./vibetradez.com/server
     env_file:
@@ -80,6 +81,7 @@ services:
       - "traefik.http.services.trading-api.loadbalancer.server.port=8080"
 
   trading-frontend:
+    image: vibetradez.com-trading-frontend:latest
     build:
       context: ./vibetradez.com/client
     environment:
@@ -106,15 +108,6 @@ services:
       - "traefik.http.routers.trading-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.trading-frontend.priority=10"
       - "traefik.http.services.trading-frontend.loadbalancer.server.port=3001"
-      # Permanent redirect from the old jaycetrades.com domain to vibetradez.com
-      - "traefik.http.routers.jaycetrades-redirect.rule=Host(`jaycetrades.com`) || Host(`www.jaycetrades.com`)"
-      - "traefik.http.routers.jaycetrades-redirect.entrypoints=websecure"
-      - "traefik.http.routers.jaycetrades-redirect.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.jaycetrades-redirect.priority=5"
-      - "traefik.http.routers.jaycetrades-redirect.middlewares=redirect-to-vibetradez"
-      - "traefik.http.middlewares.redirect-to-vibetradez.redirectregex.regex=^https://(www\\.)?jaycetrades\\.com(.*)"
-      - "traefik.http.middlewares.redirect-to-vibetradez.redirectregex.replacement=https://vibetradez.com$${2}"
-      - "traefik.http.middlewares.redirect-to-vibetradez.redirectregex.permanent=true"
 
 volumes:
   traefik_letsencrypt:

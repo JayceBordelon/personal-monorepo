@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_PATH: /home/jayce/personal-monorepo
-  REPO_URL: git@github.com:JayceBordelon/personal-monorepo.git
+  PROJECT_PATH: /home/jayce/vibetradez.com
+  REPO_URL: git@github.com:JayceBordelon/vibetradez.com.git
 
 jobs:
   sync:
@@ -134,7 +134,7 @@ jobs:
           script: |
             set -e
             docker system prune -af --volumes
-            for IMAGE in "jaycebordelon.com" "personal-monorepo-trading-server" "personal-monorepo-trading-frontend"; do
+            for IMAGE in "jaycebordelon.com" "vibetradez.com-trading-server" "vibetradez.com-trading-frontend"; do
               docker images "$IMAGE" --format "{{.ID}} {{.CreatedAt}}" 2>/dev/null | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f 2>/dev/null || true
             done
 

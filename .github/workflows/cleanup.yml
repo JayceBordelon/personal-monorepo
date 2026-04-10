@@ -45,7 +45,7 @@ jobs:
             docker system prune -af --volumes 2>&1
 
             # Remove stale tagged images (keep latest 3 per service)
-            for IMAGE in "jaycebordelon.com" "personal-monorepo-trading-server" "personal-monorepo-trading-frontend"; do
+            for IMAGE in "jaycebordelon.com" "vibetradez.com-trading-server" "vibetradez.com-trading-frontend"; do
               docker images "$IMAGE" --format "{{.ID}} {{.CreatedAt}}" 2>/dev/null | sort -rk 2 | tail -n +4 | awk '{print $1}' | xargs -r docker rmi -f 2>/dev/null || true
             done
 
