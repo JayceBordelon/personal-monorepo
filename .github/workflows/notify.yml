@@ -129,9 +129,9 @@ jobs:
           secure: true
           username: bordelonjayce@gmail.com
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "[${{ steps.overall.outputs.status }}] Jayce's Project Deployment Automation - ${{ inputs.deploy_short_sha }}"
-          to: bordelonjayce@gmail.com,kadedanger@gmail.com,camilledevaney7@gmail.com
-          from: Jayce's Project Deployment Automation <bordelonjayce@gmail.com>
+          subject: "[${{ steps.overall.outputs.status }}] VibeTradez Deploy - ${{ inputs.deploy_short_sha }}"
+          to: bordelonjayce@gmail.com
+          from: Vibe Tradez <trades@vibetradez.com>
           html_body: |
             <!DOCTYPE html>
             <html>
@@ -153,14 +153,18 @@ jobs:
                   border: 1px solid #e2e8f0;
                   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
                 }
+                .brand-bar {
+                  height: 4px;
+                  background: linear-gradient(90deg, #10a37f, #D97757);
+                }
                 .header {
-                  background: linear-gradient(135deg, #64748b 0%, #475569 50%, #334155 100%);
+                  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
                   padding: 48px 40px;
                   text-align: center;
                   position: relative;
                 }
                 .header.failed {
-                  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+                  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
                 }
                 .header h1 {
                   color: #ffffff;
@@ -199,8 +203,8 @@ jobs:
                   margin-top: 8px;
                 }
                 .status-passed {
-                  background: #94a3b8;
-                  color: #0f172a;
+                  background: linear-gradient(135deg, #10a37f 0%, #D97757 100%);
+                  color: #ffffff;
                 }
                 .status-failed {
                   background: #ef4444;
@@ -258,7 +262,7 @@ jobs:
                   font-size: 14px;
                 }
                 .stage-status.passed {
-                  color: #475569;
+                  color: #10a37f;
                 }
                 .stage-status.failed {
                   color: #ef4444;
@@ -270,8 +274,8 @@ jobs:
                   background-color: #fafafa;
                   padding: 24px;
                   border-radius: 8px;
-                  border: 2px solid #475569;
-                  box-shadow: 0 1px 3px 0 rgba(71, 85, 105, 0.2);
+                  border: 1px solid #e2e8f0;
+                  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.06);
                   font-family: 'JetBrains Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
                   font-size: 13px;
                   line-height: 1.8;
@@ -293,10 +297,13 @@ jobs:
                 .links-box a:hover {
                   text-decoration: underline;
                 }
+                .footer-bar {
+                  height: 3px;
+                  background: linear-gradient(90deg, #10a37f, #D97757);
+                }
                 .footer {
-                  background-color: #fafafa;
+                  background-color: #f1f5f9;
                   padding: 28px 40px;
-                  border-top: 1px solid #e2e8f0;
                 }
                 .footer p {
                   margin: 0 0 4px 0;
@@ -326,8 +333,9 @@ jobs:
             </head>
             <body>
               <div class="container">
+                <div class="brand-bar"></div>
                 <div class="header ${{ steps.overall.outputs.status == 'FAILED' && 'failed' || '' }}">
-                  <h1>Jayce's Project Deployment Automation</h1>
+                  <h1><span style="color: #10a37f;">Vibe</span><span style="color: #D97757;">Tradez</span> <span style="color: #94a3b8; font-weight: 500;">Deploy</span></h1>
                   <p>Build ${{ inputs.deploy_short_sha || 'unknown' }}</p>
                   <span class="status-badge status-${{ steps.overall.outputs.status == 'FAILED' && 'failed' || 'passed' }}">
                     ${{ steps.overall.outputs.status == 'FAILED' && '✗ FAILED' || '✓ PASSED' }}
@@ -335,12 +343,9 @@ jobs:
                 </div>
 
                 <div class="content">
-                  <div style="background-color: #f1f5f9; border-left: 4px solid #64748b; padding: 16px 20px; margin-bottom: 32px; border-radius: 0 8px 8px 0;">
+                  <div style="background-color: #f8fafc; border-left: 4px solid; border-image: linear-gradient(180deg, #10a37f, #D97757) 1; padding: 16px 20px; margin-bottom: 32px; border-radius: 0 8px 8px 0;">
                     <p style="margin: 0; color: #475569; font-size: 14px; line-height: 1.6;">
-                      You are receiving this email because you have opted in to receive updates from <strong>Jayce's Personal Projects</strong>. A new update has been deployed to a service you're subscribed to.
-                    </p>
-                    <p style="margin: 12px 0 0 0; color: #475569; font-size: 14px; line-height: 1.6;">
-                      If you are paying for any particular service, source code licensing, or project, I would be more than happy to detail the specific changes for that service. Feel free to reach out at <a href="mailto:bordelonjayce@gmail.com" style="color: #334155; font-weight: 600;">bordelonjayce@gmail.com</a>.
+                      Deployment pipeline completed for the personal monorepo. All services (jaycebordelon.com, vibetradez.com) are covered by this run.
                     </p>
                   </div>
 
@@ -419,7 +424,7 @@ jobs:
                         <span class="info-value">${{ github.actor }}</span>
 
                         <span class="info-label">Workflow Run</span>
-                        <span class="info-value"><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" style="color: #475569; text-decoration: none;">#${{ github.run_number }}</a></span>
+                        <span class="info-value"><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" style="color: #10a37f; text-decoration: none;">#${{ github.run_number }}</a></span>
                       </div>
                     </div>
                   </div>
@@ -427,23 +432,25 @@ jobs:
                   <div class="section">
                     <h3>Quick Links</h3>
                     <div class="links-box">
+                      <a href="https://vibetradez.com">https://vibetradez.com</a><br>
                       <a href="https://jaycebordelon.com">https://jaycebordelon.com</a><br>
-                      <a href="https://www.jaycebordelon.com">https://www.jaycebordelon.com</a><br>
                       <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ inputs.deploy_commit_sha }}">View Commit on GitHub</a><br>
                       <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Workflow Run</a>
                     </div>
                   </div>
                 </div>
 
+                <div class="footer-bar"></div>
                 <div class="footer">
-                  <p class="footer-label">Deployment Pipeline</p>
-                  <p class="footer-value">jaycebordelon.com</p>
+                  <p style="margin: 0; text-align: center;">
+                    <span style="font-size: 14px; font-weight: 700; color: #10a37f;">Vibe</span><span style="font-size: 14px; font-weight: 700; color: #D97757;">Tradez</span>
+                    <span style="color: #94a3b8; font-size: 11px;">&nbsp;&middot;&nbsp;Deployment Pipeline</span>
+                  </p>
                 </div>
               </div>
 
               <div class="copyright">
-                <p>Automated deployment notification • Build ${{ inputs.deploy_short_sha || 'unknown' }}</p>
-                <p style="margin-top: 8px;">You received this email because you opted in to updates from Jayce's Personal Projects.</p>
+                <p>Automated deployment notification &middot; Build ${{ inputs.deploy_short_sha || 'unknown' }}</p>
               </div>
             </body>
             </html>
