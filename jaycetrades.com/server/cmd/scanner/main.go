@@ -129,8 +129,9 @@ func main() {
 	}
 
 	scraper := sentiment.NewScraper()
-	analyzer := trades.NewAnalyzer(cfg.OpenAIAPIKey, schwabClient)
+	analyzer := trades.NewAnalyzer(cfg.OpenAIAPIKey, cfg.OpenAIModel, schwabClient)
 	emailClient := email.NewClient(cfg.ResendAPIKey)
+	log.Printf("OpenAI: model=%s", cfg.OpenAIModel)
 
 	// Claude validator is optional. If ANTHROPIC_API_KEY is missing or set
 	// to a local stub, validations are skipped and trades persist with
@@ -142,8 +143,8 @@ func main() {
 	case isLocalStubKey(cfg.AnthropicAPIKey):
 		log.Println("Anthropic: local stub key detected — Claude validation disabled")
 	default:
-		validator = trades.NewValidator(cfg.AnthropicAPIKey, schwabClient)
-		log.Println("Anthropic: configured — Claude validation enabled")
+		validator = trades.NewValidator(cfg.AnthropicAPIKey, cfg.AnthropicModel, schwabClient)
+		log.Printf("Anthropic: configured — Claude validation enabled (model=%s)", cfg.AnthropicModel)
 	}
 
 	openJob := func() {
@@ -191,7 +192,7 @@ func main() {
 	c.Start()
 
 	// Start HTTP API server in background
-	srv := server.New(db, schwabClient, emailClient, cfg.EmailFrom, cfg.OpenAIAPIKey, cfg.AnthropicAPIKey, cfg.AdminKey, cfg.ServerPort)
+	srv := server.New(db, schwabClient, emailClient, cfg.EmailFrom, cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.AnthropicAPIKey, cfg.AnthropicModel, cfg.AdminKey, cfg.ServerPort)
 	go srv.Start()
 
 	log.Printf("Options trade scanner started")

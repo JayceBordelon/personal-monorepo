@@ -22,7 +22,7 @@ func setupTestServer(t *testing.T) *Server {
 
 	db.RemoveAllForTest()
 
-	return New(db, nil, nil, "", "", "", "", "0")
+	return New(db, nil, nil, "", "", "", "", "", "", "0")
 }
 
 func TestSubscribeEndpoint(t *testing.T) {

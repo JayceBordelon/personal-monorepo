@@ -17,8 +17,6 @@ import (
 	"jaycetrades.com/internal/sentiment"
 )
 
-const openaiModel = "gpt-5.4"
-
 type Trade struct {
 	Symbol         string  `json:"symbol"`
 	ContractType   string  `json:"contract_type"` // CALL or PUT
@@ -69,18 +67,23 @@ type Validation struct {
 
 type Analyzer struct {
 	client openai.Client
+	model  string
 	schwab *schwab.Client
 }
 
-func NewAnalyzer(apiKey string, schwabClient *schwab.Client) *Analyzer {
+func NewAnalyzer(apiKey, model string, schwabClient *schwab.Client) *Analyzer {
 	return &Analyzer{
 		client: openai.NewClient(
 			option.WithAPIKey(apiKey),
 			option.WithRequestTimeout(120*time.Second),
 		),
+		model:  model,
 		schwab: schwabClient,
 	}
 }
+
+// Model returns the OpenAI model identifier this analyzer is configured with.
+func (a *Analyzer) Model() string { return a.model }
 
 // gptTradeOutput is the JSON shape we ask GPT to return. We map it onto
 // Trade and stamp GPTScore / GPTRationale from the score / rationale fields.
@@ -257,7 +260,7 @@ func (a *Analyzer) callWithTools(ctx context.Context, prompt string, temp float6
 	tools := a.buildTools()
 
 	params := responses.ResponseNewParams{
-		Model:       shared.ResponsesModel(openaiModel),
+		Model:       shared.ResponsesModel(a.model),
 		Input:       responses.ResponseNewParamsInputUnion{OfString: openai.String(prompt)},
 		Tools:       tools,
 		Temperature: openai.Float(temp),
@@ -300,7 +303,7 @@ func (a *Analyzer) callWithTools(ctx context.Context, prompt string, temp float6
 		}
 
 		params = responses.ResponseNewParams{
-			Model:              shared.ResponsesModel(openaiModel),
+			Model:              shared.ResponsesModel(a.model),
 			Input:              responses.ResponseNewParamsInputUnion{OfInputItemList: outputs},
 			Tools:              tools,
 			Temperature:        openai.Float(temp),

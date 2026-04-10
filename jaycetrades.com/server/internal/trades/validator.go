@@ -14,22 +14,25 @@ import (
 	"jaycetrades.com/internal/schwab"
 )
 
-const claudeModel = anthropic.ModelClaudeOpus4_6
-
 type Validator struct {
 	client anthropic.Client
+	model  string
 	schwab *schwab.Client
 }
 
-func NewValidator(apiKey string, schwabClient *schwab.Client) *Validator {
+func NewValidator(apiKey, model string, schwabClient *schwab.Client) *Validator {
 	return &Validator{
 		client: anthropic.NewClient(
 			option.WithAPIKey(apiKey),
 			option.WithRequestTimeout(120*time.Second),
 		),
+		model:  model,
 		schwab: schwabClient,
 	}
 }
+
+// Model returns the Anthropic model identifier this validator is configured with.
+func (v *Validator) Model() string { return v.model }
 
 // ValidateTrades sends GPT's picks to Claude for an independent score
 // and rationale per trade. The returned slice has one Validation per
@@ -112,7 +115,7 @@ func (v *Validator) runConversation(ctx context.Context, prompt string) (string,
 	const maxRounds = 10
 	for round := 0; round < maxRounds; round++ {
 		msg, err := v.client.Messages.New(ctx, anthropic.MessageNewParams{
-			Model:     claudeModel,
+			Model:     anthropic.Model(v.model),
 			MaxTokens: 8192,
 			Messages:  messages,
 			Tools:     tools,

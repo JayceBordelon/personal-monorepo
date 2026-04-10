@@ -27,15 +27,17 @@ import (
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
 type Server struct {
-	db           *store.Store
-	schwab       *schwab.Client
-	emailClient  *email.Client
-	emailFrom    string
-	openaiKey    string
-	anthropicKey string
-	adminKey     string
-	mux          *http.ServeMux
-	port         string
+	db             *store.Store
+	schwab         *schwab.Client
+	emailClient    *email.Client
+	emailFrom      string
+	openaiKey      string
+	openaiModel    string
+	anthropicKey   string
+	anthropicModel string
+	adminKey       string
+	mux            *http.ServeMux
+	port           string
 }
 
 type subscribeRequest struct {
@@ -52,17 +54,19 @@ type apiResponse struct {
 	Message string `json:"message"`
 }
 
-func New(db *store.Store, schwabClient *schwab.Client, emailClient *email.Client, emailFrom, openaiKey, anthropicKey, adminKey, port string) *Server {
+func New(db *store.Store, schwabClient *schwab.Client, emailClient *email.Client, emailFrom, openaiKey, openaiModel, anthropicKey, anthropicModel, adminKey, port string) *Server {
 	s := &Server{
-		db:           db,
-		schwab:       schwabClient,
-		emailClient:  emailClient,
-		emailFrom:    emailFrom,
-		openaiKey:    openaiKey,
-		anthropicKey: anthropicKey,
-		adminKey:     adminKey,
-		mux:          http.NewServeMux(),
-		port:         port,
+		db:             db,
+		schwab:         schwabClient,
+		emailClient:    emailClient,
+		emailFrom:      emailFrom,
+		openaiKey:      openaiKey,
+		openaiModel:    openaiModel,
+		anthropicKey:   anthropicKey,
+		anthropicModel: anthropicModel,
+		adminKey:       adminKey,
+		mux:            http.NewServeMux(),
+		port:           port,
 	}
 	s.routes()
 	return s
@@ -82,6 +86,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/trades/week", requireInternal(s.handleTradesWeek))
 	s.mux.HandleFunc("/api/chart/", requireInternal(s.handleChart))
 	s.mux.HandleFunc("/api/quotes/live", requireInternal(s.handleLiveQuotes))
+	s.mux.HandleFunc("/api/model-comparison", requireInternal(s.handleModelComparison))
 }
 
 func (s *Server) Start() {
