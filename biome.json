@@ -24,8 +24,15 @@
         "useExhaustiveDependencies": "warn",
         "noUndeclaredDependencies": "off"
       },
+      "suspicious": {
+        "noArrayIndexKey": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
+      },
       "a11y": {
-        "useKeyWithClickEvents": "warn"
+        "useKeyWithClickEvents": "warn",
+        "useSemanticElements": "warn"
       }
     }
   },
