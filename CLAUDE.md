@@ -92,18 +92,24 @@ PostgreSQL hosted on Digital Ocean Managed Databases. Connection string is in `.
 
 ## Development Rules
 
-### Always lint before pushing
+### Always lint AND build before pushing
 
-Run these checks before every push. CI will fail if they don't pass:
+Run these checks before every push. No exceptions. CI will fail if they don't pass, and a failed pipeline blocks deployment for everyone.
 
 ```bash
-# Go
+# Lint Go
 cd vibetradez.com/server && gofmt -w . && go vet ./...
 
-# Next.js (both projects)
+# Lint Next.js (both projects, run from jaycebordelon.com/ where biome is installed)
 cd jaycebordelon.com && npx biome check .
-cd vibetradez.com/client && npx biome check .
+cd jaycebordelon.com && npx biome check ../vibetradez.com/client/
+
+# Build Next.js (both projects)
+cd jaycebordelon.com && npx next build
+cd vibetradez.com/client && npx next build
 ```
+
+If any lint or build fails, fix it before pushing. Never push code that hasn't been verified locally.
 
 ### Always read the latest documentation
 
