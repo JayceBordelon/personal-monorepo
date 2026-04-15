@@ -49,43 +49,22 @@ jobs:
     with:
       project_path: /home/jayce/personal-monorepo
 
-  # ── Build (each gated on its own lint) ─────────────────────────────
+  # ── Build (single compose invocation, waits on all lints) ─────────
 
-  build_portfolio:
-    name: Build / Portfolio
-    needs: lint_portfolio
+  build:
+    name: Build
+    needs: [lint_portfolio, lint_trading_frontend, lint_trading_server]
     if: success()
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
       project_path: /home/jayce/personal-monorepo
-      service: jaycebordelon-com
-
-  build_frontend:
-    name: Build / Trading Frontend
-    needs: lint_trading_frontend
-    if: success()
-    uses: ./.github/workflows/build.yml
-    secrets: inherit
-    with:
-      project_path: /home/jayce/personal-monorepo
-      service: trading-frontend
-
-  build_server:
-    name: Build / Trading Server
-    needs: lint_trading_server
-    if: success()
-    uses: ./.github/workflows/build.yml
-    secrets: inherit
-    with:
-      project_path: /home/jayce/personal-monorepo
-      service: trading-server
 
   # ── Deploy (independent) ──────────────────────────────────────────
 
   deploy_portfolio:
     name: Deploy / Portfolio
-    needs: build_portfolio
+    needs: build
     if: success()
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
@@ -95,7 +74,7 @@ jobs:
 
   deploy_trading:
     name: Deploy / Trading
-    needs: [build_frontend, build_server]
+    needs: build
     if: success()
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
