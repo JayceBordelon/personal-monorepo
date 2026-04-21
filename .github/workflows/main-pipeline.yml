@@ -58,67 +58,41 @@ jobs:
     with:
       project_path: /home/jayce/jaycestuff
 
-  # ── Deploy (independent) ──────────────────────────────────────────
+  # ── Deploy (both sites in one job, continue-on-error per side) ────
 
-  deploy_portfolio:
-    name: Deploy / Portfolio
+  deploy:
+    name: Deploy
     needs: build
     if: success()
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
     with:
       project_path: /home/jayce/jaycestuff
-      service: portfolio
 
-  deploy_trading:
-    name: Deploy / Trading
-    needs: build
-    if: success()
-    uses: ./.github/workflows/deploy.yml
-    secrets: inherit
-    with:
-      project_path: /home/jayce/jaycestuff
-      service: trading
+  # ── Notify (one consolidated email, fires after deploy) ───────────
 
-  # ── Notify (fires as soon as its deploy finishes) ─────────────────
-
-  notify_portfolio:
-    name: Notify / Portfolio
-    needs: deploy_portfolio
+  notify:
+    name: Notify
+    needs: deploy
     if: always() && !cancelled()
-    uses: ./.github/workflows/notify-portfolio.yml
+    uses: ./.github/workflows/notify.yml
     secrets: inherit
     with:
-      deploy_status: ${{ needs.deploy_portfolio.result == 'success' && needs.deploy_portfolio.outputs.status || '✗ FAILED' }}
-      deploy_error: ${{ needs.deploy_portfolio.outputs.error || 'Deploy did not run' }}
-      commit_sha: ${{ needs.deploy_portfolio.outputs.commit_sha || github.sha }}
-      short_sha: ${{ needs.deploy_portfolio.outputs.short_sha || 'unknown' }}
-      commit_message: ${{ needs.deploy_portfolio.outputs.commit_message || 'No message' }}
-      commit_author: ${{ needs.deploy_portfolio.outputs.commit_author || github.actor }}
-      commit_timestamp: ${{ needs.deploy_portfolio.outputs.commit_timestamp || 'Unknown' }}
+      overall_status: ${{ needs.deploy.outputs.overall_status || '✗ FAILED' }}
+      portfolio_status: ${{ needs.deploy.outputs.portfolio_status || '✗ FAILED' }}
+      trading_status: ${{ needs.deploy.outputs.trading_status || '✗ FAILED' }}
+      deploy_error: ${{ needs.deploy.outputs.error || 'Deploy did not run' }}
+      commit_sha: ${{ needs.deploy.outputs.commit_sha || github.sha }}
+      short_sha: ${{ needs.deploy.outputs.short_sha || 'unknown' }}
+      commit_message: ${{ needs.deploy.outputs.commit_message || 'No message' }}
+      commit_author: ${{ needs.deploy.outputs.commit_author || github.actor }}
+      commit_timestamp: ${{ needs.deploy.outputs.commit_timestamp || 'Unknown' }}
 
-  notify_trading:
-    name: Notify / Trading
-    needs: deploy_trading
-    if: always() && !cancelled()
-    uses: ./.github/workflows/notify-trading.yml
-    secrets: inherit
-    with:
-      service: vibetradez.com
-      service_url: https://vibetradez.com
-      deploy_status: ${{ needs.deploy_trading.result == 'success' && needs.deploy_trading.outputs.status || '✗ FAILED' }}
-      deploy_error: ${{ needs.deploy_trading.outputs.error || 'Deploy did not run' }}
-      commit_sha: ${{ needs.deploy_trading.outputs.commit_sha || github.sha }}
-      short_sha: ${{ needs.deploy_trading.outputs.short_sha || 'unknown' }}
-      commit_message: ${{ needs.deploy_trading.outputs.commit_message || 'No message' }}
-      commit_author: ${{ needs.deploy_trading.outputs.commit_author || github.actor }}
-      commit_timestamp: ${{ needs.deploy_trading.outputs.commit_timestamp || 'Unknown' }}
-
-  # ── Post-deploy (waits for both) ──────────────────────────────────
+  # ── Post-deploy ───────────────────────────────────────────────────
 
   cleanup:
     name: Cleanup
-    needs: [deploy_portfolio, deploy_trading]
+    needs: deploy
     if: success()
     uses: ./.github/workflows/cleanup.yml
     secrets: inherit
@@ -127,7 +101,7 @@ jobs:
 
   healthcheck:
     name: Health Check
-    needs: [deploy_portfolio, deploy_trading]
+    needs: deploy
     if: success()
     uses: ./.github/workflows/healthcheck.yml
     secrets: inherit

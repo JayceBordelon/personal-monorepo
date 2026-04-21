@@ -6,10 +6,6 @@ on:
       project_path:
         required: true
         type: string
-      service:
-        required: true
-        type: string
-        description: "'portfolio' for jaycebordelon.com, 'trading' for vibetradez.com"
     outputs:
       commit_sha:
         description: "Full commit SHA"
@@ -26,11 +22,17 @@ on:
       commit_timestamp:
         description: "Commit timestamp"
         value: ${{ jobs.deploy.outputs.commit_timestamp }}
-      status:
-        description: "Deploy status"
-        value: ${{ jobs.deploy.outputs.status }}
+      portfolio_status:
+        description: "Portfolio deploy status ('✓ PASSED' or '✗ FAILED')"
+        value: ${{ jobs.deploy.outputs.portfolio_status }}
+      trading_status:
+        description: "Trading deploy status ('✓ PASSED' or '✗ FAILED')"
+        value: ${{ jobs.deploy.outputs.trading_status }}
+      overall_status:
+        description: "Overall deploy status. '✓ PASSED' only if both sites succeeded."
+        value: ${{ jobs.deploy.outputs.overall_status }}
       error:
-        description: "Deploy error message"
+        description: "Combined error message when either side failed"
         value: ${{ jobs.deploy.outputs.error }}
 
 jobs:
@@ -43,7 +45,9 @@ jobs:
       commit_message: ${{ steps.get_info.outputs.commit_message }}
       commit_author: ${{ steps.get_info.outputs.commit_author }}
       commit_timestamp: ${{ steps.get_info.outputs.commit_timestamp }}
-      status: ${{ steps.deploy_status.outputs.status }}
+      portfolio_status: ${{ steps.deploy_status.outputs.portfolio_status }}
+      trading_status: ${{ steps.deploy_status.outputs.trading_status }}
+      overall_status: ${{ steps.deploy_status.outputs.overall_status }}
       error: ${{ steps.deploy_status.outputs.error }}
     steps:
       - uses: actions/checkout@v4
@@ -67,8 +71,9 @@ jobs:
           COMMIT_TIMESTAMP=$(git log -1 --pretty=format:'%aI')
           echo "commit_timestamp=$COMMIT_TIMESTAMP" >> $GITHUB_OUTPUT
 
-      - name: Deploy to production
-        id: deploy_run
+      - name: Deploy portfolio
+        id: deploy_portfolio
+        continue-on-error: true
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
@@ -77,26 +82,70 @@ jobs:
           script: |
             set -e
             cd ${{ inputs.project_path }}
+            docker rollout jaycebordelon-com --timeout 120 --wait-after-healthy 30
 
-            SERVICE="${{ inputs.service }}"
-            if [ "$SERVICE" = "portfolio" ]; then
-              docker rollout jaycebordelon-com --timeout 120 --wait-after-healthy 30
-            elif [ "$SERVICE" = "trading" ]; then
-              docker rollout trading-frontend --timeout 120 --wait-after-healthy 30
-              docker compose up -d --force-recreate trading-server
-            fi
+      - name: Deploy trading
+        id: deploy_trading
+        continue-on-error: true
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ inputs.project_path }}
+            docker rollout trading-frontend --timeout 120 --wait-after-healthy 30
+            docker compose up -d --force-recreate trading-server
 
-            # Ensure Traefik is up (idempotent no-op when already running)
+      - name: Ensure Traefik is up
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ${{ inputs.project_path }}
             docker compose up -d traefik
 
-      - name: Set deploy status
+      - name: Compute deploy status
         id: deploy_status
         if: always()
         run: |
-          if [ "${{ steps.deploy_run.outcome }}" == "success" ]; then
-            echo "status=✓ PASSED" >> $GITHUB_OUTPUT
+          PORTFOLIO="${{ steps.deploy_portfolio.outcome }}"
+          TRADING="${{ steps.deploy_trading.outcome }}"
+
+          if [ "$PORTFOLIO" = "success" ]; then
+            echo "portfolio_status=✓ PASSED" >> $GITHUB_OUTPUT
+          else
+            echo "portfolio_status=✗ FAILED" >> $GITHUB_OUTPUT
+          fi
+
+          if [ "$TRADING" = "success" ]; then
+            echo "trading_status=✓ PASSED" >> $GITHUB_OUTPUT
+          else
+            echo "trading_status=✗ FAILED" >> $GITHUB_OUTPUT
+          fi
+
+          ERRORS=""
+          if [ "$PORTFOLIO" != "success" ]; then
+            ERRORS="${ERRORS}jaycebordelon-com rollout failed. "
+          fi
+          if [ "$TRADING" != "success" ]; then
+            ERRORS="${ERRORS}vibetradez.com deploy failed (trading-frontend or trading-server). "
+          fi
+
+          if [ -z "$ERRORS" ]; then
+            echo "overall_status=✓ PASSED" >> $GITHUB_OUTPUT
             echo "error=" >> $GITHUB_OUTPUT
           else
-            echo "status=✗ FAILED" >> $GITHUB_OUTPUT
-            echo "error=${{ inputs.service }} deployment failed - containers may not have started properly" >> $GITHUB_OUTPUT
+            echo "overall_status=✗ FAILED" >> $GITHUB_OUTPUT
+            echo "error=$ERRORS" >> $GITHUB_OUTPUT
           fi
+
+      - name: Fail job if any deploy failed
+        if: steps.deploy_status.outputs.overall_status == '✗ FAILED'
+        run: |
+          echo "${{ steps.deploy_status.outputs.error }}"
+          exit 1

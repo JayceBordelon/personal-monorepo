@@ -58,17 +58,16 @@ jaycestuff/
 │       └── package.json         # Next.js 16, React 19, shadcn/ui, Recharts
 │
 ├── .github/workflows/          # CI/CD pipeline
-│   ├── main-pipeline.yml       # Orchestrator: two independent deploy/notify paths
+│   ├── main-pipeline.yml       # Orchestrator: parallel lint, single build, single deploy, single notify
 │   ├── sync.yml                # Git pull on production server
 │   ├── lint-portfolio.yml      # Biome lint for jaycebordelon.com
 │   ├── lint-trading-frontend.yml # Biome lint for vibetradez.com/client
 │   ├── lint-trading-server.yml # golangci-lint for vibetradez.com/server
-│   ├── build.yml               # Docker compose build (parameterized by service)
-│   ├── deploy.yml              # Rolling deployment (parameterized: portfolio or trading)
+│   ├── build.yml               # Docker compose build (all three images in one shot)
+│   ├── deploy.yml              # Unified rolling deployment: portfolio + trading in one job with continue-on-error per side
 │   ├── cleanup.yml             # Post-deploy docker system prune
 │   ├── healthcheck.yml         # Endpoint verification + granular /health
-│   ├── notify-portfolio.yml    # Deploy email for jaycebordelon.com (slate theme)
-│   ├── notify-trading.yml      # Deploy email for vibetradez.com (brand gradient theme)
+│   ├── notify.yml              # Consolidated deploy email (slate theme, per-site status + trading /health)
 │   └── cd.yml                  # Standalone manual trigger pipeline
 │
 ├── docker-compose.yml          # All services + Traefik config
@@ -230,7 +229,7 @@ When updating, also bump the `OPENAI_MODEL` / `ANTHROPIC_MODEL` defaults baked i
 
 ## CI/CD Pipeline
 
-Triggered manually via GitHub Actions (`workflow_dispatch`). Runs on the production server via SSH. Merges to `main` no longer auto-deploy; trigger via the "Run workflow" button on the Actions tab or `gh workflow run main-pipeline.yml`. The two sites deploy independently so a slow or failing build on one side never blocks the other.
+Triggered manually via GitHub Actions (`workflow_dispatch`). Runs on the production server via SSH. Merges to `main` no longer auto-deploy; trigger via the "Run workflow" button on the Actions tab or `gh workflow run main-pipeline.yml`. Linting is still split per-project so failures surface fast per side, but deploy and notify are each a single unified job.
 
 ```
            ┌──────────────────────── LINTS (parallel) ────────────────────────┐
@@ -251,34 +250,22 @@ Triggered manually via GitHub Actions (`workflow_dispatch`). Runs on the product
  │         │  └──────────────┘                                  │               │
            └──────────────────────────────────────────────────────┼─────────────┘
                                                                   │
-                            ┌─────────────────────────────────────┴─┐
-                            ▼                                       ▼
-                   ┌──────────────────┐                   ┌──────────────────┐
-                   │ Deploy           │                   │ Deploy           │
-                   │ Portfolio        │                   │ Trading          │
-                   │ docker rollout   │                   │ docker rollout   │
-                   │ jaycebordelon-com│                   │ trading-frontend │
-                   └────────┬─────────┘                   │ + force-recreate │
-                            │                             │ trading-server   │
-                            ▼                             └────────┬─────────┘
-                    ┌───────────┐                                  │
-                    │ Notify    │                                  ▼
-                    │ Portfolio │                           ┌───────────┐
-                    │ Email     │                           │ Notify    │
-                    └───────────┘                           │ Trading   │
-                                                            │ Email     │
-                            ┌─────────────┐                 └───────────┘
-                            │ Both        │◄────────────────┘
-                            │ deploys     │
-                            │ complete    │
-                            └──┬───────┬──┘
-                               ▼       ▼
-                        ┌─────────┐ ┌────────────┐
-                        │ Cleanup │ │ Health     │
-                        │ prune   │ │ Check      │
-                        └─────────┘ │ endpoints  │
-                                    │ + /health  │
-                                    └────────────┘
+                                                                  ▼
+                                          ┌────────────────────────────────────┐
+                                          │ Deploy                              │
+                                          │ rollout jaycebordelon-com           │
+                                          │ + rollout trading-frontend          │
+                                          │ + force-recreate trading-server     │
+                                          │ (each step: continue-on-error)      │
+                                          └────┬──────────────────────┬─────────┘
+                                               │                      │
+                                               ▼                      ▼
+                                      ┌──────────────────┐   ┌───────────────────┐
+                                      │ Notify           │   │ Cleanup + Health  │
+                                      │ One email, slate │   │ (only on full     │
+                                      │ theme, per-site  │   │  success)         │
+                                      │ status + /health │   │ prune + endpoints │
+                                      └──────────────────┘   └───────────────────┘
 ```
 
 1. **Sync** — `git reset --hard origin/main`
@@ -286,8 +273,7 @@ Triggered manually via GitHub Actions (`workflow_dispatch`). Runs on the product
 3. **Lint / Trading Frontend** — Biome check on `vibetradez.com/client/` (runs in parallel with other lints)
 4. **Lint / Trading Server** — golangci-lint on `vibetradez.com/server/` (runs in parallel with other lints)
 5. **Build** — Single `docker compose build --no-cache jaycebordelon-com trading-server trading-frontend` invocation, gated on all three lints passing
-6. **Deploy / Portfolio** — `docker rollout jaycebordelon-com` (fires as soon as the build finishes)
-7. **Deploy / Trading** — `docker rollout trading-frontend` + `docker compose up -d --force-recreate trading-server` (fires as soon as the build finishes)
-8. **Notify** — Per-service email to bordelonjayce@gmail.com as soon as each deploy completes. Each notification is independent and does not wait for the other site.
-9. **Cleanup** — `docker system prune -af --volumes` to reclaim disk space (waits for both deploys)
-10. **Health Check** — Verify all endpoints + granular `/health` for trading server services (database, openai, anthropic, schwab, api). The healthcheck step iterates `services | keys[]` so any new service added to the granular `/health` response is automatically gated without YAML changes. Waits for both deploys.
+6. **Deploy** — One job with two sequential SSH steps (`continue-on-error: true` on each): (a) `docker rollout jaycebordelon-com`, (b) `docker rollout trading-frontend` + `docker compose up -d --force-recreate trading-server`. A final status step fails the job if either side failed, but both are always attempted. Per-site and overall statuses are exported as job outputs for the notify step.
+7. **Notify** — One consolidated email with the slate/portfolio theme. Subject is `[PASSED|FAILED] jaycestuff - <short_sha>`. Body shows overall badge, per-site rows (jaycebordelon.com + vibetradez.com with individual PASSED/FAILED), commit metadata, and the trading-server `/health` table. Always fires unless the workflow is cancelled, so partial failures still produce an email.
+8. **Cleanup** — `docker system prune -af` (volumes preserved so Traefik's cert storage survives). Runs only when deploy succeeded on both sides.
+9. **Health Check** — Verify all endpoints + granular `/health` for trading server services (database, openai, anthropic, schwab, api). The healthcheck step iterates `services | keys[]` so any new service added to the granular `/health` response is automatically gated without YAML changes. Runs only when deploy succeeded on both sides.

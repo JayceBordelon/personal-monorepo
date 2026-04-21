@@ -125,7 +125,7 @@ npm run dev
 
 ## CI / CD
 
-`main` is the deploy branch, but deploys do not fire automatically. `.github/workflows/main-pipeline.yml` runs only on manual dispatch (GitHub Actions "Run workflow" button, or `gh workflow run main-pipeline.yml`), at which point it SSHes into the production droplet. The two sites deploy as fully independent paths, so a lint or build failure on one side never blocks the other.
+`main` is the deploy branch, but deploys do not fire automatically. `.github/workflows/main-pipeline.yml` runs only on manual dispatch (GitHub Actions "Run workflow" button, or `gh workflow run main-pipeline.yml`), at which point it SSHes into the production droplet. Linting is still split per-project so one side can fail fast without affecting the other, but deploy is a single job that rolls out both sites with `continue-on-error` per side, and notification is a single consolidated email.
 
 ```mermaid
 flowchart LR
@@ -143,15 +143,11 @@ flowchart LR
     LTF["Lint / Trading FE<br/>Biome"]:::lint
     LTS["Lint / Trading BE<br/>golangci-lint"]:::lint
 
-    BP["Build<br/>jaycebordelon-com"]:::build
-    BF["Build<br/>trading-frontend"]:::build
-    BS["Build<br/>trading-server"]:::build
+    BUILD["Build<br/>compose build<br/>all 3 images"]:::build
 
-    DP["Deploy<br/>Portfolio<br/>docker rollout"]:::deploy
-    DT["Deploy<br/>Trading<br/>rollout + recreate"]:::deploy
+    DEPLOY["Deploy<br/>rollout portfolio +<br/>rollout trading-frontend +<br/>recreate trading-server"]:::deploy
 
-    NP["Notify<br/>Portfolio Email"]:::post
-    NT["Notify<br/>Trading Email"]:::post
+    NOTIFY["Notify<br/>Single consolidated email<br/>(per-site status + health)"]:::post
 
     CL["Cleanup<br/>docker prune"]:::post
     HC["Health Check<br/>endpoints + /health"]:::post
@@ -162,35 +158,28 @@ flowchart LR
     Sync --> LTF
     Sync --> LTS
 
-    LP --> BP
-    LTF --> BF
-    LTS --> BS
+    LP --> BUILD
+    LTF --> BUILD
+    LTS --> BUILD
 
-    BP --> DP
-    BF --> DT
-    BS --> DT
+    BUILD --> DEPLOY
 
-    DP --> NP
-    DT --> NT
-
-    DP --> CL
-    DT --> CL
-    DP --> HC
-    DT --> HC
+    DEPLOY --> NOTIFY
+    DEPLOY --> CL
+    DEPLOY --> HC
 ```
 
-**Reading the diagram:** after `git pull` syncs the droplet, three independent lint jobs run in parallel. Portfolio lint (Biome) gates the portfolio build; trading frontend lint (Biome) gates the frontend build; trading server lint (golangci-lint) gates the server build. Each deploy path fires as soon as its builds finish, and notifies independently. Cleanup and healthcheck wait for both deploys.
+**Reading the diagram:** after `git pull` syncs the droplet, three independent lint jobs run in parallel. All three lints gate a single build step that rebuilds the three Docker images. The deploy job then runs both rollouts sequentially with `continue-on-error: true` on each SSH step, so a failure in one side does not block the other. Once deploy finishes (success, partial, or fail) a single email fires with per-site statuses, commit metadata, and the trading-server `/health` table. Cleanup and healthcheck run only when both sides deployed successfully.
 
 1. **Sync** - `git reset --hard origin/main`
-2. **Lint / Portfolio** - Biome check on `jaycebordelon.com/` (gates portfolio build only)
-3. **Lint / Trading Frontend** - Biome check on `vibetradez.com/client/` (gates trading frontend build only)
-4. **Lint / Trading Server** - golangci-lint on `vibetradez.com/server/` (gates trading server build only)
-5. **Build** - three parallel `docker compose build --no-cache` jobs, each gated by its own lint
-6. **Deploy / Portfolio** - `docker rollout jaycebordelon-com` (fires as soon as portfolio build finishes)
-7. **Deploy / Trading** - `docker rollout trading-frontend` + `docker compose up -d --force-recreate trading-server` (fires as soon as both trading builds finish)
-8. **Notify** - per-service email as soon as each deploy completes, independent of the other site
-9. **Cleanup** - `docker system prune -af` (no `--volumes`, so Traefik's Let's Encrypt cert volume is preserved)
-10. **Health Check** - endpoint checks plus granular `/health` parsing that fails on any non-ok service
+2. **Lint / Portfolio** - Biome check on `jaycebordelon.com/` (runs in parallel with other lints)
+3. **Lint / Trading Frontend** - Biome check on `vibetradez.com/client/` (runs in parallel with other lints)
+4. **Lint / Trading Server** - golangci-lint on `vibetradez.com/server/` (runs in parallel with other lints)
+5. **Build** - Single `docker compose build --no-cache jaycebordelon-com trading-server trading-frontend` invocation, gated on all three lints passing
+6. **Deploy** - One job with two `continue-on-error` SSH steps: (a) `docker rollout jaycebordelon-com`, (b) `docker rollout trading-frontend` + `docker compose up -d --force-recreate trading-server`. Overall step fails if either side failed, but both are attempted.
+7. **Notify** - One consolidated email ("jaycestuff" slate theme) showing overall PASS/FAIL, per-site status, commit metadata, and live trading-server `/health` table. Always runs unless the workflow is cancelled.
+8. **Cleanup** - `docker system prune -af` (no `--volumes`, so Traefik's Let's Encrypt cert volume is preserved). Runs only when deploy succeeded on both sides.
+9. **Health Check** - endpoint checks plus granular `/health` parsing that fails on any non-ok service. Runs only when deploy succeeded on both sides.
 
 Per the project rules in `CLAUDE.md`: never push directly to `main`, always work on feature branches, and let the human merge.
 

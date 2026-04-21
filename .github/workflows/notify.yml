@@ -1,9 +1,17 @@
-name: Notify / Portfolio
+name: Notify
 
 on:
   workflow_call:
     inputs:
-      deploy_status:
+      overall_status:
+        required: false
+        type: string
+        default: "✓ PASSED"
+      portfolio_status:
+        required: false
+        type: string
+        default: "✓ PASSED"
+      trading_status:
         required: false
         type: string
         default: "✓ PASSED"
@@ -37,14 +45,75 @@ jobs:
     name: Send Email
     runs-on: ubuntu-latest
     steps:
-      - name: Determine status
+      - name: Determine overall status
         id: status
         run: |
-          if [[ "${{ inputs.deploy_status }}" == *"FAILED"* ]]; then
+          if [[ "${{ inputs.overall_status }}" == *"FAILED"* ]]; then
             echo "result=FAILED" >> $GITHUB_OUTPUT
           else
             echo "result=PASSED" >> $GITHUB_OUTPUT
           fi
+
+          if [[ "${{ inputs.portfolio_status }}" == *"FAILED"* ]]; then
+            echo "portfolio=FAILED" >> $GITHUB_OUTPUT
+          else
+            echo "portfolio=PASSED" >> $GITHUB_OUTPUT
+          fi
+
+          if [[ "${{ inputs.trading_status }}" == *"FAILED"* ]]; then
+            echo "trading=FAILED" >> $GITHUB_OUTPUT
+          else
+            echo "trading=PASSED" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fetch trading server health
+        id: health
+        run: |
+          sleep 15
+
+          HEALTH_JSON=$(curl -sf --max-time 15 "https://vibetradez.com/health" 2>/dev/null || echo '{}')
+
+          ROWS=""
+          if echo "$HEALTH_JSON" | jq -e '.services' > /dev/null 2>&1; then
+            UPTIME=$(echo "$HEALTH_JSON" | jq -r '.uptime // "unknown"')
+            OK=$(echo "$HEALTH_JSON" | jq -r '.ok')
+
+            for svc in $(echo "$HEALTH_JSON" | jq -r '.services | keys[]'); do
+              SVC_STATUS=$(echo "$HEALTH_JSON" | jq -r ".services[\"$svc\"].status")
+              SVC_DETAIL=$(echo "$HEALTH_JSON" | jq -r ".services[\"$svc\"].detail // \"-\"")
+              SVC_LATENCY=$(echo "$HEALTH_JSON" | jq -r ".services[\"$svc\"].latency // \"-\"")
+
+              if [ "$SVC_STATUS" = "ok" ]; then
+                COLOR="#475569"
+                BADGE_BG="#f1f5f9"
+                BADGE_COLOR="#0f172a"
+                BADGE_TEXT="OK"
+              elif [ "$SVC_STATUS" = "warn" ]; then
+                COLOR="#b45309"
+                BADGE_BG="#fef3c7"
+                BADGE_COLOR="#b45309"
+                BADGE_TEXT="WARN"
+              else
+                COLOR="#ef4444"
+                BADGE_BG="#fef2f2"
+                BADGE_COLOR="#ef4444"
+                BADGE_TEXT="FAIL"
+              fi
+
+              ROWS="${ROWS}<tr><td style=\"padding: 8px 12px; border-bottom: 1px solid #f1f5f9;\"><span style=\"color: ${COLOR}; font-size: 11px;\">&#9679;</span> <span style=\"color: #0f172a; font-size: 13px; font-weight: 600;\">${svc}</span><br><span style=\"color: #94a3b8; font-size: 11px;\">${SVC_DETAIL}</span></td><td style=\"padding: 8px 8px; border-bottom: 1px solid #f1f5f9; text-align: center; vertical-align: top;\"><span style=\"font-family: monospace; font-size: 11px; color: #64748b;\">${SVC_LATENCY}</span></td><td style=\"padding: 8px 12px; border-bottom: 1px solid #f1f5f9; text-align: right; vertical-align: top;\"><span style=\"background: ${BADGE_BG}; color: ${BADGE_COLOR}; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 9999px;\">${BADGE_TEXT}</span></td></tr>"
+            done
+
+            echo "uptime=$UPTIME" >> $GITHUB_OUTPUT
+            echo "all_ok=$OK" >> $GITHUB_OUTPUT
+          else
+            ROWS="<tr><td colspan=\"3\" style=\"padding: 12px; color: #94a3b8; font-size: 13px;\">Health endpoint unavailable</td></tr>"
+            echo "uptime=unknown" >> $GITHUB_OUTPUT
+            echo "all_ok=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "rows<<EOF" >> $GITHUB_OUTPUT
+          echo "$ROWS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Send deploy notification
         uses: dawidd6/action-send-mail@v3
@@ -54,7 +123,7 @@ jobs:
           secure: true
           username: bordelonjayce@gmail.com
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "[${{ steps.status.outputs.result }}] jaycebordelon.com - ${{ inputs.short_sha }}"
+          subject: "[${{ steps.status.outputs.result }}] jaycestuff - ${{ inputs.short_sha }}"
           to: bordelonjayce@gmail.com
           from: Jayce Bordelon <bordelonjayce@gmail.com>
           html_body: |
@@ -197,13 +266,42 @@ jobs:
                 a:hover {
                   text-decoration: underline;
                 }
+                .site-row {
+                  padding: 10px 12px;
+                  border-bottom: 1px solid #f1f5f9;
+                  display: table;
+                  width: 100%;
+                }
+                .site-row:last-child {
+                  border-bottom: none;
+                }
+                .site-name {
+                  display: table-cell;
+                  color: #0f172a;
+                  font-size: 13px;
+                  font-weight: 600;
+                  vertical-align: middle;
+                }
+                .site-status {
+                  display: table-cell;
+                  text-align: right;
+                  vertical-align: middle;
+                  font-size: 11px;
+                  font-weight: 700;
+                }
+                .site-status.passed {
+                  color: #0f172a;
+                }
+                .site-status.failed {
+                  color: #ef4444;
+                }
               </style>
             </head>
             <body>
               <div class="container">
                 <div class="brand-bar"></div>
                 <div class="header">
-                  <h1>jaycebordelon.com</h1>
+                  <h1>jaycestuff</h1>
                   <p>Deploy</p>
                   <span class="status-badge status-${{ steps.status.outputs.result == 'FAILED' && 'failed' || 'passed' }}">
                     ${{ steps.status.outputs.result == 'FAILED' && '✗ FAILED' || '✓ PASSED' }}
@@ -212,6 +310,20 @@ jobs:
 
                 <div class="content">
                   ${{ steps.status.outputs.result == 'FAILED' && inputs.deploy_error != '' && format('<div class="section"><h3>Error</h3><div class="error-box">{0}</div></div>', inputs.deploy_error) || '' }}
+
+                  <div class="section">
+                    <h3>Sites</h3>
+                    <div class="info-box" style="padding: 0;">
+                      <div class="site-row">
+                        <span class="site-name">jaycebordelon.com</span>
+                        <span class="site-status ${{ steps.status.outputs.portfolio == 'FAILED' && 'failed' || 'passed' }}">${{ steps.status.outputs.portfolio == 'FAILED' && '✗ FAILED' || '✓ PASSED' }}</span>
+                      </div>
+                      <div class="site-row">
+                        <span class="site-name">vibetradez.com</span>
+                        <span class="site-status ${{ steps.status.outputs.trading == 'FAILED' && 'failed' || 'passed' }}">${{ steps.status.outputs.trading == 'FAILED' && '✗ FAILED' || '✓ PASSED' }}</span>
+                      </div>
+                    </div>
+                  </div>
 
                   <div class="section">
                     <h3>Commit</h3>
@@ -236,16 +348,31 @@ jobs:
                   </div>
 
                   <div class="section">
+                    <h3>Trading Server Health <span style="font-weight: 500; text-transform: none; letter-spacing: normal; color: #94a3b8;">&middot; uptime ${{ steps.health.outputs.uptime }}</span></h3>
+                    <div class="info-box" style="padding: 0; overflow: hidden;">
+                      <table width="100%" cellspacing="0" cellpadding="0" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+                        <tr style="background-color: #f8fafc;">
+                          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;"><span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8;">Service</span></td>
+                          <td style="padding: 8px 8px; border-bottom: 1px solid #e2e8f0; text-align: center;"><span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8;">Latency</span></td>
+                          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right;"><span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8;">Status</span></td>
+                        </tr>
+                        ${{ steps.health.outputs.rows }}
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="section">
                     <h3>Links</h3>
                     <div class="links-box">
                       <a href="https://jaycebordelon.com">jaycebordelon.com</a><br>
+                      <a href="https://vibetradez.com">vibetradez.com</a><br>
                       <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ inputs.commit_sha }}">View Commit on GitHub</a><br>
                       <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Workflow Run #${{ github.run_number }}</a>
                     </div>
                   </div>
 
                   <div class="section" style="text-align: center;">
-                    <a href="https://jaycebordelon.com" class="cta">Open jaycebordelon.com</a>
+                    <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" class="cta">View Workflow Run</a>
                   </div>
                 </div>
 
