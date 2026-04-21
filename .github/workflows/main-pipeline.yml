@@ -10,8 +10,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PROJECT_PATH: /home/jayce/personal-monorepo
-  REPO_URL: git@github.com:JayceBordelon/personal-monorepo.git
+  PROJECT_PATH: /home/jayce/jaycestuff
+  REPO_URL: git@github.com:JayceBordelon/jaycestuff.git
 
 jobs:
   sync:
@@ -19,8 +19,8 @@ jobs:
     uses: ./.github/workflows/sync.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/personal-monorepo
-      repo_url: git@github.com:JayceBordelon/personal-monorepo.git
+      project_path: /home/jayce/jaycestuff
+      repo_url: git@github.com:JayceBordelon/jaycestuff.git
 
   lint_portfolio:
     name: Lint / Portfolio
@@ -29,7 +29,7 @@ jobs:
     uses: ./.github/workflows/lint-portfolio.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/personal-monorepo
+      project_path: /home/jayce/jaycestuff
 
   lint_trading_frontend:
     name: Lint / Trading Frontend
@@ -38,7 +38,7 @@ jobs:
     uses: ./.github/workflows/lint-trading-frontend.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/personal-monorepo
+      project_path: /home/jayce/jaycestuff
 
   lint_trading_server:
     name: Lint / Trading Server
@@ -47,7 +47,7 @@ jobs:
     uses: ./.github/workflows/lint-trading-server.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/personal-monorepo
+      project_path: /home/jayce/jaycestuff
 
   # ── Build (single compose invocation, waits on all lints) ─────────
 
@@ -58,7 +58,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/personal-monorepo
+      project_path: /home/jayce/jaycestuff
 
   # ── Deploy (independent) ──────────────────────────────────────────
 
@@ -69,7 +69,7 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/personal-monorepo
+      project_path: /home/jayce/jaycestuff
       service: portfolio
 
   deploy_trading:
@@ -79,7 +79,7 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/personal-monorepo
+      project_path: /home/jayce/jaycestuff
       service: trading
 
   # ── Notify (fires as soon as its deploy finishes) ─────────────────
@@ -125,7 +125,7 @@ jobs:
     uses: ./.github/workflows/cleanup.yml
     secrets: inherit
     with:
-      project_path: /home/jayce/personal-monorepo
+      project_path: /home/jayce/jaycestuff
 
   healthcheck:
     name: Health Check

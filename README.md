@@ -1,4 +1,4 @@
-# personal-monorepo
+# jaycestuff
 
 Jayce Bordelon's production monorepo. Two public services and the infrastructure that runs them, all deployed to a single Digital Ocean droplet behind Traefik.
 
@@ -73,7 +73,7 @@ flowchart TB
 ## What's in here
 
 ```
-personal-monorepo/
+jaycestuff/
 ├── jaycebordelon.com/   Personal portfolio + blog (Next.js 16, MDX, Framer Motion)
 ├── vibetradez.com/      Options trading service
 │   ├── server/          Go API (cron jobs, dual-model LLM picking, Schwab market data, Resend email)

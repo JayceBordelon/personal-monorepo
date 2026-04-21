@@ -30,7 +30,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
-            cd /home/jayce/personal-monorepo
+            cd /home/jayce/jaycestuff
 
             docker compose down
             docker system prune -af --volumes

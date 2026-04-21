@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PROJECT_PATH: /home/jayce/personal-monorepo
+  PROJECT_PATH: /home/jayce/jaycestuff
 
 jobs:
   sync:
