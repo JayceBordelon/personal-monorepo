@@ -1,7 +1,0 @@
-# Suppress info + style level findings inside `run:` blocks of GitHub
-# Actions workflows. The existing deploy scripts use unquoted GitHub
-# expression substitutions (${{ ... }}, $GITHUB_OUTPUT, etc.) which
-# trip SC2086 ("double-quote to prevent globbing") even though the
-# values are GitHub-controlled and never contain spaces/globs.
-# Promote signal: only fail on warning + error severity.
-severity=warning

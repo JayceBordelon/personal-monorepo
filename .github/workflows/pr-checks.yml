@@ -108,9 +108,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # actionlint catches YAML errors, deprecated action versions, and
-      # shellcheck issues in run: blocks. Stops the kind of round-trip we
-      # had with golangci-lint's go-version mismatch from happening again.
+      # genuine shellcheck issues in run: blocks. Stops the kind of
+      # round-trip we had with golangci-lint's go-version mismatch from
+      # happening again. SHELLCHECK_OPTS suppresses shellcheck's info
+      # and style level findings (mostly SC2086 on GitHub-controlled
+      # ${{ }} substitutions in the deploy scripts) that are noise here.
       - name: actionlint
         uses: docker://rhysd/actionlint:latest
+        env:
+          SHELLCHECK_OPTS: -S warning
         with:
           args: -color
