@@ -80,7 +80,7 @@ jaycestuff/
 |---------|-------|
 | jaycebordelon.com | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui (new-york), MDX, Framer Motion |
 | vibetradez.com/client | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui (new-york), Recharts v3, TradingView Lightweight Charts |
-| vibetradez.com/server | Go 1.23, PostgreSQL (Digital Ocean managed), OpenAI GPT-5.4, Schwab Market Data API, Resend email |
+| vibetradez.com/server | Go 1.23, PostgreSQL (Digital Ocean managed), OpenAI GPT-5.5, Schwab Market Data API, Resend email |
 | auth.jaycebordelon.com | Go 1.25, PostgreSQL (Digital Ocean managed), golang.org/x/oauth2, bcrypt |
 | Infrastructure | Docker Compose, Traefik v2.10, Let's Encrypt, Digital Ocean Droplet |
 
@@ -210,7 +210,7 @@ docker compose up -d --force-recreate trading-server  # Full recreate
 
 The morning trade pipeline uses **two language models in sequence**:
 
-1. **OpenAI (GPT-5.4 by default)** generates 10 ranked trade ideas via `vibetradez.com/server/internal/trades/analyzer.go`. The analyzer uses the official `github.com/openai/openai-go/v3` SDK against the Responses API with multi-round Schwab `get_stock_quotes` / `get_option_chain` function tools and built-in `web_search`. Each trade comes back with a 1-10 conviction `score` and a free-form `rationale` defending the score.
+1. **OpenAI (GPT-5.5 by default)** generates 10 ranked trade ideas via `vibetradez.com/server/internal/trades/analyzer.go`. The analyzer uses the official `github.com/openai/openai-go/v3` SDK against the Responses API with multi-round Schwab `get_stock_quotes` / `get_option_chain` function tools and built-in `web_search`. Each trade comes back with a 1-10 conviction `score` and a free-form `rationale` defending the score.
 2. **Anthropic (Claude Opus 4.7 by default)** then validates GPT's picks via `vibetradez.com/server/internal/trades/validator.go`. Claude is fed GPT's full output and the same Schwab + `web_search` tool surface (using `github.com/anthropics/anthropic-sdk-go`). It returns its own independent 1-10 `score`, a substantive `rationale`, and an optional `concerns` array of red flags.
 3. `cmd/scanner/main.go` merges Claude's scores into the trades, computes `combined_score = (gpt + claude) / 2`, and re-ranks the picks by combined score with Claude as the tiebreaker. Both per-model scores and rationales persist to the `trades` table and surface on the dashboard.
 

@@ -40,7 +40,7 @@ flowchart TB
 
     subgraph Pickers["LLM trade pickers (run in parallel)"]
       direction LR
-      OAI["OpenAI<br/>GPT-5.4"]:::external
+      OAI["OpenAI<br/>GPT-5.5"]:::external
       ANT["Anthropic<br/>Claude Opus 4.7"]:::external
     end
 
@@ -97,7 +97,7 @@ Traefik handles TLS (Let's Encrypt) and routes by hostname + path priority. The 
 
 ## Trading service highlights
 
-- **Dual-model independent picking.** Every weekday morning the Go cron sends the same `AnalysisPrompt` to both OpenAI GPT-5.4 (via `openai-go/v3`) **and** Anthropic Claude Opus 4.7 (via `anthropic-sdk-go`) in parallel. Each model independently runs the full workflow with the same Schwab market data toolset and built-in web search, and each produces its own ranked top 10 picks. Neither model sees the other's output. The cron then unions both pick sets — consensus picks (where both models picked the same ticker) carry both scores and rationales and tie-break ahead of single-model picks.
+- **Dual-model independent picking.** Every weekday morning the Go cron sends the same `AnalysisPrompt` to both OpenAI GPT-5.5 (via `openai-go/v3`) **and** Anthropic Claude Opus 4.7 (via `anthropic-sdk-go`) in parallel. Each model independently runs the full workflow with the same Schwab market data toolset and built-in web search, and each produces its own ranked top 10 picks. Neither model sees the other's output. The cron then unions both pick sets — consensus picks (where both models picked the same ticker) carry both scores and rationales and tie-break ahead of single-model picks.
 - **Global model filter.** A segmented `All / OpenAI / Claude` control rendered in the nav bar applies globally across the dashboard, the history page, and every API call. Backed by a React context that persists to localStorage.
 - **`/models` head-to-head page.** Side-by-side OpenAI vs Anthropic backtest with cumulative P&L curve, agreement rate (how often the two models scored within 1 of each other), best/worst pick per model, and a configurable date range. Backed by `GET /api/model-comparison?range=...`.
 - **Configurable models.** `OPENAI_MODEL` and `ANTHROPIC_MODEL` env vars override the defaults baked into `vibetradez.com/server/internal/config/config.go` (`DefaultOpenAIModel`, `DefaultAnthropicModel`). The defaults must be refreshed from the official SDK docs whenever this code is touched — see CLAUDE.md "Model version refresh policy".
