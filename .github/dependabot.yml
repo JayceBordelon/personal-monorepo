@@ -1,0 +1,51 @@
+version: 2
+updates:
+  # Two Next.js apps, one Tailwind/Biome stack per. Group all minor +
+  # patch bumps into a single weekly PR per project so the inbox doesn't
+  # fill with one-package-at-a-time noise. Major bumps stay separate so
+  # they get a manual review.
+  - package-ecosystem: npm
+    directory: /jaycebordelon.com
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /vibetradez.com/client
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # Two Go modules. Anthropic + OpenAI SDKs ship frequently; weekly
+  # cadence keeps the trading server reasonably current without churn.
+  - package-ecosystem: gomod
+    directory: /vibetradez.com/server
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: gomod
+    directory: /auth.jaycebordelon.com
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # GitHub Actions versions (e.g. actions/checkout, setup-node, setup-go).
+  # Keep these fresh too — supply-chain risk lives here.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3

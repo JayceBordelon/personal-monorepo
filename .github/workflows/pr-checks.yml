@@ -1,0 +1,89 @@
+name: PR Checks
+
+# Pre-merge gating for PRs targeting main. Runs entirely on GitHub-hosted
+# runners (no SSH into the prod droplet) so PRs from any branch are
+# validated without touching production. Each project gets its own job
+# so failures surface independently in the PR check list.
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trading-frontend:
+    name: Trading Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vibetradez.com/client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: vibetradez.com/client/package-lock.json
+      - run: npm ci
+      - name: Biome check
+        run: npx --yes @biomejs/biome check .
+      - name: Next build
+        run: npx next build
+
+  portfolio:
+    name: Portfolio
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jaycebordelon.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: jaycebordelon.com/package-lock.json
+      - run: npm ci
+      - name: Biome check
+        run: npx biome check .
+      - name: Next build
+        run: npx next build
+
+  trading-server:
+    name: Trading Server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vibetradez.com/server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache-dependency-path: vibetradez.com/server/go.sum
+      - run: go mod download
+      - run: go vet ./...
+      - run: go build ./...
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: vibetradez.com/server
+
+  auth-service:
+    name: Auth Service
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: auth.jaycebordelon.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: auth.jaycebordelon.com/go.sum
+      - run: go mod download
+      - run: go vet ./...
+      - run: go build ./...
