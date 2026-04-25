@@ -47,20 +47,24 @@ jobs:
     steps:
       - name: Determine overall status
         id: status
+        env:
+          OVERALL_STATUS: ${{ inputs.overall_status }}
+          PORTFOLIO_STATUS: ${{ inputs.portfolio_status }}
+          TRADING_STATUS: ${{ inputs.trading_status }}
         run: |
-          if [[ "${{ inputs.overall_status }}" == *"FAILED"* ]]; then
+          if [[ "$OVERALL_STATUS" == *"FAILED"* ]]; then
             echo "result=FAILED" >> $GITHUB_OUTPUT
           else
             echo "result=PASSED" >> $GITHUB_OUTPUT
           fi
 
-          if [[ "${{ inputs.portfolio_status }}" == *"FAILED"* ]]; then
+          if [[ "$PORTFOLIO_STATUS" == *"FAILED"* ]]; then
             echo "portfolio=FAILED" >> $GITHUB_OUTPUT
           else
             echo "portfolio=PASSED" >> $GITHUB_OUTPUT
           fi
 
-          if [[ "${{ inputs.trading_status }}" == *"FAILED"* ]]; then
+          if [[ "$TRADING_STATUS" == *"FAILED"* ]]; then
             echo "trading=FAILED" >> $GITHUB_OUTPUT
           else
             echo "trading=PASSED" >> $GITHUB_OUTPUT
