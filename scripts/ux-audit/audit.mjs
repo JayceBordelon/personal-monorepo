@@ -37,10 +37,21 @@ const ROUTES = [
   { path: "/dashboard", label: "dashboard" },
   { path: "/history", label: "history" },
   { path: "/models", label: "models" },
+  { path: "/trade/RIVN?date=2026-04-23", label: "trade" },
   { path: "/faq", label: "faq" },
   { path: "/terms", label: "terms" },
   { path: "/this-route-does-not-exist", label: "not-found" },
 ];
+
+const THEMES = ["light", "dark"];
+
+async function setTheme(page, theme) {
+  await page.evaluateOnNewDocument((t) => {
+    try {
+      window.localStorage.setItem("theme", t);
+    } catch {}
+  }, theme);
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -192,6 +203,18 @@ async function checkContrast(page) {
       }
       return result;
     }
+    function hasGradientBackground(el) {
+      // Walk up looking for a CSS gradient on background-image; if any
+      // ancestor paints one we can't compute a single ratio reliably,
+      // so skip the element rather than emit a false positive.
+      let cur = el;
+      while (cur && cur instanceof HTMLElement) {
+        const bi = getComputedStyle(cur).backgroundImage || "";
+        if (bi.includes("gradient(")) return true;
+        cur = cur.parentElement;
+      }
+      return false;
+    }
     const all = document.querySelectorAll("body *");
     const issues = [];
     for (const el of all) {
@@ -202,6 +225,7 @@ async function checkContrast(page) {
         (n) => n.nodeType === Node.TEXT_NODE && n.textContent && n.textContent.trim().length > 1,
       );
       if (!direct) continue;
+      if (hasGradientBackground(el)) continue;
       const style = getComputedStyle(el);
       const fg = parseRgb(style.color);
       if (!fg) continue;
@@ -251,8 +275,10 @@ async function dismissOverlays(page) {
   });
 }
 
-async function auditRoute(browser, viewport, route) {
+async function auditRoute(browser, viewport, route, theme) {
   const page = await browser.newPage();
+  await setTheme(page, theme);
+  await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: theme }]);
   await page.setViewport({
     width: viewport.width,
     height: viewport.height,
@@ -315,7 +341,7 @@ async function auditRoute(browser, viewport, route) {
   const noScrollScreenshotPath = path.join(
     OUTPUT_DIR,
     "screenshots",
-    `${route.label}__${viewport.name}__noscroll.png`,
+    `${route.label}__${viewport.name}__${theme}__noscroll.png`,
   );
   await page.screenshot({ path: noScrollScreenshotPath, fullPage: true });
   const hiddenAfterFirstPaint = await page.evaluate(() => {
@@ -357,7 +383,7 @@ async function auditRoute(browser, viewport, route) {
   const screenshotPath = path.join(
     OUTPUT_DIR,
     "screenshots",
-    `${route.label}__${viewport.name}.png`,
+    `${route.label}__${viewport.name}__${theme}.png`,
   );
   await page.screenshot({ path: screenshotPath, fullPage: true });
 
@@ -385,6 +411,7 @@ async function auditRoute(browser, viewport, route) {
     route: route.path,
     label: route.label,
     viewport: viewport.name,
+    theme,
     url,
     title,
     loadMs,
@@ -539,11 +566,13 @@ async function main() {
   });
 
   const results = [];
-  for (const vp of VIEWPORTS) {
-    for (const route of ROUTES) {
-      console.log(`[audit] ${vp.name} :: ${route.path}`);
-      const r = await auditRoute(browser, vp, route);
-      results.push(r);
+  for (const theme of THEMES) {
+    for (const vp of VIEWPORTS) {
+      for (const route of ROUTES) {
+        console.log(`[audit] ${theme} :: ${vp.name} :: ${route.path}`);
+        const r = await auditRoute(browser, vp, route, theme);
+        results.push(r);
+      }
     }
   }
 
@@ -578,7 +607,7 @@ async function main() {
       r.missingButtonLabels.length +
       r.contrastIssues.length;
     summary.push(
-      `## [${r.viewport}] ${r.label} — ${r.route} — ${issueCount} flag(s) — ${r.loadMs}ms${r.navError ? `  ❌ ${r.navError}` : ""}`,
+      `## [${r.theme ?? "?"} | ${r.viewport}] ${r.label} — ${r.route} — ${issueCount} flag(s) — ${r.loadMs}ms${r.navError ? `  ❌ ${r.navError}` : ""}`,
     );
     if (r.pageErrors.length) summary.push(`  pageErrors: ${r.pageErrors.length}`);
     if (r.consoleMessages.length) summary.push(`  consoleMessages: ${r.consoleMessages.length}`);
