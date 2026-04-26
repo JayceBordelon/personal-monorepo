@@ -155,11 +155,17 @@ type dashboardTrade struct {
 type dashboardResponse struct {
 	Date   string           `json:"date"`
 	Trades []dashboardTrade `json:"trades"`
+	// Execution surfaces a position taken (paper or live) on a trade
+	// from this date. nil when no qualifying pick converted to an
+	// actual execution that day. Frontend matches by symbol+
+	// contract_type+strike to render the badge on the right card.
+	Execution *store.ExecutionView `json:"execution,omitempty"`
 }
 
 type weekDay struct {
-	Date   string           `json:"date"`
-	Trades []dashboardTrade `json:"trades"`
+	Date      string               `json:"date"`
+	Trades    []dashboardTrade     `json:"trades"`
+	Execution *store.ExecutionView `json:"execution,omitempty"`
 }
 
 type weekResponse struct {
@@ -279,8 +285,12 @@ func (s *Server) handleTradesToday(w http.ResponseWriter, r *http.Request) {
 		result[i] = dashboardTrade{Trade: t, Summary: summaryMap[key]}
 	}
 
+	// Optional execution badge for transparency. Errors are non-fatal —
+	// the dashboard still renders without the badge if the lookup fails.
+	exec, _ := s.db.GetExecutionForDate(date)
+
 	w.Header().Set("Cache-Control", "public, max-age=30")
-	writeJSON(w, http.StatusOK, dashboardResponse{Date: date, Trades: result})
+	writeJSON(w, http.StatusOK, dashboardResponse{Date: date, Trades: result, Execution: exec})
 }
 
 func (s *Server) handleTradesWeek(w http.ResponseWriter, r *http.Request) {
@@ -301,6 +311,7 @@ func (s *Server) handleTradesWeek(w http.ResponseWriter, r *http.Request) {
 	}
 
 	summariesMap, _ := s.db.GetSummariesForDateRange(start, end)
+	executionsMap, _ := s.db.GetExecutionsForDateRange(start, end)
 	picker := parsePicker(r)
 
 	// Collect all dates that have trades
@@ -331,7 +342,7 @@ func (s *Server) handleTradesWeek(w http.ResponseWriter, r *http.Request) {
 			result[i] = dashboardTrade{Trade: t, Summary: summaryMap[key]}
 		}
 
-		days = append(days, weekDay{Date: date, Trades: result})
+		days = append(days, weekDay{Date: date, Trades: result, Execution: executionsMap[date]})
 	}
 
 	w.Header().Set("Cache-Control", "public, max-age=30")

@@ -236,7 +236,7 @@ export function DashboardShell() {
               <ExposurePanel trades={filtered.trades} hasSummaries={false} />
             </Section>
             <Section title="Today's Picks" subtitle={`${filtered.trades.length} ranked plays · click any pick for the full single-contract view`}>
-              <MorningCards trades={filtered.trades} liveQuotes={liveQuotes} date={filtered.date} />
+              <MorningCards trades={filtered.trades} liveQuotes={liveQuotes} date={filtered.date} execution={filtered.execution} />
             </Section>
           </>
         )}

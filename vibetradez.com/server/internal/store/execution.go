@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"vibetradez.com/internal/exec"
 )
@@ -230,4 +231,175 @@ func nullableInt(v int) any {
 		return nil
 	}
 	return v
+}
+
+// ExecutionView is the lightweight projection surfaced to the public
+// dashboard/history/trade-detail UI when Jayce has taken a position
+// (paper or live) on a trade. Joins execution_decisions + the open
+// execution row + the optional close execution row into a single shape
+// the frontend can render a badge from. State is derived server-side
+// so the client never has to reason about partial fills or the close
+// cron's lifecycle.
+type ExecutionView struct {
+	Mode         string     `json:"mode"`  // paper | live
+	State        string     `json:"state"` // holding | closed | failed
+	Symbol       string     `json:"symbol"`
+	ContractType string     `json:"contract_type"`
+	StrikePrice  float64    `json:"strike_price"`
+	OpenPrice    float64    `json:"open_price"`            // 0 if not yet filled
+	ClosePrice   float64    `json:"close_price"`           // 0 if not yet closed
+	RealizedPnL  float64    `json:"realized_pnl"`          // (close - open) * 100 * 1; 0 until closed
+	ExecutedAt   *time.Time `json:"executed_at,omitempty"` // when open filled
+	ClosedAt     *time.Time `json:"closed_at,omitempty"`   // when close filled
+}
+
+// GetExecutionForDate returns the execution view for a single trade
+// date, or nil if no decision was confirmed that day. Paper and live
+// are both surfaced — the Mode field carries the distinction. Pending,
+// declined, and timeout decisions do NOT surface (no position was
+// actually taken, so there's nothing to be transparent about).
+func (s *Store) GetExecutionForDate(date string) (*ExecutionView, error) {
+	row := s.db.QueryRow(`
+		SELECT
+			d.symbol, d.contract_type, d.strike_price,
+			openX.mode, openX.status,
+			COALESCE(openX.fill_price, 0), openX.filled_at,
+			COALESCE(closeX.fill_price, 0), closeX.filled_at, closeX.status
+		FROM execution_decisions d
+		INNER JOIN executions openX
+			ON openX.decision_id = d.id AND openX.side = 'open'
+		LEFT JOIN LATERAL (
+			SELECT * FROM executions
+			WHERE decision_id = d.id AND side = 'close'
+			ORDER BY id DESC LIMIT 1
+		) closeX ON true
+		WHERE d.trade_date = $1 AND d.decision = 'execute'
+		ORDER BY openX.id ASC
+		LIMIT 1
+	`, date)
+	v, err := scanExecutionView(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	return v, err
+}
+
+// GetExecutionsForDateRange returns a map of trade_date → ExecutionView
+// for the history/week view. Only dates with confirmed executions appear
+// in the map; days where no qualifying pick existed are simply absent.
+func (s *Store) GetExecutionsForDateRange(start, end string) (map[string]*ExecutionView, error) {
+	rows, err := s.db.Query(`
+		SELECT
+			d.trade_date,
+			d.symbol, d.contract_type, d.strike_price,
+			openX.mode, openX.status,
+			COALESCE(openX.fill_price, 0), openX.filled_at,
+			COALESCE(closeX.fill_price, 0), closeX.filled_at, closeX.status
+		FROM execution_decisions d
+		INNER JOIN executions openX
+			ON openX.decision_id = d.id AND openX.side = 'open'
+		LEFT JOIN LATERAL (
+			SELECT * FROM executions
+			WHERE decision_id = d.id AND side = 'close'
+			ORDER BY id DESC LIMIT 1
+		) closeX ON true
+		WHERE d.trade_date >= $1 AND d.trade_date <= $2 AND d.decision = 'execute'
+		ORDER BY d.trade_date ASC, openX.id ASC
+	`, start, end)
+	if err != nil {
+		return nil, fmt.Errorf("query executions range: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	out := make(map[string]*ExecutionView)
+	for rows.Next() {
+		var date string
+		v := &ExecutionView{}
+		var openStatus string
+		var executedAt, closedAt sql.NullTime
+		var closeStatus sql.NullString
+		if err := rows.Scan(
+			&date,
+			&v.Symbol, &v.ContractType, &v.StrikePrice,
+			&v.Mode, &openStatus,
+			&v.OpenPrice, &executedAt,
+			&v.ClosePrice, &closedAt, &closeStatus,
+		); err != nil {
+			return nil, fmt.Errorf("scan execution range row: %w", err)
+		}
+		v.State = deriveExecutionState(openStatus, closeStatus)
+		if executedAt.Valid {
+			t := executedAt.Time
+			v.ExecutedAt = &t
+		}
+		if closedAt.Valid {
+			t := closedAt.Time
+			v.ClosedAt = &t
+		}
+		if v.State == "closed" && v.OpenPrice > 0 && v.ClosePrice > 0 {
+			v.RealizedPnL = (v.ClosePrice - v.OpenPrice) * 100
+		}
+		// Only surface dates where a real position was taken (skip
+		// failed/pending). The state derivation already filtered out
+		// non-execute decisions via the WHERE clause; here we drop the
+		// row if the open never filled.
+		if v.State == "" {
+			continue
+		}
+		out[date] = v
+	}
+	return out, rows.Err()
+}
+
+// scanExecutionView reads a single ExecutionView row from a *sql.Row.
+// Shared between the date and range queries.
+func scanExecutionView(row *sql.Row) (*ExecutionView, error) {
+	v := &ExecutionView{}
+	var openStatus string
+	var executedAt, closedAt sql.NullTime
+	var closeStatus sql.NullString
+	if err := row.Scan(
+		&v.Symbol, &v.ContractType, &v.StrikePrice,
+		&v.Mode, &openStatus,
+		&v.OpenPrice, &executedAt,
+		&v.ClosePrice, &closedAt, &closeStatus,
+	); err != nil {
+		return nil, err
+	}
+	v.State = deriveExecutionState(openStatus, closeStatus)
+	if v.State == "" {
+		return nil, sql.ErrNoRows
+	}
+	if executedAt.Valid {
+		t := executedAt.Time
+		v.ExecutedAt = &t
+	}
+	if closedAt.Valid {
+		t := closedAt.Time
+		v.ClosedAt = &t
+	}
+	if v.State == "closed" && v.OpenPrice > 0 && v.ClosePrice > 0 {
+		v.RealizedPnL = (v.ClosePrice - v.OpenPrice) * 100
+	}
+	return v, nil
+}
+
+// deriveExecutionState collapses the open/close status pair into the
+// single string the frontend renders. Returns empty string when the
+// open never reached a terminal-or-filled state — caller treats that
+// as "no position to surface".
+func deriveExecutionState(openStatus string, closeStatus sql.NullString) string {
+	switch openStatus {
+	case "filled":
+		// Open succeeded. Did close also succeed?
+		if closeStatus.Valid && closeStatus.String == "filled" {
+			return "closed"
+		}
+		return "holding"
+	case "failed", "rejected":
+		return "failed"
+	default:
+		// 'pending' or 'working' — surface nothing yet.
+		return ""
+	}
 }

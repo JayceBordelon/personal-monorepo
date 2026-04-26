@@ -29,6 +29,7 @@ type DayStat = {
   hasSummaries: boolean;
   invested: number;
   returned: number;
+  execution: import("@/types/trade").Execution | null;
   details: {
     symbol: string;
     type: string;
@@ -148,6 +149,7 @@ function computeAggregates(data: WeekResponse) {
       hasSummaries: dayHasSummaries,
       invested: dayInvested,
       returned: dayReturned,
+      execution: day.execution ?? null,
       details,
     });
   }
