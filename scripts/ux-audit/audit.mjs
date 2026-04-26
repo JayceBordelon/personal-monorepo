@@ -37,9 +37,15 @@ const ROUTES = [
   { path: "/dashboard", label: "dashboard" },
   { path: "/history", label: "history" },
   { path: "/models", label: "models" },
-  { path: "/trade/RIVN?date=2026-04-23", label: "trade" },
+  { path: "/trade/COIN?date=2026-04-24", label: "trade-with-execution" },
+  { path: "/trade/RIVN?date=2026-04-23", label: "trade-no-execution" },
   { path: "/faq", label: "faq" },
   { path: "/terms", label: "terms" },
+  // /execute auto-execution confirmation page — three error paths to
+  // audit since the happy path requires a real signed token + auth.
+  { path: "/execute", label: "execute-missing-params" },
+  { path: "/execute?token=bogus&action=execute", label: "execute-bad-token" },
+  { path: "/execute?token=bogus&action=salami", label: "execute-bad-action" },
   { path: "/this-route-does-not-exist", label: "not-found" },
 ];
 
@@ -59,12 +65,30 @@ async function checkOverflow(page) {
   return page.evaluate(() => {
     const docWidth = document.documentElement.clientWidth;
     const overflowing = [];
+    // Walk up to find the nearest ancestor that clips overflow on the
+    // x-axis. If found, this element's geometric overhang is visually
+    // hidden and won't trigger horizontal page scroll — skip.
+    function clippedByAncestor(el) {
+      let cur = el.parentElement;
+      while (cur && cur instanceof HTMLElement) {
+        const s = getComputedStyle(cur);
+        if (s.overflowX === "hidden" || s.overflowX === "clip" || s.overflow === "hidden" || s.overflow === "clip") {
+          return true;
+        }
+        cur = cur.parentElement;
+      }
+      return false;
+    }
     const all = document.querySelectorAll("body *");
     for (const el of all) {
       if (!(el instanceof HTMLElement)) continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
       if (r.right > docWidth + 1 || r.left < -1) {
+        // Only flag if no ancestor actually clips — otherwise it's a
+        // decorative/bg element whose bounding box extends past the
+        // viewport but isn't user-visible and doesn't cause scroll.
+        if (clippedByAncestor(el)) continue;
         const tag = el.tagName.toLowerCase();
         const cls = el.className && typeof el.className === "string" ? el.className.slice(0, 80) : "";
         const id = el.id || "";
@@ -307,7 +331,15 @@ async function auditRoute(browser, viewport, route, theme) {
     pageErrors.push({ message: err.message, stack: (err.stack || "").slice(0, 600) });
   });
   page.on("requestfailed", (req) => {
-    requestFailures.push({ url: req.url(), failure: req.failure()?.errorText });
+    const url = req.url();
+    const failure = req.failure()?.errorText;
+    // Next.js fires React Server Component prefetches (?_rsc=...) as
+    // soon as <Link> components enter the viewport. When the audit
+    // navigates away, those in-flight prefetches abort with
+    // ERR_ABORTED. That's normal browser behavior, not an app bug —
+    // filter so the signal isn't drowned out.
+    if (failure === "net::ERR_ABORTED" && url.includes("_rsc=")) return;
+    requestFailures.push({ url, failure });
   });
   page.on("response", async (res) => {
     const status = res.status();

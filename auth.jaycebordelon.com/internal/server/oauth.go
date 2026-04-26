@@ -9,15 +9,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// handleAuthorize is the entry point for consumer apps. Expected query:
-//
-//		GET /oauth/authorize?client_id=X&redirect_uri=Y&state=Z
-//
-//	  - Validates client_id + redirect_uri against oauth_clients
-//	  - If the user has a valid IdP cookie, mints a one-shot auth code and
-//	    redirects to redirect_uri?code=...&state=...
-//	  - If no IdP cookie, kicks off the Google flow with the consumer request
-//	    stashed, so the callback can resume + mint the code.
+/*
+handleAuthorize is the entry point for consumer apps. Expected query:
+
+		GET /oauth/authorize?client_id=X&redirect_uri=Y&state=Z
+
+	  - Validates client_id + redirect_uri against oauth_clients
+	  - If the user has a valid IdP cookie, mints a one-shot auth code and
+	    redirects to redirect_uri?code=...&state=...
+	  - If no IdP cookie, kicks off the Google flow with the consumer request
+	    stashed, so the callback can resume + mint the code.
+*/
 func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	clientID := r.URL.Query().Get("client_id")
 	redirectURI := r.URL.Query().Get("redirect_uri")
@@ -51,8 +53,10 @@ func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	s.issueAuthCodeRedirect(w, r, user.ID, clientID, redirectURI, consumerState)
 }
 
-// issueAuthCodeRedirect mints a one-shot auth code, stores its hash, and
-// redirects the browser back to the consumer app with ?code=...&state=....
+/*
+issueAuthCodeRedirect mints a one-shot auth code, stores its hash, and
+redirects the browser back to the consumer app with ?code=...&state=....
+*/
 func (s *Server) issueAuthCodeRedirect(w http.ResponseWriter, r *http.Request, userID int64, clientID, redirectURI, consumerState string) {
 	code, err := randomToken(32)
 	if err != nil {
@@ -79,8 +83,10 @@ func (s *Server) issueAuthCodeRedirect(w http.ResponseWriter, r *http.Request, u
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
-// handleToken exchanges a one-shot auth code for an opaque access token.
-// Form fields: code, client_id, client_secret, redirect_uri.
+/*
+handleToken exchanges a one-shot auth code for an opaque access token.
+Form fields: code, client_id, client_secret, redirect_uri.
+*/
 func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad form", http.StatusBadRequest)
@@ -157,9 +163,11 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleVerify is the introspection endpoint. Consumers call it on every
-// request (with a short in-memory cache) to validate the opaque access
-// token they hold. Authorization: Bearer <token>.
+/*
+handleVerify is the introspection endpoint. Consumers call it on every
+request (with a short in-memory cache) to validate the opaque access
+token they hold. Authorization: Bearer <token>.
+*/
 func (s *Server) handleVerify(w http.ResponseWriter, r *http.Request) {
 	token := bearerToken(r)
 	if token == "" {
@@ -173,8 +181,10 @@ func (s *Server) handleVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if sess == nil || !sess.ClientID.Valid {
-		// Active only if this is a session issued to a specific client
-		// (access token), not an IdP browser cookie.
+		/*
+		Active only if this is a session issued to a specific client
+		(access token), not an IdP browser cookie.
+		*/
 		writeJSON(w, http.StatusUnauthorized, map[string]any{"active": false})
 		return
 	}
@@ -191,8 +201,10 @@ func (s *Server) handleVerify(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleRevoke revokes the session identified by the bearer token.
-// Used when a consumer app's user clicks Sign out.
+/*
+handleRevoke revokes the session identified by the bearer token.
+Used when a consumer app's user clicks Sign out.
+*/
 func (s *Server) handleRevoke(w http.ResponseWriter, r *http.Request) {
 	token := bearerToken(r)
 	if token == "" {
