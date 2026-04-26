@@ -203,6 +203,19 @@ func migrate(db *sql.DB) error {
 		-- hash, then updated after the row id is known.
 		ALTER TABLE execution_decisions ALTER COLUMN token_hash DROP NOT NULL;
 		ALTER TABLE execution_decisions DROP CONSTRAINT IF EXISTS execution_decisions_token_hash_key;
+
+		-- Rollout-email audit table. Tracks which one-shot announcement
+		-- emails have already gone out so a redeploy doesn't spam users.
+		-- Slug is the source of truth (set in code, registered in
+		-- internal/rollouts/). Pending-vs-sent state is implicit:
+		-- registry has slug AND db has no row → pending → fire on next
+		-- startup. Sending is best-effort; recipient_count records how
+		-- many subscribers received it for audit.
+		CREATE TABLE IF NOT EXISTS sent_rollouts (
+			slug             TEXT PRIMARY KEY,
+			sent_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			recipient_count  INTEGER NOT NULL
+		);
 	`)
 	return err
 }

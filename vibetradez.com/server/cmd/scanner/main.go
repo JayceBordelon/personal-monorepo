@@ -16,6 +16,7 @@ import (
 	"vibetradez.com/internal/config"
 	"vibetradez.com/internal/email"
 	"vibetradez.com/internal/exec"
+	"vibetradez.com/internal/rollouts"
 	"vibetradez.com/internal/schwab"
 	"vibetradez.com/internal/sentiment"
 	"vibetradez.com/internal/server"
@@ -398,6 +399,15 @@ func main() {
 	if subs, err := db.GetActiveSubscribers(); err == nil {
 		log.Printf("Active subscribers: %d", len(subs))
 	}
+
+	/*
+		One-shot rollout emails. Walks internal/rollouts.Registry; any
+		slug not yet in the sent_rollouts table gets bulk-emailed to all
+		active subscribers and marked sent. Idempotent across deploys.
+		Goroutine so a slow Resend send doesn't delay boot. Skipped on
+		local dev (stub Resend key).
+	*/
+	go rollouts.Run(db, emailClient, cfg.EmailFrom, isLocalStubKey(cfg.ResendAPIKey))
 
 	// Run immediately on startup if RUN_ON_START is set
 	if os.Getenv("RUN_ON_START") == "true" {

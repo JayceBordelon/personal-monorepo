@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-//go:embed email.html summary.html test.html error.html weekly.html execute_confirm.html execute_canceled.html execute_receipt.html execute_close_receipt.html execute_close_failed.html
+//go:embed email.html summary.html test.html error.html weekly.html execute_confirm.html execute_canceled.html execute_receipt.html execute_close_receipt.html execute_close_failed.html rollout_auto_execution_live.html
 var templateFS embed.FS
 
 type Trade struct {
@@ -406,6 +406,17 @@ func RenderExecuteCloseReceipt(d ExecuteCloseReceiptData) (string, error) {
 }
 func RenderExecuteCloseFailed(d ExecuteCloseFailedData) (string, error) {
 	return renderOne("execute_close_failed.html", d)
+}
+
+/*
+RenderRolloutAutoExecutionLive renders the v1 rollout email
+announcing the auto-execution feature. Static content — no
+parameters, just a Subject string for the <title> tag.
+*/
+func RenderRolloutAutoExecutionLive() (string, error) {
+	return renderOne("rollout_auto_execution_live.html", map[string]string{
+		"Subject": "VibeTradez can now execute trades",
+	})
 }
 
 func renderOne(name string, data any) (string, error) {
