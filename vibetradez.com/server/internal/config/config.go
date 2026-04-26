@@ -33,6 +33,18 @@ type Config struct {
 	AuthRedirectURI   string // consumer callback URL (must be registered at auth service)
 	SessionCookieName string
 	SessionTTLDays    int
+	// Auto-execution feature. TradingEnabled is the master switch; when
+	// false, the entire pipeline (selector, decision row, email, order)
+	// is dead code and no rows are ever written. TradingMode chooses
+	// between PaperTrader (synthetic fills, never touches Schwab Trader
+	// API) and LiveTrader (real money). Default is paper, and "anything
+	// not literally 'live'" resolves to paper — there is no fallback to
+	// live on misconfiguration.
+	TradingEnabled      bool
+	TradingMode         string // "paper" | "live"
+	ExecutionHMACSecret []byte // 32+ bytes, used to sign confirmation tokens
+	ExecutionRecipient  string // single recipient for execution emails (defense in depth vs subscriber list)
+	PublicBaseURL       string // e.g. https://vibetradez.com — used to build email links
 }
 
 // DefaultOpenAIModel and DefaultAnthropicModel must be refreshed from the
@@ -125,5 +137,23 @@ func Load() *Config {
 		AuthRedirectURI:   authRedirectURI,
 		SessionCookieName: getEnvOrDefault("SESSION_COOKIE_NAME", "vt_session"),
 		SessionTTLDays:    sessionTTLDays,
+		TradingEnabled:    os.Getenv("TRADING_ENABLED") == "true",
+		TradingMode:       resolveTradingMode(os.Getenv("TRADING_MODE")),
+		// Required if TradingEnabled — checked at startup in main, not
+		// here, so a misconfig surfaces as a clear log line rather than
+		// a silent dormant pipeline.
+		ExecutionHMACSecret: []byte(os.Getenv("EXECUTION_HMAC_SECRET")),
+		ExecutionRecipient:  getEnvOrDefault("EXECUTION_RECIPIENT", "bordelonjayce@gmail.com"),
+		PublicBaseURL:       getEnvOrDefault("PUBLIC_BASE_URL", "https://vibetradez.com"),
 	}
+}
+
+// resolveTradingMode collapses anything other than the literal string
+// "live" to "paper". This is intentional — a typo or empty env var must
+// never accidentally route to real-money execution.
+func resolveTradingMode(v string) string {
+	if v == "live" {
+		return "live"
+	}
+	return "paper"
 }

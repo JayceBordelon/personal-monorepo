@@ -87,6 +87,8 @@ func migrate(db *sql.DB) error {
 		ALTER TABLE trades ADD COLUMN IF NOT EXISTS claude_verdict TEXT NOT NULL DEFAULT '';
 		ALTER TABLE trades ADD COLUMN IF NOT EXISTS gpt_model TEXT NOT NULL DEFAULT '';
 		ALTER TABLE trades ADD COLUMN IF NOT EXISTS claude_model TEXT NOT NULL DEFAULT '';
+		ALTER TABLE trades ADD COLUMN IF NOT EXISTS gpt_rank INTEGER NOT NULL DEFAULT 0;
+		ALTER TABLE trades ADD COLUMN IF NOT EXISTS claude_rank INTEGER NOT NULL DEFAULT 0;
 		-- Backfill existing rows: any pre-refactor trade had a non-zero
 		-- gpt_score (GPT generated the picks) so it counts as picked by
 		-- OpenAI. Pre-refactor Claude was a validator, not a picker, so
@@ -147,6 +149,51 @@ func migrate(db *sql.DB) error {
 		DROP TABLE IF EXISTS oauth_states;
 		ALTER TABLE subscribers DROP COLUMN IF EXISTS user_id;
 		DROP TABLE IF EXISTS users;
+
+		-- Auto-execution pipeline. UNIQUE(trade_date) is the schema-level
+		-- enforcement of the "at most one decision per day" rule; the
+		-- selector also enforces it in code, but the DB is the
+		-- belt-and-suspenders.
+		CREATE TABLE IF NOT EXISTS execution_decisions (
+			id              SERIAL PRIMARY KEY,
+			trade_date      TEXT NOT NULL,
+			symbol          TEXT NOT NULL,
+			contract_type   TEXT NOT NULL,
+			strike_price    DOUBLE PRECISION NOT NULL,
+			expiration      TEXT NOT NULL,
+			occ_symbol      TEXT NOT NULL,
+			contract_price  DOUBLE PRECISION NOT NULL,
+			gpt_score       INTEGER NOT NULL,
+			claude_score    INTEGER NOT NULL,
+			trade_id        INTEGER REFERENCES trades(id),
+			token_hash      TEXT NOT NULL UNIQUE,
+			decision        TEXT NOT NULL DEFAULT 'pending',
+			decided_at      TIMESTAMPTZ,
+			expires_at      TIMESTAMPTZ NOT NULL,
+			created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			UNIQUE(trade_date)
+		);
+		CREATE INDEX IF NOT EXISTS idx_execution_decisions_pending
+			ON execution_decisions(decision) WHERE decision = 'pending';
+
+		CREATE TABLE IF NOT EXISTS executions (
+			id                  SERIAL PRIMARY KEY,
+			decision_id         INTEGER NOT NULL REFERENCES execution_decisions(id),
+			mode                TEXT NOT NULL,
+			side                TEXT NOT NULL,
+			schwab_order_id     TEXT,
+			status              TEXT NOT NULL,
+			fill_price          DOUBLE PRECISION,
+			filled_quantity     INTEGER NOT NULL DEFAULT 0,
+			requested_quantity  INTEGER NOT NULL,
+			submitted_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			filled_at           TIMESTAMPTZ,
+			error_message       TEXT NOT NULL DEFAULT '',
+			created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);
+		CREATE INDEX IF NOT EXISTS idx_executions_decision_id ON executions(decision_id);
+		CREATE INDEX IF NOT EXISTS idx_executions_open_pending
+			ON executions(status) WHERE status IN ('pending','working');
 	`)
 	return err
 }
@@ -255,8 +302,8 @@ func (s *Store) SaveMorningTrades(date string, tradeList []trades.Trade) error {
 			catalyst, mention_count, rank,
 			gpt_score, gpt_rationale, claude_score, claude_rationale, combined_score,
 			picked_by_openai, picked_by_claude, gpt_verdict, claude_verdict,
-			gpt_model, claude_model
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+			gpt_model, claude_model, gpt_rank, claude_rank
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
@@ -271,7 +318,7 @@ func (s *Store) SaveMorningTrades(date string, tradeList []trades.Trade) error {
 			t.Catalyst, t.MentionCount, t.Rank,
 			t.GPTScore, t.GPTRationale, t.ClaudeScore, t.ClaudeRationale, t.CombinedScore,
 			t.PickedByOpenAI, t.PickedByClaude, t.GPTVerdict, t.ClaudeVerdict,
-			t.GPTModel, t.ClaudeModel,
+			t.GPTModel, t.ClaudeModel, t.GPTRank, t.ClaudeRank,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert trade %s: %w", t.Symbol, err)
@@ -289,7 +336,7 @@ func (s *Store) GetMorningTrades(date string) ([]trades.Trade, error) {
 			catalyst, mention_count, rank,
 			gpt_score, gpt_rationale, claude_score, claude_rationale, combined_score,
 			picked_by_openai, picked_by_claude, gpt_verdict, claude_verdict,
-			gpt_model, claude_model
+			gpt_model, claude_model, gpt_rank, claude_rank
 		FROM trades WHERE date = $1 ORDER BY rank, id
 	`, date)
 	if err != nil {
@@ -307,7 +354,7 @@ func (s *Store) GetMorningTrades(date string) ([]trades.Trade, error) {
 			&t.Catalyst, &t.MentionCount, &t.Rank,
 			&t.GPTScore, &t.GPTRationale, &t.ClaudeScore, &t.ClaudeRationale, &t.CombinedScore,
 			&t.PickedByOpenAI, &t.PickedByClaude, &t.GPTVerdict, &t.ClaudeVerdict,
-			&t.GPTModel, &t.ClaudeModel,
+			&t.GPTModel, &t.ClaudeModel, &t.GPTRank, &t.ClaudeRank,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan trade row: %w", err)
@@ -390,7 +437,7 @@ func (s *Store) GetTradesForDateRange(startDate, endDate string) (map[string][]t
 			catalyst, mention_count, rank,
 			gpt_score, gpt_rationale, claude_score, claude_rationale, combined_score,
 			picked_by_openai, picked_by_claude, gpt_verdict, claude_verdict,
-			gpt_model, claude_model
+			gpt_model, claude_model, gpt_rank, claude_rank
 		FROM trades WHERE date >= $1 AND date <= $2 ORDER BY date, rank, id
 	`, startDate, endDate)
 	if err != nil {
@@ -409,7 +456,7 @@ func (s *Store) GetTradesForDateRange(startDate, endDate string) (map[string][]t
 			&t.Catalyst, &t.MentionCount, &t.Rank,
 			&t.GPTScore, &t.GPTRationale, &t.ClaudeScore, &t.ClaudeRationale, &t.CombinedScore,
 			&t.PickedByOpenAI, &t.PickedByClaude, &t.GPTVerdict, &t.ClaudeVerdict,
-			&t.GPTModel, &t.ClaudeModel,
+			&t.GPTModel, &t.ClaudeModel, &t.GPTRank, &t.ClaudeRank,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan trade row: %w", err)

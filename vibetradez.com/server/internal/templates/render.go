@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-//go:embed email.html summary.html test.html error.html weekly.html
+//go:embed email.html summary.html test.html error.html weekly.html execute_confirm.html execute_canceled.html execute_receipt.html execute_close_receipt.html execute_close_failed.html
 var templateFS embed.FS
 
 type Trade struct {
@@ -288,6 +288,126 @@ type ErrorEmailData struct {
 	Subject string
 	Date    string
 	Error   string
+}
+
+// ── Auto-execution emails ──
+
+// ExecuteConfirmData powers the 5-minute confirmation email. Includes
+// every piece of context the user could possibly want when deciding
+// whether to fire: contract details, capital at risk, both models'
+// rationales + scores + cross-verdicts, catalyst, expiry timer, signed
+// Execute / Decline links.
+type ExecuteConfirmData struct {
+	Subject         string
+	Date            string
+	Mode            string // "paper" | "live"
+	Symbol          string
+	ContractType    string
+	StrikePrice     float64
+	Expiration      string
+	DTE             int
+	OCCSymbol       string
+	ContractPrice   float64
+	CapitalAtRisk   float64 // ContractPrice * 100 * 1
+	CurrentPrice    float64
+	RiskLevel       string
+	Catalyst        string
+	Thesis          string
+	GPTModelName    string
+	GPTScore        int
+	GPTRationale    string
+	GPTVerdict      string
+	ClaudeModelName string
+	ClaudeScore     int
+	ClaudeRationale string
+	ClaudeVerdict   string
+	ExpiresAtText   string // formatted expiry, e.g. "9:30 AM ET"
+	ExecuteURL      string // signed token + auth-required confirmation page
+	DeclineURL      string
+}
+
+type ExecuteCanceledData struct {
+	Subject         string
+	Date            string
+	Mode            string
+	Symbol          string
+	ContractType    string
+	StrikePrice     float64
+	Expiration      string
+	ContractPrice   float64
+	GPTModelName    string
+	GPTScore        int
+	ClaudeModelName string
+	ClaudeScore     int
+}
+
+type ExecuteReceiptData struct {
+	Subject            string
+	Date               string
+	Mode               string
+	Symbol             string
+	ContractType       string
+	StrikePrice        float64
+	Expiration         string
+	OCCSymbol          string
+	FillPrice          float64
+	Quantity           int
+	OrderID            string
+	SchwabPositionsURL string
+}
+
+type ExecuteCloseReceiptData struct {
+	Subject            string
+	Date               string
+	Mode               string
+	Symbol             string
+	ContractType       string
+	StrikePrice        float64
+	Expiration         string
+	OpenPrice          float64
+	ClosePrice         float64
+	RealizedPnL        float64 // (close - open) * 100 * contracts
+	SchwabPositionsURL string
+}
+
+type ExecuteCloseFailedData struct {
+	Subject            string
+	Date               string
+	Symbol             string
+	ContractType       string
+	StrikePrice        float64
+	Expiration         string
+	OCCSymbol          string
+	ErrorMessage       string
+	SchwabPositionsURL string
+}
+
+func RenderExecuteConfirm(d ExecuteConfirmData) (string, error) {
+	return renderOne("execute_confirm.html", d)
+}
+func RenderExecuteCanceled(d ExecuteCanceledData) (string, error) {
+	return renderOne("execute_canceled.html", d)
+}
+func RenderExecuteReceipt(d ExecuteReceiptData) (string, error) {
+	return renderOne("execute_receipt.html", d)
+}
+func RenderExecuteCloseReceipt(d ExecuteCloseReceiptData) (string, error) {
+	return renderOne("execute_close_receipt.html", d)
+}
+func RenderExecuteCloseFailed(d ExecuteCloseFailedData) (string, error) {
+	return renderOne("execute_close_failed.html", d)
+}
+
+func renderOne(name string, data any) (string, error) {
+	tmpl, err := template.New(name).Funcs(funcMap).ParseFS(templateFS, name)
+	if err != nil {
+		return "", err
+	}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 // VerifyTemplates exercises all email templates with sample data to catch rendering errors.

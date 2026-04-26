@@ -14,6 +14,7 @@ import (
 	"vibetradez.com/internal/authclient"
 	"vibetradez.com/internal/config"
 	"vibetradez.com/internal/email"
+	"vibetradez.com/internal/exec"
 	"vibetradez.com/internal/schwab"
 	"vibetradez.com/internal/sentiment"
 	"vibetradez.com/internal/server"
@@ -48,6 +49,25 @@ var marketHolidays = map[string]string{
 	"2026-09-07": "Labor Day",
 	"2026-11-26": "Thanksgiving",
 	"2026-12-25": "Christmas",
+}
+
+// US Market Half-Days (1pm ET early close instead of 4pm).
+// On these dates the auto-execution close cron must fire at 12:55pm
+// instead of 3:55pm. Update list yearly — NYSE publishes the schedule
+// in November of the prior year.
+var marketHalfDays = map[string]string{
+	"2025-11-28": "Day after Thanksgiving",
+	"2025-12-24": "Christmas Eve",
+	"2026-11-27": "Day after Thanksgiving",
+	"2026-12-24": "Christmas Eve",
+}
+
+// isHalfDay reports whether today is an early-close trading day.
+func isHalfDay() bool {
+	loc, _ := time.LoadLocation("America/New_York")
+	today := time.Now().In(loc).Format("2006-01-02")
+	_, ok := marketHalfDays[today]
+	return ok
 }
 
 func isMarketOpen() (bool, string) {
@@ -160,12 +180,41 @@ func main() {
 		log.Printf("%s: configured - picking enabled (model=%s)", claudeDisplayName, cfg.AnthropicModel)
 	}
 
+	// Auto-execution wiring. Constructed only if TRADING_ENABLED. The
+	// trader implementation is paper unless TRADING_MODE is literally
+	// "live" — see config.resolveTradingMode for the safety semantics.
+	var executor *exec.Service
+	if cfg.TradingEnabled {
+		var trader exec.TraderClient
+		if cfg.TradingMode == "live" {
+			trader = exec.NewLiveTrader(schwabClient)
+			log.Printf("execution: LIVE mode armed — real-money orders will be placed on confirmation")
+		} else {
+			trader = exec.NewPaperTrader(schwabClient)
+			log.Printf("execution: PAPER mode — Schwab Trader API will NOT be called")
+		}
+		execCfg := exec.ServiceConfig{
+			Mode:              cfg.TradingMode,
+			HMACSecret:        cfg.ExecutionHMACSecret,
+			Recipient:         cfg.ExecutionRecipient,
+			EmailFrom:         cfg.EmailFrom,
+			PublicBaseURL:     cfg.PublicBaseURL,
+			GPTModelLabel:     gptDisplayName,
+			ClaudeModelLabel:  claudeDisplayName,
+			SchwabAccountHash: trader.AccountHash,
+		}
+		if len(execCfg.HMACSecret) < 32 {
+			log.Fatalf("execution: TRADING_ENABLED=true but EXECUTION_HMAC_SECRET is missing or <32 bytes")
+		}
+		executor = exec.NewService(db, trader, emailClient, execCfg)
+	}
+
 	openJob := func() {
 		if open, reason := isMarketOpen(); !open {
 			log.Printf("Skipping morning analysis: Market closed (%s)", reason)
 			return
 		}
-		runTradeAnalysis(cfg, db, scraper, analyzer, claudePicker, emailClient, gptDisplayName, claudeDisplayName)
+		runTradeAnalysis(cfg, db, scraper, analyzer, claudePicker, emailClient, gptDisplayName, claudeDisplayName, executor)
 	}
 
 	closeJob := func() {
@@ -202,11 +251,59 @@ func main() {
 		log.Fatalf("Failed to add weekly email cron job: %v", err)
 	}
 
+	// Auto-execution crons. Only registered when an executor exists
+	// (TRADING_ENABLED=true). Three jobs:
+	//   1. Every minute 9:30am-9:35am ET — auto-cancel any decision past
+	//      its 5-minute window. Tight window: pick fires at ~9:30am ET
+	//      so all timeouts land between 9:30 and 9:35.
+	//   2. 3:55pm ET on full-trading days — close any open position.
+	//   3. 12:55pm ET on half-day trading days — same close logic, just
+	//      earlier so we exit before the 1pm close.
+	if executor != nil {
+		ctxBg := context.Background()
+		_, err = c.AddFunc("30-59 9 * * 1-5", func() {
+			executor.CancelExpiredDecisions(ctxBg)
+		})
+		if err != nil {
+			log.Fatalf("Failed to add cancel-expired cron: %v", err)
+		}
+
+		_, err = c.AddFunc("55 15 * * 1-5", func() {
+			if open, reason := isMarketOpen(); !open {
+				log.Printf("Skipping 3:55pm close: %s", reason)
+				return
+			}
+			if isHalfDay() {
+				log.Printf("Skipping 3:55pm close: half-day (12:55 close already fired)")
+				return
+			}
+			executor.CloseAllPositionsForDate(ctxBg, todayDate())
+		})
+		if err != nil {
+			log.Fatalf("Failed to add 3:55pm close cron: %v", err)
+		}
+
+		_, err = c.AddFunc("55 12 * * 1-5", func() {
+			if open, reason := isMarketOpen(); !open {
+				log.Printf("Skipping half-day close: %s", reason)
+				return
+			}
+			if !isHalfDay() {
+				return // only fires on half-days
+			}
+			executor.CloseAllPositionsForDate(ctxBg, todayDate())
+		})
+		if err != nil {
+			log.Fatalf("Failed to add 12:55pm half-day close cron: %v", err)
+		}
+		log.Printf("execution: cron registered (cancel-expired 9:30-9:59am, close 3:55pm or 12:55pm half-days)")
+	}
+
 	c.Start()
 
 	sessionTTL := time.Duration(cfg.SessionTTLDays) * 24 * time.Hour
 	// Start HTTP API server in background
-	srv := server.New(db, schwabClient, authClient, scraper, emailClient, cfg.EmailFrom, cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.AnthropicAPIKey, cfg.AnthropicModel, cfg.SessionCookieName, sessionTTL, cfg.AuthPublicURL, cfg.AuthClientID, cfg.AuthRedirectURI, cfg.ServerPort)
+	srv := server.New(db, schwabClient, authClient, scraper, emailClient, cfg.EmailFrom, cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.AnthropicAPIKey, cfg.AnthropicModel, cfg.SessionCookieName, sessionTTL, cfg.AuthPublicURL, cfg.AuthClientID, cfg.AuthRedirectURI, cfg.ServerPort, executor, cfg.ExecutionRecipient)
 	go srv.Start()
 
 	log.Printf("Options trade scanner started")
@@ -286,12 +383,14 @@ func unionPicks(openaiTrades, claudeTrades []trades.Trade) []trades.Trade {
 				existing.GPTScore = t.GPTScore
 				existing.GPTRationale = t.GPTRationale
 				existing.GPTModel = t.GPTModel
+				existing.GPTRank = t.GPTRank
 			}
 			if t.PickedByClaude {
 				existing.PickedByClaude = true
 				existing.ClaudeScore = t.ClaudeScore
 				existing.ClaudeRationale = t.ClaudeRationale
 				existing.ClaudeModel = t.ClaudeModel
+				existing.ClaudeRank = t.ClaudeRank
 			}
 			// Verdicts attach to a trade as part of the OTHER model's
 			// list, so each side may carry one. Preserve both when both
@@ -379,7 +478,7 @@ func unionPicks(openaiTrades, claudeTrades []trades.Trade) []trades.Trade {
 	return out
 }
 
-func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Scraper, analyzer *trades.Analyzer, claudePicker *trades.ClaudePicker, emailClient *email.Client, gptDisplayName, claudeDisplayName string) {
+func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Scraper, analyzer *trades.Analyzer, claudePicker *trades.ClaudePicker, emailClient *email.Client, gptDisplayName, claudeDisplayName string, executor *exec.Service) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 	defer cancel()
 
@@ -511,6 +610,25 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 		return
 	}
 	log.Printf("Saved %d trades to database for %s", len(topTrades), date)
+
+	// Auto-execution gate: only runs if TRADING_ENABLED. Selector is
+	// intentionally narrow (both models picked it, both ranked it #1,
+	// premium ≤ $5/share = $500/contract). On a qualifying pick the
+	// service mints a 5-minute decision row, sends the confirmation
+	// email, and returns; the cancel-on-timeout cron + the user's
+	// click flow drive the rest.
+	if executor != nil {
+		if pick, ok := exec.QualifyingPick(topTrades); ok {
+			log.Printf("execution: qualifying pick found — %s %s @ %.2f (gpt_rank=%d, claude_rank=%d, gpt_score=%d, claude_score=%d)",
+				pick.Symbol, pick.ContractType, pick.EstimatedPrice,
+				pick.GPTRank, pick.ClaudeRank, pick.GPTScore, pick.ClaudeScore)
+			if err := executor.HandleQualifyingPick(ctx, pick); err != nil {
+				log.Printf("execution: handle qualifying pick: %v", err)
+			}
+		} else {
+			log.Printf("execution: no qualifying pick today (no rank-1 alignment, mismatch, or >$%.2f cap)", exec.MaxContractPremium)
+		}
+	}
 
 	// Convert to template trades, carrying the dual-model scores and
 	// rationales through so the morning email can render the same

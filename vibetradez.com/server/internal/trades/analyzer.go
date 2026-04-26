@@ -43,6 +43,13 @@ type Trade struct {
 	MentionCount   int     `json:"mention_count"`
 	Rank           int     `json:"rank"`
 
+	// Per-model ranks as the picker returned them, BEFORE unioning into a
+	// combined Rank. These exist so the auto-execution selector can ask
+	// "did both models independently rank this trade #1?" — Rank above is
+	// the post-union combined rank and is not useful for that check.
+	GPTRank    int `json:"gpt_rank"`
+	ClaudeRank int `json:"claude_rank"`
+
 	// Dual-model scoring. Each side rates the trade 1-10 and explains why.
 	// Rank above is the final ordering after combining both scores.
 	GPTScore        int     `json:"gpt_score"`
@@ -167,6 +174,7 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 			RiskLevel:      r.RiskLevel,
 			Catalyst:       r.Catalyst,
 			Rank:           r.Rank,
+			GPTRank:        r.Rank,
 			GPTScore:       r.Score,
 			GPTRationale:   r.Rationale,
 			GPTModel:       a.model,

@@ -22,6 +22,7 @@ import (
 
 	"vibetradez.com/internal/authclient"
 	"vibetradez.com/internal/email"
+	"vibetradez.com/internal/exec"
 	"vibetradez.com/internal/schwab"
 	"vibetradez.com/internal/sentiment"
 	"vibetradez.com/internal/store"
@@ -49,6 +50,9 @@ type Server struct {
 	ssoRedirectURI string
 	mux            *http.ServeMux
 	port           string
+	// Auto-execution (paper or live). nil = trading disabled at startup.
+	executor      *exec.Service
+	executorEmail string // email allowlist for /api/execution/* (single user)
 }
 
 type subscribeRequest struct {
@@ -65,7 +69,7 @@ type apiResponse struct {
 	Message string `json:"message"`
 }
 
-func New(db *store.Store, schwabClient *schwab.Client, authClient *authclient.Client, scraper *sentiment.Scraper, emailClient *email.Client, emailFrom, openaiKey, openaiModel, anthropicKey, anthropicModel, sessionCookie string, sessionTTL time.Duration, ssoPublicURL, ssoClientID, ssoRedirectURI, port string) *Server {
+func New(db *store.Store, schwabClient *schwab.Client, authClient *authclient.Client, scraper *sentiment.Scraper, emailClient *email.Client, emailFrom, openaiKey, openaiModel, anthropicKey, anthropicModel, sessionCookie string, sessionTTL time.Duration, ssoPublicURL, ssoClientID, ssoRedirectURI, port string, executor *exec.Service, executorEmail string) *Server {
 	s := &Server{
 		db:             db,
 		schwab:         schwabClient,
@@ -84,6 +88,8 @@ func New(db *store.Store, schwabClient *schwab.Client, authClient *authclient.Cl
 		ssoRedirectURI: ssoRedirectURI,
 		mux:            http.NewServeMux(),
 		port:           port,
+		executor:       executor,
+		executorEmail:  executorEmail,
 	}
 	s.routes()
 	return s
@@ -107,6 +113,18 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/chart/", requireInternal(s.handleChart))
 	s.mux.HandleFunc("/api/quotes/live", requireInternal(s.handleLiveQuotes))
 	s.mux.HandleFunc("/api/model-comparison", requireInternal(s.handleModelComparison))
+
+	// Auto-execution endpoints. Stack: requireInternal (trusted website
+	// origin) → attachUser (load session) → requireUser (must be signed
+	// in) → requireEmailAllowlist (must be the one allowed email) →
+	// executor handler. All four gates must pass; any single failure
+	// returns 401/403 before the handler runs.
+	if s.executor != nil {
+		s.mux.HandleFunc("/api/execution/confirm",
+			requireInternal(s.attachUser(s.requireUser(s.requireEmailAllowlist(s.executorEmail, s.executor.HandleConfirm)))))
+		s.mux.HandleFunc("/api/execution/cancel-all",
+			requireInternal(s.attachUser(s.requireUser(s.requireEmailAllowlist(s.executorEmail, s.executor.HandleCancelAll)))))
+	}
 }
 
 func (s *Server) Start() {
