@@ -235,7 +235,12 @@ export default function LandingPage() {
             <Link href="/faq" className="inline-flex min-h-11 min-w-11 items-center justify-center underline underline-offset-2 hover:text-foreground sm:min-h-0 sm:min-w-0 sm:justify-start">
               FAQ
             </Link>
-            <a href="https://jaycebordelon.com" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 min-w-11 items-center justify-center underline underline-offset-2 hover:text-foreground sm:min-h-0 sm:min-w-0 sm:justify-start">
+            <a
+              href="https://jaycebordelon.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center underline underline-offset-2 hover:text-foreground sm:min-h-0 sm:min-w-0 sm:justify-start"
+            >
               Built by Jayce
             </a>
           </div>
