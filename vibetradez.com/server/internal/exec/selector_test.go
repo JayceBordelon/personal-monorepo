@@ -43,16 +43,18 @@ func TestQualifyingPick_BothRank1SameDirection(t *testing.T) {
 }
 
 func TestQualifyingPick_RejectsDirectionMismatch(t *testing.T) {
-	// Both models ranked AAPL #1 but disagreed on direction — the unioned
-	// row would carry whichever direction landed first, but in any case
-	// the picker shouldn't fire when the direction itself was contested.
-	// We approximate "different direction" by setting the unioned row's
-	// ContractType to something the test asserts wouldn't fire; in
-	// practice the union doesn't merge across direction so this test
-	// codifies the trade as "both picked it but only PUT'd it" — we
-	// still want it executable. The real direction-mismatch path is
-	// tested at the union layer; here we just confirm the selector
-	// honors a single-direction unified row.
+	/**
+	Both models ranked AAPL #1 but disagreed on direction — the unioned
+	row would carry whichever direction landed first, but in any case
+	the picker shouldn't fire when the direction itself was contested.
+	We approximate "different direction" by setting the unioned row's
+	ContractType to something the test asserts wouldn't fire; in
+	practice the union doesn't merge across direction so this test
+	codifies the trade as "both picked it but only PUT'd it" — we
+	still want it executable. The real direction-mismatch path is
+	tested at the union layer; here we just confirm the selector
+	honors a single-direction unified row.
+	*/
 	in := []trades.Trade{
 		mkTrade("AAPL", "PUT", 1, 1, 3.50, "both"),
 	}
@@ -109,10 +111,12 @@ func TestQualifyingPick_EmptyInput(t *testing.T) {
 }
 
 func TestQualifyingPick_FirstQualifyingWins(t *testing.T) {
-	// If two unioned rows both qualified (shouldn't happen because both
-	// models can only have one rank-1 each, but defensive), the first one
-	// in iteration order wins. We don't assert which is "best" — the
-	// guarantee is determinism.
+	/**
+	If two unioned rows both qualified (shouldn't happen because both
+	models can only have one rank-1 each, but defensive), the first one
+	in iteration order wins. We don't assert which is "best" — the
+	guarantee is determinism.
+	*/
 	in := []trades.Trade{
 		mkTrade("AAPL", "CALL", 1, 1, 3.00, "both"),
 		mkTrade("MSFT", "CALL", 1, 1, 2.00, "both"),

@@ -52,10 +52,13 @@ var marketHolidays = map[string]string{
 	"2026-12-25": "Christmas",
 }
 
-// US Market Half-Days (1pm ET early close instead of 4pm).
-// On these dates the auto-execution close cron must fire at 12:55pm
-// instead of 3:55pm. Update list yearly — NYSE publishes the schedule
-// in November of the prior year.
+/*
+*
+US Market Half-Days (1pm ET early close instead of 4pm).
+On these dates the auto-execution close cron must fire at 12:55pm
+instead of 3:55pm. Update list yearly — NYSE publishes the schedule
+in November of the prior year.
+*/
 var marketHalfDays = map[string]string{
 	"2025-11-28": "Day after Thanksgiving",
 	"2025-12-24": "Christmas Eve",
@@ -94,17 +97,20 @@ func todayDate() string {
 	return time.Now().In(loc).Format("2006-01-02")
 }
 
-// checkClockSkew probes Cloudflare's HTTP Date header (which is
-// NTP-disciplined within the millisecond) and compares against the
-// local clock. Logs a warning if drift exceeds 5 seconds. Run from a
-// goroutine on startup so a slow probe doesn't delay boot. Failures
-// (network, parse) are silent — clock check is informational, not
-// load-bearing.
-//
-// We pick Cloudflare's 1.1.1.1 specifically because (a) it's reliably
-// reachable from any datacenter, (b) Cloudflare publishes Date headers
-// disciplined to UTC within ~1ms, and (c) it's a HEAD-friendly endpoint
-// so the body never gets transferred.
+/*
+*
+checkClockSkew probes Cloudflare's HTTP Date header (which is
+NTP-disciplined within the millisecond) and compares against the
+local clock. Logs a warning if drift exceeds 5 seconds. Run from a
+goroutine on startup so a slow probe doesn't delay boot. Failures
+(network, parse) are silent — clock check is informational, not
+load-bearing.
+
+We pick Cloudflare's 1.1.1.1 specifically because (a) it's reliably
+reachable from any datacenter, (b) Cloudflare publishes Date headers
+disciplined to UTC within ~1ms, and (c) it's a HEAD-friendly endpoint
+so the body never gets transferred.
+*/
 func checkClockSkew() {
 	const maxAcceptableSkew = 5 * time.Second
 	client := &http.Client{Timeout: 10 * time.Second}
@@ -131,10 +137,12 @@ func checkClockSkew() {
 		log.Printf("clock-skew probe: parse Date %q: %v (skipping)", dateHeader, err)
 		return
 	}
-	// Adjust the remote timestamp forward by half the RTT to estimate
-	// when Cloudflare emitted it relative to our reception. Crude but
-	// dominant source of error — RTT/2 — is small (sub-100ms) compared
-	// to the 5s skew threshold so this is fine.
+	/**
+	Adjust the remote timestamp forward by half the RTT to estimate
+	when Cloudflare emitted it relative to our reception. Crude but
+	dominant source of error — RTT/2 — is small (sub-100ms) compared
+	to the 5s skew threshold so this is fine.
+	*/
 	estimatedRemoteAtReceive := remote.Add(rtt / 2)
 	skew := time.Since(estimatedRemoteAtReceive)
 	if skew < 0 {
@@ -147,8 +155,11 @@ func checkClockSkew() {
 	}
 }
 
-// isLocalStubKey detects the placeholder API keys used by the local Docker
-// stack so the cron-driven analyzers / validators can be safely skipped.
+/*
+*
+isLocalStubKey detects the placeholder API keys used by the local Docker
+stack so the cron-driven analyzers / validators can be safely skipped.
+*/
 func isLocalStubKey(k string) bool {
 	if k == "" {
 		return false
@@ -200,8 +211,10 @@ func main() {
 
 	scraper := sentiment.NewScraper()
 
-	// Probe all market signal sources on startup so broken scrapers are
-	// caught immediately after deploy, not hours later at the morning cron.
+	/**
+	Probe all market signal sources on startup so broken scrapers are
+	caught immediately after deploy, not hours later at the morning cron.
+	*/
 	log.Println("Probing market signal sources...")
 	probeCtx, probeCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	for _, src := range scraper.ProbeAll(probeCtx) {
@@ -219,10 +232,12 @@ func main() {
 	claudeDisplayName := config.CurrentAnthropicLabel
 	log.Printf("%s: model=%s", gptDisplayName, cfg.OpenAIModel)
 
-	// Claude picker is optional. When ANTHROPIC_API_KEY is missing or
-	// set to a local stub the cron pipeline degenerates to OpenAI-only:
-	// the union has only GPT picks, picked_by_claude stays false, and
-	// the model filter on the dashboard shows an empty Claude column.
+	/**
+	Claude picker is optional. When ANTHROPIC_API_KEY is missing or
+	set to a local stub the cron pipeline degenerates to OpenAI-only:
+	the union has only GPT picks, picked_by_claude stays false, and
+	the model filter on the dashboard shows an empty Claude column.
+	*/
 	var claudePicker *trades.ClaudePicker
 	switch {
 	case cfg.AnthropicAPIKey == "":
@@ -234,9 +249,11 @@ func main() {
 		log.Printf("%s: configured - picking enabled (model=%s)", claudeDisplayName, cfg.AnthropicModel)
 	}
 
-	// Auto-execution wiring. Constructed only if TRADING_ENABLED. The
-	// trader implementation is paper unless TRADING_MODE is literally
-	// "live" — see config.resolveTradingMode for the safety semantics.
+	/**
+	Auto-execution wiring. Constructed only if TRADING_ENABLED. The
+	trader implementation is paper unless TRADING_MODE is literally
+	"live" — see config.resolveTradingMode for the safety semantics.
+	*/
 	var executor *exec.Service
 	if cfg.TradingEnabled {
 		var trader exec.TraderClient
@@ -305,14 +322,16 @@ func main() {
 		log.Fatalf("Failed to add weekly email cron job: %v", err)
 	}
 
-	// Auto-execution crons. Only registered when an executor exists
-	// (TRADING_ENABLED=true). Three jobs:
-	//   1. Every minute 9:30am-9:35am ET — auto-cancel any decision past
-	//      its 5-minute window. Tight window: pick fires at ~9:30am ET
-	//      so all timeouts land between 9:30 and 9:35.
-	//   2. 3:55pm ET on full-trading days — close any open position.
-	//   3. 12:55pm ET on half-day trading days — same close logic, just
-	//      earlier so we exit before the 1pm close.
+	/**
+	Auto-execution crons. Only registered when an executor exists
+	(TRADING_ENABLED=true). Three jobs:
+	  1. Every minute 9:30am-9:35am ET — auto-cancel any decision past
+	     its 5-minute window. Tight window: pick fires at ~9:30am ET
+	     so all timeouts land between 9:30 and 9:35.
+	  2. 3:55pm ET on full-trading days — close any open position.
+	  3. 12:55pm ET on half-day trading days — same close logic, just
+	     earlier so we exit before the 1pm close.
+	*/
 	if executor != nil {
 		ctxBg := context.Background()
 		_, err = c.AddFunc("30-59 9 * * 1-5", func() {
@@ -367,13 +386,15 @@ func main() {
 	log.Printf("Market close schedule: %s (ET)", cfg.CronScheduleClose)
 	log.Printf("Weekly email schedule: %s (ET)", cfg.CronScheduleWeekly)
 
-	// Clock-skew probe. The 3:55pm mandatory close cron + the 5-minute
-	// confirmation window both depend on the system clock matching
-	// real-world wall time. A drifted clock means the close cron fires
-	// at the wrong moment (overnight gap risk if late) or the
-	// confirmation window expires before the user's email even arrives
-	// (if early). Probe an external NTP-disciplined Date header and
-	// warn on >5s skew. Non-fatal — boot continues regardless.
+	/**
+	Clock-skew probe. The 3:55pm mandatory close cron + the 5-minute
+	confirmation window both depend on the system clock matching
+	real-world wall time. A drifted clock means the close cron fires
+	at the wrong moment (overnight gap risk if late) or the
+	confirmation window expires before the user's email even arrives
+	(if early). Probe an external NTP-disciplined Date header and
+	warn on >5s skew. Non-fatal — boot continues regardless.
+	*/
 	go checkClockSkew()
 
 	// Log current subscriber count
@@ -424,23 +445,28 @@ func getRecipients(db *store.Store) []string {
 	return emails
 }
 
-// unionPicks merges two independent pick sets (one per model) into a
-// single union of unique trades. When both models picked the same ticker
-// the row carries both models' scores and rationales and both picked_by
-// flags are set; the combined score is the average of the two non-zero
-// scores. When only one model picked a ticker the other model's score
-// stays at zero (no second-pass scoring) and the combined score is just
-// that model's score. Final ranks are computed by combined score desc,
-// with picks where BOTH models agreed boosted ahead of single-model
-// picks at the same combined score so consensus picks bubble to the top.
+/*
+*
+unionPicks merges two independent pick sets (one per model) into a
+single union of unique trades. When both models picked the same ticker
+the row carries both models' scores and rationales and both picked_by
+flags are set; the combined score is the average of the two non-zero
+scores. When only one model picked a ticker the other model's score
+stays at zero (no second-pass scoring) and the combined score is just
+that model's score. Final ranks are computed by combined score desc,
+with picks where BOTH models agreed boosted ahead of single-model
+picks at the same combined score so consensus picks bubble to the top.
+*/
 func unionPicks(openaiTrades, claudeTrades []trades.Trade) []trades.Trade {
 	bySymbol := make(map[string]*trades.Trade)
 
 	upsert := func(t trades.Trade) {
 		key := t.Symbol
 		if existing, ok := bySymbol[key]; ok {
-			// Merge: keep the row already in the map and overlay the
-			// fields the other model contributed.
+			/**
+			Merge: keep the row already in the map and overlay the
+			fields the other model contributed.
+			*/
 			if t.PickedByOpenAI {
 				existing.PickedByOpenAI = true
 				existing.GPTScore = t.GPTScore
@@ -455,17 +481,21 @@ func unionPicks(openaiTrades, claudeTrades []trades.Trade) []trades.Trade {
 				existing.ClaudeModel = t.ClaudeModel
 				existing.ClaudeRank = t.ClaudeRank
 			}
-			// Verdicts attach to a trade as part of the OTHER model's
-			// list, so each side may carry one. Preserve both when both
-			// sides supplied non-empty verdicts (consensus picks).
+			/**
+			Verdicts attach to a trade as part of the OTHER model's
+			list, so each side may carry one. Preserve both when both
+			sides supplied non-empty verdicts (consensus picks).
+			*/
 			if t.GPTVerdict != "" {
 				existing.GPTVerdict = t.GPTVerdict
 			}
 			if t.ClaudeVerdict != "" {
 				existing.ClaudeVerdict = t.ClaudeVerdict
 			}
-			// Prefer the more detailed contract data from whichever side
-			// supplied non-zero values, falling through to existing.
+			/**
+			Prefer the more detailed contract data from whichever side
+			supplied non-zero values, falling through to existing.
+			*/
 			if existing.EstimatedPrice == 0 && t.EstimatedPrice != 0 {
 				existing.EstimatedPrice = t.EstimatedPrice
 				existing.StrikePrice = t.StrikePrice
@@ -497,9 +527,11 @@ func unionPicks(openaiTrades, claudeTrades []trades.Trade) []trades.Trade {
 
 	out := make([]trades.Trade, 0, len(bySymbol))
 	for _, t := range bySymbol {
-		// Combined score is the average of the model scores that exist.
-		// A consensus pick (both > 0) gets a real average; a single-model
-		// pick gets just that model's score.
+		/**
+		Combined score is the average of the model scores that exist.
+		A consensus pick (both > 0) gets a real average; a single-model
+		pick gets just that model's score.
+		*/
 		var sum float64
 		var n int
 		if t.GPTScore > 0 {
@@ -517,17 +549,21 @@ func unionPicks(openaiTrades, claudeTrades []trades.Trade) []trades.Trade {
 	}
 
 	sort.SliceStable(out, func(i, j int) bool {
-		// Primary: consensus picks (both models independently chose the
-		// same ticker) ALWAYS rank above single-model-only picks. If two
-		// models agree on a trade it carries more conviction than any
-		// single model acting alone.
+		/**
+		Primary: consensus picks (both models independently chose the
+		same ticker) ALWAYS rank above single-model-only picks. If two
+		models agree on a trade it carries more conviction than any
+		single model acting alone.
+		*/
 		ci := out[i].PickedByOpenAI && out[i].PickedByClaude
 		cj := out[j].PickedByOpenAI && out[j].PickedByClaude
 		if ci != cj {
 			return ci
 		}
-		// Secondary: within the same consensus tier, sort by combined
-		// score descending.
+		/**
+		Secondary: within the same consensus tier, sort by combined
+		score descending.
+		*/
 		if out[i].CombinedScore != out[j].CombinedScore {
 			return out[i].CombinedScore > out[j].CombinedScore
 		}
@@ -556,12 +592,14 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 	}
 	log.Printf("Found %d trending tickers", len(sentimentData))
 
-	// Both pickers run the SAME workflow with the same prompt against
-	// the same raw sentiment data in parallel. Each independently
-	// produces up to 10 ranked trades; the cron then unions both pick
-	// sets so the dashboard can show every trade either model picked.
-	// Running in parallel gives each model the full wall-clock budget
-	// instead of splitting it, and halves total runtime in the happy path.
+	/**
+	Both pickers run the SAME workflow with the same prompt against
+	the same raw sentiment data in parallel. Each independently
+	produces up to 10 ranked trades; the cron then unions both pick
+	sets so the dashboard can show every trade either model picked.
+	Running in parallel gives each model the full wall-clock budget
+	instead of splitting it, and halves total runtime in the happy path.
+	*/
 	log.Printf("Analyzing trades with %s and %s in parallel...", gptDisplayName, claudeDisplayName)
 	var (
 		openaiTrades []trades.Trade
@@ -594,8 +632,10 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 	}
 	pWG.Wait()
 
-	// Only bail if BOTH pickers failed. A single-model run is still a
-	// valid morning email (the dual-model design is for redundancy).
+	/**
+	Only bail if BOTH pickers failed. A single-model run is still a
+	valid morning email (the dual-model design is for redundancy).
+	*/
 	bothFailed := gptErr != nil && (claudePicker == nil || claudeErr != nil)
 	if bothFailed {
 		log.Printf("Both pickers failed: %s=%v %s=%v", gptDisplayName, gptErr, claudeDisplayName, claudeErr)
@@ -603,12 +643,14 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 		return
 	}
 
-	// Cross-examination pass: once both models have independently picked,
-	// each reads the other's full pick list and writes a one-sentence
-	// verdict per trade. Verdicts are best-effort enrichment — if either
-	// call fails we ship the trades without commentary rather than block
-	// the morning email. Run in parallel since neither call depends on
-	// the other.
+	/**
+	Cross-examination pass: once both models have independently picked,
+	each reads the other's full pick list and writes a one-sentence
+	verdict per trade. Verdicts are best-effort enrichment — if either
+	call fails we ship the trades without commentary rather than block
+	the morning email. Run in parallel since neither call depends on
+	the other.
+	*/
 	if len(openaiTrades) > 0 && len(claudeTrades) > 0 {
 		log.Println("Running cross-examination pass...")
 		var (
@@ -642,10 +684,12 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 		}()
 		vWG.Wait()
 
-		// Verdicts attach to the trade in the OTHER model's list: GPT's
-		// verdict on a Claude pick rides with that Claude trade, and
-		// vice versa. Union below dedupes by symbol so consensus picks
-		// end up carrying both verdicts.
+		/**
+		Verdicts attach to the trade in the OTHER model's list: GPT's
+		verdict on a Claude pick rides with that Claude trade, and
+		vice versa. Union below dedupes by symbol so consensus picks
+		end up carrying both verdicts.
+		*/
 		for i := range claudeTrades {
 			if v, ok := gptVerdicts[claudeTrades[i].Symbol]; ok {
 				claudeTrades[i].GPTVerdict = v
@@ -674,12 +718,14 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 	}
 	log.Printf("Saved %d trades to database for %s", len(topTrades), date)
 
-	// Auto-execution gate: only runs if TRADING_ENABLED. Selector is
-	// intentionally narrow (both models picked it, both ranked it #1,
-	// premium ≤ $5/share = $500/contract). On a qualifying pick the
-	// service mints a 5-minute decision row, sends the confirmation
-	// email, and returns; the cancel-on-timeout cron + the user's
-	// click flow drive the rest.
+	/**
+	Auto-execution gate: only runs if TRADING_ENABLED. Selector is
+	intentionally narrow (both models picked it, both ranked it #1,
+	premium ≤ $5/share = $500/contract). On a qualifying pick the
+	service mints a 5-minute decision row, sends the confirmation
+	email, and returns; the cancel-on-timeout cron + the user's
+	click flow drive the rest.
+	*/
 	if executor != nil {
 		if pick, ok := exec.QualifyingPick(topTrades); ok {
 			log.Printf("execution: qualifying pick found — %s %s @ %.2f (gpt_rank=%d, claude_rank=%d, gpt_score=%d, claude_score=%d)",
@@ -693,9 +739,11 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 		}
 	}
 
-	// Convert to template trades, carrying the dual-model scores and
-	// rationales through so the morning email can render the same
-	// per-pick analysis the website shows.
+	/**
+	Convert to template trades, carrying the dual-model scores and
+	rationales through so the morning email can render the same
+	per-pick analysis the website shows.
+	*/
 	templateTrades := make([]templates.Trade, len(topTrades))
 	for i, t := range topTrades {
 		templateTrades[i] = templates.Trade{
@@ -726,8 +774,10 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 		}
 	}
 
-	// Render email template — including yesterday's results recap if the
-	// EOD cron from the prior trading day saved any summaries we can read.
+	/**
+	Render email template — including yesterday's results recap if the
+	EOD cron from the prior trading day saved any summaries we can read.
+	*/
 	yesterdayRecap := buildYesterdayRecap(db, date)
 	htmlContent, err := templates.RenderEmail(templateTrades, gptDisplayName, claudeDisplayName, yesterdayRecap)
 	if err != nil {
@@ -754,10 +804,13 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 	log.Println("Trade analysis complete and email sent!")
 }
 
-// buildYesterdayRecap finds the most recent trading day before todayDate
-// that has EOD summaries and returns a digest for the morning email's
-// recap card. Returns nil if no prior summaries exist (first send,
-// EOD cron failed for the previous day, etc.).
+/*
+*
+buildYesterdayRecap finds the most recent trading day before todayDate
+that has EOD summaries and returns a digest for the morning email's
+recap card. Returns nil if no prior summaries exist (first send,
+EOD cron failed for the previous day, etc.).
+*/
 func buildYesterdayRecap(db *store.Store, todayDate string) *templates.YesterdayRecap {
 	dates, err := db.GetTradeDates(10)
 	if err != nil {
@@ -1044,9 +1097,11 @@ func runEndOfDayAnalysis(cfg *config.Config, db *store.Store, analyzer *trades.A
 		log.Printf("Error saving summaries to database: %v", err)
 	}
 
-	// Build a per-contract lookup that carries the rank AND each model's
-	// score from the morning save, so the EOD email can attribute every
-	// summary back to which model rated it highly.
+	/**
+	Build a per-contract lookup that carries the rank AND each model's
+	score from the morning save, so the EOD email can attribute every
+	summary back to which model rated it highly.
+	*/
 	type morningMeta struct {
 		Rank          int
 		GPTScore      int
@@ -1064,9 +1119,11 @@ func runEndOfDayAnalysis(cfg *config.Config, db *store.Store, analyzer *trades.A
 		}
 	}
 
-	// Convert to template summary trades, carrying the dual-model scores
-	// alongside the realised P&L so the EOD email can show a per-model
-	// attribution column and the leaderboard at the top.
+	/**
+	Convert to template summary trades, carrying the dual-model scores
+	alongside the realised P&L so the EOD email can show a per-model
+	attribution column and the leaderboard at the top.
+	*/
 	templateSummaries := make([]templates.SummaryTrade, len(summaries))
 	for i, s := range summaries {
 		key := s.Symbol + "|" + s.ContractType + "|" + fmt.Sprintf("%.2f", s.StrikePrice)

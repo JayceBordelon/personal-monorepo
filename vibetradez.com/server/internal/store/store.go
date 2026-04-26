@@ -516,10 +516,13 @@ func (s *Store) GetOAuthToken(provider string) (accessToken, refreshToken string
 	return
 }
 
-// LinkSubscriberAuthUser attaches an upstream auth user id to any
-// subscriber row matching this email that isn't linked yet. Does NOT
-// touch active or unsubscribed_at — users who previously opted out
-// stay opted out.
+/*
+*
+LinkSubscriberAuthUser attaches an upstream auth user id to any
+subscriber row matching this email that isn't linked yet. Does NOT
+touch active or unsubscribed_at — users who previously opted out
+stay opted out.
+*/
 func (s *Store) LinkSubscriberAuthUser(authUserID int64, email string) error {
 	_, err := s.db.Exec(`
 		UPDATE subscribers SET auth_user_id = $1

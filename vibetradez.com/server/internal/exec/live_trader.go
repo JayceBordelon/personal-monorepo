@@ -18,13 +18,16 @@ import (
 // traderBase is the prefix for all Schwab Trader API endpoints.
 const traderBase = "https://api.schwabapi.com/trader/v1"
 
-// LiveTrader implements exec.TraderClient against the real Schwab Trader
-// API. Construction does NOT make any network calls; the first call to
-// AccountHash discovers and caches the account hash. All write
-// operations (PlaceOrder / CancelOrder) require the user to have
-// authorized the "Accounts and Trading" Schwab product, which may
-// require re-running the OAuth flow if the original consent only
-// covered Market Data.
+/*
+*
+LiveTrader implements exec.TraderClient against the real Schwab Trader
+API. Construction does NOT make any network calls; the first call to
+AccountHash discovers and caches the account hash. All write
+operations (PlaceOrder / CancelOrder) require the user to have
+authorized the "Accounts and Trading" Schwab product, which may
+require re-running the OAuth flow if the original consent only
+covered Market Data.
+*/
 type LiveTrader struct {
 	c *schwab.Client
 
@@ -82,9 +85,11 @@ func (lt *LiveTrader) PlaceOrder(ctx context.Context, accountHash string, order 
 	defer func() { _ = resp.Body.Close() }()
 	respBody, _ := io.ReadAll(resp.Body)
 
-	// Schwab returns 201 Created with the new order id in the Location
-	// header (last path segment). 200 also surfaces as success on some
-	// account types. Anything else is a broker-side rejection.
+	/**
+	Schwab returns 201 Created with the new order id in the Location
+	header (last path segment). 200 also surfaces as success on some
+	account types. Anything else is a broker-side rejection.
+	*/
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("place order HTTP %d: %s", resp.StatusCode, string(respBody))
 	}

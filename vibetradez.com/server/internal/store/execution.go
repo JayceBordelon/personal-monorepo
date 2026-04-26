@@ -12,10 +12,13 @@ import (
 // ErrNoDecision is returned by GetDecision when no row matches.
 var ErrNoDecision = errors.New("no decision found")
 
-// InsertDecision creates the daily go/no-go row. Returns the new row's
-// id. Fails (UNIQUE violation) if a decision already exists for
-// trade_date, which is the schema-level guard against firing twice in a
-// day.
+/*
+*
+InsertDecision creates the daily go/no-go row. Returns the new row's
+id. Fails (UNIQUE violation) if a decision already exists for
+trade_date, which is the schema-level guard against firing twice in a
+day.
+*/
 func (s *Store) InsertDecision(d exec.Decision) (int, error) {
 	var id int
 	err := s.db.QueryRow(`
@@ -62,9 +65,12 @@ func (s *Store) GetDecision(id int) (*exec.Decision, error) {
 	return &d, nil
 }
 
-// GetDecisionByDate returns the (at most one) decision for a trade
-// date, regardless of status. Returns ErrNoDecision if none exists.
-// Used by the cancel-all kill switch to find what's currently in flight.
+/*
+*
+GetDecisionByDate returns the (at most one) decision for a trade
+date, regardless of status. Returns ErrNoDecision if none exists.
+Used by the cancel-all kill switch to find what's currently in flight.
+*/
 func (s *Store) GetDecisionByDate(date string) (*exec.Decision, error) {
 	var id int
 	err := s.db.QueryRow(`SELECT id FROM execution_decisions WHERE trade_date = $1`, date).Scan(&id)
@@ -77,11 +83,14 @@ func (s *Store) GetDecisionByDate(date string) (*exec.Decision, error) {
 	return s.GetDecision(id)
 }
 
-// ForceSetDecisionStatus updates a decision's status WITHOUT the
-// pending-only guard that SetDecisionStatus enforces. Reserved for the
-// cancel-all kill switch which needs to terminate decisions already in
-// 'execute' state. Caller is responsible for ensuring this is only
-// invoked from authorized paths.
+/*
+*
+ForceSetDecisionStatus updates a decision's status WITHOUT the
+pending-only guard that SetDecisionStatus enforces. Reserved for the
+cancel-all kill switch which needs to terminate decisions already in
+'execute' state. Caller is responsible for ensuring this is only
+invoked from authorized paths.
+*/
 func (s *Store) ForceSetDecisionStatus(id int, newStatus string) error {
 	_, err := s.db.Exec(`
 		UPDATE execution_decisions
@@ -94,10 +103,13 @@ func (s *Store) ForceSetDecisionStatus(id int, newStatus string) error {
 	return nil
 }
 
-// SetDecisionStatus transitions a decision's status atomically. The
-// transition fails (returns ErrDecisionNotPending) if the current value
-// isn't 'pending' — this is the single-use enforcement: a token can only
-// move a decision out of pending state once.
+/*
+*
+SetDecisionStatus transitions a decision's status atomically. The
+transition fails (returns ErrDecisionNotPending) if the current value
+isn't 'pending' — this is the single-use enforcement: a token can only
+move a decision out of pending state once.
+*/
 func (s *Store) SetDecisionStatus(id int, newStatus string) error {
 	res, err := s.db.Exec(`
 		UPDATE execution_decisions
@@ -114,13 +126,19 @@ func (s *Store) SetDecisionStatus(id int, newStatus string) error {
 	return nil
 }
 
-// ErrDecisionNotPending is returned when a state transition is attempted
-// on a decision that has already been decided.
+/*
+*
+ErrDecisionNotPending is returned when a state transition is attempted
+on a decision that has already been decided.
+*/
 var ErrDecisionNotPending = errors.New("decision is no longer pending")
 
-// PendingDecisions returns all decisions still awaiting user action.
-// Used by the auto-cancel cron to find decisions whose 5-minute window
-// has elapsed.
+/*
+*
+PendingDecisions returns all decisions still awaiting user action.
+Used by the auto-cancel cron to find decisions whose 5-minute window
+has elapsed.
+*/
 func (s *Store) PendingDecisions() ([]exec.Decision, error) {
 	rows, err := s.db.Query(`
 		SELECT id, trade_date, symbol, contract_type, strike_price, expiration,
@@ -147,9 +165,12 @@ func (s *Store) PendingDecisions() ([]exec.Decision, error) {
 	return out, rows.Err()
 }
 
-// InsertExecution records an order submission (paper or live). Returns
-// the new row id. The caller is responsible for setting Status correctly
-// based on the trader's response.
+/*
+*
+InsertExecution records an order submission (paper or live). Returns
+the new row id. The caller is responsible for setting Status correctly
+based on the trader's response.
+*/
 func (s *Store) InsertExecution(e exec.Execution) (int, error) {
 	var id int
 	err := s.db.QueryRow(`
@@ -168,8 +189,11 @@ func (s *Store) InsertExecution(e exec.Execution) (int, error) {
 	return id, nil
 }
 
-// UpdateExecutionStatus updates fill state on an existing execution row.
-// Used as orders progress from working → filled (or canceled / failed).
+/*
+*
+UpdateExecutionStatus updates fill state on an existing execution row.
+Used as orders progress from working → filled (or canceled / failed).
+*/
 func (s *Store) UpdateExecutionStatus(id int, status string, fillPrice *float64, filledQty int, errMsg string) error {
 	_, err := s.db.Exec(`
 		UPDATE executions
@@ -218,9 +242,12 @@ func (s *Store) GetExecution(id int) (*exec.Execution, error) {
 	return &e, nil
 }
 
-// OpenPositionsForDate returns decisions for the given trade_date that
-// have a filled open execution but no filled close execution. Used by
-// the 3:55pm cron to find what needs to be closed.
+/*
+*
+OpenPositionsForDate returns decisions for the given trade_date that
+have a filled open execution but no filled close execution. Used by
+the 3:55pm cron to find what needs to be closed.
+*/
 func (s *Store) OpenPositionsForDate(tradeDate string) ([]exec.Decision, error) {
 	rows, err := s.db.Query(`
 		SELECT d.id, d.trade_date, d.symbol, d.contract_type, d.strike_price, d.expiration,
@@ -256,11 +283,14 @@ func (s *Store) OpenPositionsForDate(tradeDate string) ([]exec.Decision, error) 
 	return out, rows.Err()
 }
 
-// OpenExecutionForDecision returns the most recent open-side execution
-// for a decision (filled or otherwise). Used by the close cron to
-// recover the actual entry fill price for accurate realized-P&L
-// computation in live mode (where slippage means the open fill can
-// diverge from decision.ContractPrice).
+/*
+*
+OpenExecutionForDecision returns the most recent open-side execution
+for a decision (filled or otherwise). Used by the close cron to
+recover the actual entry fill price for accurate realized-P&L
+computation in live mode (where slippage means the open fill can
+diverge from decision.ContractPrice).
+*/
 func (s *Store) OpenExecutionForDecision(decisionID int) (*exec.Execution, error) {
 	var e exec.Execution
 	var schwabOrderID sql.NullString
@@ -297,9 +327,12 @@ func (s *Store) OpenExecutionForDecision(decisionID int) (*exec.Execution, error
 	return &e, nil
 }
 
-// LiveExecutionsForDecision returns every execution row for a decision
-// that's NOT in a terminal state — i.e. still pending or working at the
-// broker. Used by the cancel-all kill switch to find what to cancel.
+/*
+*
+LiveExecutionsForDecision returns every execution row for a decision
+that's NOT in a terminal state — i.e. still pending or working at the
+broker. Used by the cancel-all kill switch to find what to cancel.
+*/
 func (s *Store) LiveExecutionsForDecision(decisionID int) ([]exec.Execution, error) {
 	rows, err := s.db.Query(`
 		SELECT id, decision_id, mode, side, schwab_order_id, status,
@@ -341,8 +374,11 @@ func (s *Store) LiveExecutionsForDecision(decisionID int) ([]exec.Execution, err
 	return out, rows.Err()
 }
 
-// nullableInt converts a zero int to a SQL NULL so the trade_id FK is
-// stored as NULL when the caller doesn't have a backing trade row yet.
+/*
+*
+nullableInt converts a zero int to a SQL NULL so the trade_id FK is
+stored as NULL when the caller doesn't have a backing trade row yet.
+*/
 func nullableInt(v int) any {
 	if v == 0 {
 		return nil
@@ -350,13 +386,16 @@ func nullableInt(v int) any {
 	return v
 }
 
-// ExecutionView is the lightweight projection surfaced to the public
-// dashboard/history/trade-detail UI when Jayce has taken a position
-// (paper or live) on a trade. Joins execution_decisions + the open
-// execution row + the optional close execution row into a single shape
-// the frontend can render a badge from. State is derived server-side
-// so the client never has to reason about partial fills or the close
-// cron's lifecycle.
+/*
+*
+ExecutionView is the lightweight projection surfaced to the public
+dashboard/history/trade-detail UI when Jayce has taken a position
+(paper or live) on a trade. Joins execution_decisions + the open
+execution row + the optional close execution row into a single shape
+the frontend can render a badge from. State is derived server-side
+so the client never has to reason about partial fills or the close
+cron's lifecycle.
+*/
 type ExecutionView struct {
 	Mode         string     `json:"mode"`  // paper | live
 	State        string     `json:"state"` // holding | closed | failed
@@ -370,11 +409,14 @@ type ExecutionView struct {
 	ClosedAt     *time.Time `json:"closed_at,omitempty"`   // when close filled
 }
 
-// GetExecutionForDate returns the execution view for a single trade
-// date, or nil if no decision was confirmed that day. Paper and live
-// are both surfaced — the Mode field carries the distinction. Pending,
-// declined, and timeout decisions do NOT surface (no position was
-// actually taken, so there's nothing to be transparent about).
+/*
+*
+GetExecutionForDate returns the execution view for a single trade
+date, or nil if no decision was confirmed that day. Paper and live
+are both surfaced — the Mode field carries the distinction. Pending,
+declined, and timeout decisions do NOT surface (no position was
+actually taken, so there's nothing to be transparent about).
+*/
 func (s *Store) GetExecutionForDate(date string) (*ExecutionView, error) {
 	row := s.db.QueryRow(`
 		SELECT
@@ -401,9 +443,12 @@ func (s *Store) GetExecutionForDate(date string) (*ExecutionView, error) {
 	return v, err
 }
 
-// GetExecutionsForDateRange returns a map of trade_date → ExecutionView
-// for the history/week view. Only dates with confirmed executions appear
-// in the map; days where no qualifying pick existed are simply absent.
+/*
+*
+GetExecutionsForDateRange returns a map of trade_date → ExecutionView
+for the history/week view. Only dates with confirmed executions appear
+in the map; days where no qualifying pick existed are simply absent.
+*/
 func (s *Store) GetExecutionsForDateRange(start, end string) (map[string]*ExecutionView, error) {
 	rows, err := s.db.Query(`
 		SELECT
@@ -456,10 +501,12 @@ func (s *Store) GetExecutionsForDateRange(start, end string) (map[string]*Execut
 		if v.State == "closed" && v.OpenPrice > 0 && v.ClosePrice > 0 {
 			v.RealizedPnL = (v.ClosePrice - v.OpenPrice) * 100
 		}
-		// Only surface dates where a real position was taken (skip
-		// failed/pending). The state derivation already filtered out
-		// non-execute decisions via the WHERE clause; here we drop the
-		// row if the open never filled.
+		/**
+		Only surface dates where a real position was taken (skip
+		failed/pending). The state derivation already filtered out
+		non-execute decisions via the WHERE clause; here we drop the
+		row if the open never filled.
+		*/
 		if v.State == "" {
 			continue
 		}
@@ -468,8 +515,11 @@ func (s *Store) GetExecutionsForDateRange(start, end string) (map[string]*Execut
 	return out, rows.Err()
 }
 
-// scanExecutionView reads a single ExecutionView row from a *sql.Row.
-// Shared between the date and range queries.
+/*
+*
+scanExecutionView reads a single ExecutionView row from a *sql.Row.
+Shared between the date and range queries.
+*/
 func scanExecutionView(row *sql.Row) (*ExecutionView, error) {
 	v := &ExecutionView{}
 	var openStatus string
@@ -501,10 +551,13 @@ func scanExecutionView(row *sql.Row) (*ExecutionView, error) {
 	return v, nil
 }
 
-// deriveExecutionState collapses the open/close status pair into the
-// single string the frontend renders. Returns empty string when the
-// open never reached a terminal-or-filled state — caller treats that
-// as "no position to surface".
+/*
+*
+deriveExecutionState collapses the open/close status pair into the
+single string the frontend renders. Returns empty string when the
+open never reached a terminal-or-filled state — caller treats that
+as "no position to surface".
+*/
 func deriveExecutionState(openStatus string, closeStatus sql.NullString) string {
 	switch openStatus {
 	case "filled":

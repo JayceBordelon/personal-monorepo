@@ -52,8 +52,10 @@ func TestVerifyRejectsTamperedPayload(t *testing.T) {
 	if len(parts) != 2 {
 		t.Fatalf("malformed mint output")
 	}
-	// Flip a character in the payload — keeping the same length so base64
-	// still decodes — and verify the signature mismatch fires.
+	/**
+	Flip a character in the payload — keeping the same length so base64
+	still decodes — and verify the signature mismatch fires.
+	*/
 	tampered := flipFirstChar(parts[0]) + "." + parts[1]
 	if _, _, err := Verify(tampered, secret); err == nil {
 		t.Fatal("expected signature mismatch on tampered payload")
@@ -109,8 +111,11 @@ func TestTokenHashIsDeterministicAndDifferentPerToken(t *testing.T) {
 	}
 }
 
-// flipFirstChar swaps the first base64url character so the slice still
-// decodes but produces different bytes — useful for tamper tests.
+/*
+*
+flipFirstChar swaps the first base64url character so the slice still
+decodes but produces different bytes — useful for tamper tests.
+*/
 func flipFirstChar(s string) string {
 	if len(s) == 0 {
 		return s

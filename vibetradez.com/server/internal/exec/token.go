@@ -1,8 +1,11 @@
-// Package exec implements the guarded auto-execution pipeline:
-// pick-of-day selection, HMAC-signed confirmation tokens, paper/live
-// order placement, and the 3:55pm ET mandatory close. The package is
-// dormant unless TRADING_ENABLED=true; even then, all order paths route
-// through the PaperTrader implementation unless TRADING_MODE=live.
+/*
+*
+Package exec implements the guarded auto-execution pipeline:
+pick-of-day selection, HMAC-signed confirmation tokens, paper/live
+order placement, and the 3:55pm ET mandatory close. The package is
+dormant unless TRADING_ENABLED=true; even then, all order paths route
+through the PaperTrader implementation unless TRADING_MODE=live.
+*/
 package exec
 
 import (
@@ -26,10 +29,13 @@ const (
 	ActionDecline Action = "decline"
 )
 
-// tokenPayload is the JSON serialized into the first half of a signed
-// token. nonce gives every (decision_id, action) pair a unique signature
-// so two emails with the same decision can't share a token, and exp lets
-// verifiers reject expired tokens without a DB hit.
+/*
+*
+tokenPayload is the JSON serialized into the first half of a signed
+token. nonce gives every (decision_id, action) pair a unique signature
+so two emails with the same decision can't share a token, and exp lets
+verifiers reject expired tokens without a DB hit.
+*/
 type tokenPayload struct {
 	DecisionID int    `json:"d"`
 	Action     Action `json:"a"`
@@ -37,11 +43,14 @@ type tokenPayload struct {
 	ExpiresAt  int64  `json:"e"` // unix seconds
 }
 
-// Mint produces a single-use signed token for (decisionID, action) that
-// expires at expiresAt. The returned string is URL-safe and contains no
-// secret material — only the payload + an HMAC-SHA256 tag. The hash of
-// the token (TokenHash) must be persisted on the decision row to enforce
-// single-use semantics; the plaintext token must NEVER be persisted.
+/*
+*
+Mint produces a single-use signed token for (decisionID, action) that
+expires at expiresAt. The returned string is URL-safe and contains no
+secret material — only the payload + an HMAC-SHA256 tag. The hash of
+the token (TokenHash) must be persisted on the decision row to enforce
+single-use semantics; the plaintext token must NEVER be persisted.
+*/
 func Mint(decisionID int, action Action, expiresAt time.Time, secret []byte) (string, error) {
 	if action != ActionExecute && action != ActionDecline {
 		return "", fmt.Errorf("invalid action %q", action)
@@ -74,10 +83,13 @@ func Mint(decisionID int, action Action, expiresAt time.Time, secret []byte) (st
 	return enc.EncodeToString(raw) + "." + enc.EncodeToString(tag), nil
 }
 
-// Verify parses and validates a token. It checks the HMAC tag with
-// constant-time comparison, the action whitelist, and the embedded
-// expiry. It does NOT check single-use status — that must be done by
-// the caller against the persisted token_hash on the decision row.
+/*
+*
+Verify parses and validates a token. It checks the HMAC tag with
+constant-time comparison, the action whitelist, and the embedded
+expiry. It does NOT check single-use status — that must be done by
+the caller against the persisted token_hash on the decision row.
+*/
 func Verify(token string, secret []byte) (decisionID int, action Action, err error) {
 	if len(secret) < 32 {
 		return 0, "", errors.New("secret must be at least 32 bytes")
@@ -116,10 +128,13 @@ func Verify(token string, secret []byte) (decisionID int, action Action, err err
 	return payload.DecisionID, payload.Action, nil
 }
 
-// TokenHash is the value persisted on the decision row to detect token
-// reuse without storing the token itself. Two distinct tokens for the
-// same decision (e.g. the execute and decline tokens) hash differently
-// so each is independently single-use.
+/*
+*
+TokenHash is the value persisted on the decision row to detect token
+reuse without storing the token itself. Two distinct tokens for the
+same decision (e.g. the execute and decline tokens) hash differently
+so each is independently single-use.
+*/
 func TokenHash(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])

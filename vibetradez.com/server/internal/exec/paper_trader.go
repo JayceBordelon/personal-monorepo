@@ -11,28 +11,36 @@ import (
 	"time"
 )
 
-// MarkLookup is the slice of schwab.Client that PaperTrader needs.
-// Defined as an interface so unit tests can fake it. The real schwab
-// package implements this via Client.GetOptionMark (added below) which
-// wraps the existing GetOptionChain.
+/*
+*
+MarkLookup is the slice of schwab.Client that PaperTrader needs.
+Defined as an interface so unit tests can fake it. The real schwab
+package implements this via Client.GetOptionMark (added below) which
+wraps the existing GetOptionChain.
+*/
 type MarkLookup interface {
-	// OptionMark returns the current mark price for the option contract
-	// matching (symbol, expiration, contractType, strike). Used to
-	// synthesize a paper fill at the prevailing market price.
+	/**
+	OptionMark returns the current mark price for the option contract
+	matching (symbol, expiration, contractType, strike). Used to
+	synthesize a paper fill at the prevailing market price.
+	*/
 	OptionMark(ctx context.Context, symbol, expiration, contractType string, strike float64) (float64, error)
 }
 
-// PaperTrader simulates order execution without touching the Schwab
-// Trader API. It is the default for TRADING_MODE=paper (which is the
-// default mode itself). PlaceOrder fills immediately at the current
-// mark price; GetOrder reads back the synthetic fill state from an
-// in-memory map keyed by the synthetic order id.
-//
-// State is in-memory and does NOT survive process restart — but the
-// load-bearing state (decision row + executions row) lives in
-// Postgres, so a restart between PlaceOrder and GetOrder is fine: the
-// caller has already written 'filled' status to executions before
-// calling GetOrder.
+/*
+*
+PaperTrader simulates order execution without touching the Schwab
+Trader API. It is the default for TRADING_MODE=paper (which is the
+default mode itself). PlaceOrder fills immediately at the current
+mark price; GetOrder reads back the synthetic fill state from an
+in-memory map keyed by the synthetic order id.
+
+State is in-memory and does NOT survive process restart — but the
+load-bearing state (decision row + executions row) lives in
+Postgres, so a restart between PlaceOrder and GetOrder is fine: the
+caller has already written 'filled' status to executions before
+calling GetOrder.
+*/
 type PaperTrader struct {
 	marks MarkLookup
 
@@ -68,8 +76,10 @@ func (pt *PaperTrader) PlaceOrder(ctx context.Context, _ string, order Order) (s
 	leg := order.OrderLegCollection[0]
 	occ := leg.Instrument.Symbol
 
-	// Decode the OCC symbol back to (symbol, expiration, kind, strike) so
-	// we can look up the mark.
+	/**
+	Decode the OCC symbol back to (symbol, expiration, kind, strike) so
+	we can look up the mark.
+	*/
 	sym, exp, kind, strike, err := decodeOCCSymbol(occ)
 	if err != nil {
 		return "", fmt.Errorf("paper: decode OCC: %w", err)
@@ -77,10 +87,12 @@ func (pt *PaperTrader) PlaceOrder(ctx context.Context, _ string, order Order) (s
 
 	mark, err := pt.marks.OptionMark(ctx, sym, exp, kind, strike)
 	if err != nil {
-		// Paper-mode honesty: if the live mark lookup fails, we don't
-		// pretend to fill. The execution row gets recorded as 'failed'
-		// by the caller and the close cron simply has no position to
-		// close. Better than fabricating a fill price.
+		/**
+		Paper-mode honesty: if the live mark lookup fails, we don't
+		pretend to fill. The execution row gets recorded as 'failed'
+		by the caller and the close cron simply has no position to
+		close. Better than fabricating a fill price.
+		*/
 		id := newPaperOrderID()
 		pt.mu.Lock()
 		pt.orders[id] = paperOrder{
@@ -156,10 +168,13 @@ func newPaperOrderID() string {
 	return "paper-" + hex.EncodeToString(b)
 }
 
-// decodeOCCSymbol is the inverse of OCCSymbol — used by the paper
-// trader to recover the (symbol, expiration, kind, strike) it needs to
-// look up a fill price. Live trader doesn't need this since it submits
-// the OCC string and Schwab handles everything.
+/*
+*
+decodeOCCSymbol is the inverse of OCCSymbol — used by the paper
+trader to recover the (symbol, expiration, kind, strike) it needs to
+look up a fill price. Live trader doesn't need this since it submits
+the OCC string and Schwab handles everything.
+*/
 func decodeOCCSymbol(occ string) (symbol, expiration, kind string, strike float64, err error) {
 	if len(occ) != 21 {
 		return "", "", "", 0, fmt.Errorf("OCC symbol must be 21 chars, got %d", len(occ))

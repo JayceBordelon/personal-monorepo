@@ -172,11 +172,14 @@ func (c *Client) GetQuotes(symbols []string) (map[string]StockQuote, error) {
 	return result, nil
 }
 
-// OptionMark returns the current mark price for a single option
-// contract, or the bid-ask midpoint if mark is missing. Used by the
-// auto-execution paper trader to synthesize a fill at the prevailing
-// market price. Wraps GetOptionChain (which is cached 15s) and scans
-// for the matching strike.
+/*
+*
+OptionMark returns the current mark price for a single option
+contract, or the bid-ask midpoint if mark is missing. Used by the
+auto-execution paper trader to synthesize a fill at the prevailing
+market price. Wraps GetOptionChain (which is cached 15s) and scans
+for the matching strike.
+*/
 func (c *Client) OptionMark(_ context.Context, symbol, expiration, contractType string, strike float64) (float64, error) {
 	chain, err := c.GetOptionChain(symbol, contractType, expiration, expiration, strike)
 	if err != nil {
@@ -260,8 +263,11 @@ func (c *Client) GetOptionChain(symbol, contractType, fromDate, toDate string, s
 	return chain, nil
 }
 
-// GetPriceHistory fetches OHLCV candle data for a symbol.
-// periodType: "day","month","year","ytd". frequencyType: "minute","daily","weekly","monthly".
+/*
+*
+GetPriceHistory fetches OHLCV candle data for a symbol.
+periodType: "day","month","year","ytd". frequencyType: "minute","daily","weekly","monthly".
+*/
 func (c *Client) GetPriceHistory(symbol, periodType string, period int, frequencyType string, frequency int) ([]Candle, error) {
 	cacheKey := fmt.Sprintf("history:%s:%s:%d:%s:%d", symbol, periodType, period, frequencyType, frequency)
 	if cached, ok := cacheGet(cacheKey); ok {

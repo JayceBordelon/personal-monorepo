@@ -2,11 +2,14 @@ package exec
 
 import "time"
 
-// Decision is one row of the daily go/no-go pipeline. There is at most
-// one Decision per trade_date by schema constraint. Decisions start as
-// 'pending', then transition to 'execute' (user clicked Execute within
-// the 5-minute window), 'decline' (user clicked Don't Execute), or
-// 'timeout' (window expired without a click).
+/*
+*
+Decision is one row of the daily go/no-go pipeline. There is at most
+one Decision per trade_date by schema constraint. Decisions start as
+'pending', then transition to 'execute' (user clicked Execute within
+the 5-minute window), 'decline' (user clicked Don't Execute), or
+'timeout' (window expired without a click).
+*/
 type Decision struct {
 	ID            int
 	TradeDate     string // YYYY-MM-DD ET
@@ -26,11 +29,14 @@ type Decision struct {
 	CreatedAt     time.Time
 }
 
-// Execution is one order lifecycle. A Decision with decision='execute'
-// has exactly one Execution with side='open'. If the open fills, the
-// 3:55pm cron creates a second Execution with side='close'. PaperTrader
-// fills are synthetic (no SchwabOrderID); LiveTrader fills carry the
-// Schwab order id.
+/*
+*
+Execution is one order lifecycle. A Decision with decision='execute'
+has exactly one Execution with side='open'. If the open fills, the
+3:55pm cron creates a second Execution with side='close'. PaperTrader
+fills are synthetic (no SchwabOrderID); LiveTrader fills carry the
+Schwab order id.
+*/
 type Execution struct {
 	ID                int
 	DecisionID        int
