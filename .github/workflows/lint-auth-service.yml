@@ -1,0 +1,57 @@
+name: Lint / Auth Service
+
+on:
+  workflow_call:
+    inputs:
+      project_path:
+        required: true
+        type: string
+    outputs:
+      status:
+        description: "Lint status"
+        value: ${{ jobs.lint.outputs.status }}
+      error:
+        description: "Lint error message"
+        value: ${{ jobs.lint.outputs.error }}
+
+jobs:
+  lint:
+    name: Go Linting (auth.jaycebordelon.com)
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.lint_status.outputs.status }}
+      error: ${{ steps.lint_status.outputs.error }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Go linters
+        id: lint_run
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ inputs.project_path }}
+
+            # Ensure Go 1.23+ is available (install to ~/go1.23 if needed)
+            export PATH=$HOME/go1.23/bin:$PATH
+            if ! go version 2>/dev/null | grep -qE 'go1\.(2[3-9]|[3-9][0-9])'; then
+              mkdir -p $HOME/go1.23
+              curl -sL https://go.dev/dl/go1.23.6.linux-amd64.tar.gz | tar -C $HOME/go1.23 --strip-components=1 -xzf -
+            fi
+
+            cd auth.jaycebordelon.com && golangci-lint run ./...
+
+      - name: Set lint status
+        id: lint_status
+        if: always()
+        run: |
+          if [ "${{ steps.lint_run.outcome }}" == "success" ]; then
+            echo "status=✓ PASSED" >> $GITHUB_OUTPUT
+            echo "error=" >> $GITHUB_OUTPUT
+          else
+            echo "status=✗ FAILED" >> $GITHUB_OUTPUT
+            echo "error=Auth service linting failed - check Go lint output" >> $GITHUB_OUTPUT
+          fi

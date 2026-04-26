@@ -47,11 +47,20 @@ jobs:
     with:
       project_path: /home/jayce/jaycestuff
 
+  lint_auth_service:
+    name: Lint / Auth Service
+    needs: sync
+    if: success()
+    uses: ./.github/workflows/lint-auth-service.yml
+    secrets: inherit
+    with:
+      project_path: /home/jayce/jaycestuff
+
   # ── Build (single compose invocation, waits on all lints) ─────────
 
   build:
     name: Build
-    needs: [lint_portfolio, lint_trading_frontend, lint_trading_server]
+    needs: [lint_portfolio, lint_trading_frontend, lint_trading_server, lint_auth_service]
     if: success()
     uses: ./.github/workflows/build.yml
     secrets: inherit
