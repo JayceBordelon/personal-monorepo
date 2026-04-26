@@ -3,8 +3,8 @@ module auth.jaycebordelon.com
 go 1.25.0
 
 require (
-	github.com/lib/pq v1.10.9
-	golang.org/x/crypto v0.42.0
+	github.com/lib/pq v1.12.3
+	golang.org/x/crypto v0.50.0
 	golang.org/x/oauth2 v0.36.0
 )
 
