@@ -27,11 +27,15 @@ const confirmationWindow = 5 * time.Minute
 type DecisionStore interface {
 	InsertDecision(d Decision) (int, error)
 	GetDecision(id int) (*Decision, error)
+	GetDecisionByDate(date string) (*Decision, error)
 	SetDecisionStatus(id int, status string) error
+	ForceSetDecisionStatus(id int, status string) error
 	PendingDecisions() ([]Decision, error)
 	InsertExecution(e Execution) (int, error)
 	UpdateExecutionStatus(id int, status string, fillPrice *float64, filledQty int, errMsg string) error
 	GetExecution(id int) (*Execution, error)
+	OpenExecutionForDecision(decisionID int) (*Execution, error)
+	LiveExecutionsForDecision(decisionID int) ([]Execution, error)
 	OpenPositionsForDate(date string) ([]Decision, error)
 }
 
@@ -446,17 +450,13 @@ func (s *Service) recordCloseAndEmail(ctx context.Context, d *Decision, execID i
 	}
 }
 
-// findOpenExecution locates the open-side execution for a decision.
-// Implementations could expose a dedicated DB method; for now we walk
-// recent executions via a simple ID-following pattern.
+// findOpenExecution locates the open-side execution for a decision so
+// the close path can compute realized P&L from the actual entry fill
+// (which can differ from decision.ContractPrice in live mode due to
+// slippage). Returns the most recent open-side row regardless of fill
+// status — caller checks FillPrice nil/non-nil before using.
 func (s *Service) findOpenExecution(decisionID int) (*Execution, error) {
-	// Keep this simple: try GetExecution for the decision's most recent
-	// rows by scanning a small range backwards from the latest insert.
-	// In practice there are at most 4 executions per decision (1 open + up
-	// to 3 close attempts). For a robust impl, expose a dedicated query.
-	// v1: rely on the caller having cached the open row OR walk the
-	// decision row's children via a separate query helper added later.
-	return nil, errors.New("findOpenExecution: not implemented (uses decision.ContractPrice fallback)")
+	return s.store.OpenExecutionForDecision(decisionID)
 }
 
 func (s *Service) sendCanceledEmail(d *Decision) {

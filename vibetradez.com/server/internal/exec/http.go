@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -78,17 +79,36 @@ func (s *Service) HandleConfirm(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, confirmResponse{OK: true, Message: msg, Decline: action == ActionDecline})
 }
 
-// HandleCancelAll is the big-red-button endpoint. Cancels every
-// currently-WORKING order at the broker for today's open positions and
-// updates the executions table to 'canceled'. Does NOT close already-
-// filled positions — the 3:55pm cron handles those.
+// HandleCancelAll is the big-red-button kill switch. Walks the day's
+// state and:
+//
+//  1. Cancels any non-terminal executions at the broker (open or close
+//     orders still working at Schwab).
+//  2. If a position is already filled-open with no close yet, kicks
+//     off an immediate close via the same close-cron machinery (don't
+//     wait for 3:55pm — get out NOW).
+//  3. Marks today's decision as 'cancel-all' so the 3:55pm cron skips
+//     it (no double-close attempt).
+//  4. If today's decision is still 'pending' (5-min window not yet
+//     elapsed), terminates it as 'cancel-all' so no order can be
+//     placed even if the user clicks the email link afterward.
+//
+// Returns a structured summary of what was acted on.
 func (s *Service) HandleCancelAll(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeJSON(w, http.StatusMethodNotAllowed, confirmResponse{Message: "method not allowed"})
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 	defer cancel()
+
+	tradeDate := time.Now().In(easternTime()).Format("2006-01-02")
+	d, err := s.store.GetDecisionByDate(tradeDate)
+	if err != nil {
+		// No decision today = nothing to cancel; return clean.
+		writeJSON(w, http.StatusOK, confirmResponse{OK: true, Message: "no decision in flight today"})
+		return
+	}
 
 	hash, err := s.cfg.SchwabAccountHash(ctx)
 	if err != nil {
@@ -96,24 +116,63 @@ func (s *Service) HandleCancelAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// We don't have a "list working orders" call yet. v1 cancels just
-	// the executions we know about that are status='pending' or
-	// 'working'. A future enhancement could query Schwab's
-	// /accounts/{hash}/orders endpoint to catch any orphans.
-	tradeDate := time.Now().In(easternTime()).Format("2006-01-02")
-	positions, err := s.store.OpenPositionsForDate(tradeDate)
+	canceledOrders := 0
+	closedPositions := 0
+
+	// (1) Cancel any in-flight orders at the broker that we know about.
+	live, err := s.store.LiveExecutionsForDecision(d.ID)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, confirmResponse{Message: "open positions: " + err.Error()})
+		writeJSON(w, http.StatusInternalServerError, confirmResponse{Message: "live executions: " + err.Error()})
 		return
 	}
+	for i := range live {
+		ex := &live[i]
+		if ex.SchwabOrderID == nil || *ex.SchwabOrderID == "" {
+			// Paper or never made it to broker — just mark canceled.
+			_ = s.store.UpdateExecutionStatus(ex.ID, "canceled", nil, 0, "cancel-all kill switch")
+			canceledOrders++
+			continue
+		}
+		if cancelErr := s.trader.CancelOrder(ctx, hash, *ex.SchwabOrderID); cancelErr != nil {
+			// Best-effort; log and keep going. Mark as failed rather
+			// than canceled so the audit trail records the attempt.
+			_ = s.store.UpdateExecutionStatus(ex.ID, "failed", nil, 0, "cancel-all attempt: "+cancelErr.Error())
+		} else {
+			_ = s.store.UpdateExecutionStatus(ex.ID, "canceled", nil, 0, "cancel-all kill switch")
+			canceledOrders++
+		}
+	}
 
-	// For now, cancel-all is a placeholder that signals intent. The
-	// only WORKING orders today's pipeline produces are close orders,
-	// which the close cron self-manages. v1 returns OK with a count;
-	// v2 should call CancelOrder against any non-terminal child execs.
-	_ = hash
-	_ = positions
-	writeJSON(w, http.StatusOK, confirmResponse{OK: true, Message: "cancel-all acknowledged (no actively working orders to cancel in v1)"})
+	// (2) Immediately close any positions where the open already filled
+	// but there's no filled close yet. Reuses the same closeOne logic
+	// the 3:55pm cron uses, so retry-cancel-replace + alert email all
+	// apply.
+	openPositions, err := s.store.OpenPositionsForDate(tradeDate)
+	if err == nil {
+		for i := range openPositions {
+			s.closeOne(ctx, &openPositions[i])
+			closedPositions++
+		}
+	}
+
+	// (3, 4) Mark today's decision as terminal so no further cron
+	// activity (or late email click) can do anything to it.
+	if d.Decision == "pending" || d.Decision == "execute" {
+		if err := s.store.ForceSetDecisionStatus(d.ID, "cancel-all"); err != nil {
+			// Non-fatal — orders are already cancelled. Log for audit.
+			// (We don't have a logger handy; the response carries the warning.)
+			writeJSON(w, http.StatusOK, confirmResponse{
+				OK:      true,
+				Message: fmt.Sprintf("canceled %d order(s), closed %d position(s); decision status update warning: %v", canceledOrders, closedPositions, err),
+			})
+			return
+		}
+	}
+
+	writeJSON(w, http.StatusOK, confirmResponse{
+		OK:      true,
+		Message: fmt.Sprintf("Kill switch fired: canceled %d in-flight order(s), closed %d open position(s). No further auto-execution today.", canceledOrders, closedPositions),
+	})
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

@@ -62,6 +62,38 @@ func (s *Store) GetDecision(id int) (*exec.Decision, error) {
 	return &d, nil
 }
 
+// GetDecisionByDate returns the (at most one) decision for a trade
+// date, regardless of status. Returns ErrNoDecision if none exists.
+// Used by the cancel-all kill switch to find what's currently in flight.
+func (s *Store) GetDecisionByDate(date string) (*exec.Decision, error) {
+	var id int
+	err := s.db.QueryRow(`SELECT id FROM execution_decisions WHERE trade_date = $1`, date).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNoDecision
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get decision by date: %w", err)
+	}
+	return s.GetDecision(id)
+}
+
+// ForceSetDecisionStatus updates a decision's status WITHOUT the
+// pending-only guard that SetDecisionStatus enforces. Reserved for the
+// cancel-all kill switch which needs to terminate decisions already in
+// 'execute' state. Caller is responsible for ensuring this is only
+// invoked from authorized paths.
+func (s *Store) ForceSetDecisionStatus(id int, newStatus string) error {
+	_, err := s.db.Exec(`
+		UPDATE execution_decisions
+		SET decision = $1, decided_at = COALESCE(decided_at, NOW())
+		WHERE id = $2
+	`, newStatus, id)
+	if err != nil {
+		return fmt.Errorf("force update decision: %w", err)
+	}
+	return nil
+}
+
 // SetDecisionStatus transitions a decision's status atomically. The
 // transition fails (returns ErrDecisionNotPending) if the current value
 // isn't 'pending' — this is the single-use enforcement: a token can only
@@ -220,6 +252,91 @@ func (s *Store) OpenPositionsForDate(tradeDate string) ([]exec.Decision, error) 
 			return nil, fmt.Errorf("scan open position: %w", err)
 		}
 		out = append(out, d)
+	}
+	return out, rows.Err()
+}
+
+// OpenExecutionForDecision returns the most recent open-side execution
+// for a decision (filled or otherwise). Used by the close cron to
+// recover the actual entry fill price for accurate realized-P&L
+// computation in live mode (where slippage means the open fill can
+// diverge from decision.ContractPrice).
+func (s *Store) OpenExecutionForDecision(decisionID int) (*exec.Execution, error) {
+	var e exec.Execution
+	var schwabOrderID sql.NullString
+	var fillPrice sql.NullFloat64
+	var filledAt sql.NullTime
+	err := s.db.QueryRow(`
+		SELECT id, decision_id, mode, side, schwab_order_id, status,
+			fill_price, filled_quantity, requested_quantity,
+			submitted_at, filled_at, error_message, created_at
+		FROM executions
+		WHERE decision_id = $1 AND side = 'open'
+		ORDER BY id DESC
+		LIMIT 1
+	`, decisionID).Scan(&e.ID, &e.DecisionID, &e.Mode, &e.Side, &schwabOrderID, &e.Status,
+		&fillPrice, &e.FilledQuantity, &e.RequestedQuantity,
+		&e.SubmittedAt, &filledAt, &e.ErrorMessage, &e.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("no open execution for decision %d", decisionID)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get open execution: %w", err)
+	}
+	if schwabOrderID.Valid {
+		v := schwabOrderID.String
+		e.SchwabOrderID = &v
+	}
+	if fillPrice.Valid {
+		v := fillPrice.Float64
+		e.FillPrice = &v
+	}
+	if filledAt.Valid {
+		e.FilledAt = &filledAt.Time
+	}
+	return &e, nil
+}
+
+// LiveExecutionsForDecision returns every execution row for a decision
+// that's NOT in a terminal state — i.e. still pending or working at the
+// broker. Used by the cancel-all kill switch to find what to cancel.
+func (s *Store) LiveExecutionsForDecision(decisionID int) ([]exec.Execution, error) {
+	rows, err := s.db.Query(`
+		SELECT id, decision_id, mode, side, schwab_order_id, status,
+			fill_price, filled_quantity, requested_quantity,
+			submitted_at, filled_at, error_message, created_at
+		FROM executions
+		WHERE decision_id = $1 AND status IN ('pending', 'working')
+		ORDER BY id ASC
+	`, decisionID)
+	if err != nil {
+		return nil, fmt.Errorf("query live executions: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var out []exec.Execution
+	for rows.Next() {
+		var e exec.Execution
+		var schwabOrderID sql.NullString
+		var fillPrice sql.NullFloat64
+		var filledAt sql.NullTime
+		if err := rows.Scan(&e.ID, &e.DecisionID, &e.Mode, &e.Side, &schwabOrderID, &e.Status,
+			&fillPrice, &e.FilledQuantity, &e.RequestedQuantity,
+			&e.SubmittedAt, &filledAt, &e.ErrorMessage, &e.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan live execution: %w", err)
+		}
+		if schwabOrderID.Valid {
+			v := schwabOrderID.String
+			e.SchwabOrderID = &v
+		}
+		if fillPrice.Valid {
+			v := fillPrice.Float64
+			e.FillPrice = &v
+		}
+		if filledAt.Valid {
+			e.FilledAt = &filledAt.Time
+		}
+		out = append(out, e)
 	}
 	return out, rows.Err()
 }

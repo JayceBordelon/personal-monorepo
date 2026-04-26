@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"sort"
@@ -91,6 +92,59 @@ func isMarketOpen() (bool, string) {
 func todayDate() string {
 	loc, _ := time.LoadLocation("America/New_York")
 	return time.Now().In(loc).Format("2006-01-02")
+}
+
+// checkClockSkew probes Cloudflare's HTTP Date header (which is
+// NTP-disciplined within the millisecond) and compares against the
+// local clock. Logs a warning if drift exceeds 5 seconds. Run from a
+// goroutine on startup so a slow probe doesn't delay boot. Failures
+// (network, parse) are silent — clock check is informational, not
+// load-bearing.
+//
+// We pick Cloudflare's 1.1.1.1 specifically because (a) it's reliably
+// reachable from any datacenter, (b) Cloudflare publishes Date headers
+// disciplined to UTC within ~1ms, and (c) it's a HEAD-friendly endpoint
+// so the body never gets transferred.
+func checkClockSkew() {
+	const maxAcceptableSkew = 5 * time.Second
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest("HEAD", "https://1.1.1.1", nil)
+	if err != nil {
+		return
+	}
+	beforeReq := time.Now()
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("clock-skew probe: HEAD failed: %v (skipping)", err)
+		return
+	}
+	rtt := time.Since(beforeReq)
+	defer func() { _ = resp.Body.Close() }()
+
+	dateHeader := resp.Header.Get("Date")
+	if dateHeader == "" {
+		log.Printf("clock-skew probe: no Date header in response (skipping)")
+		return
+	}
+	remote, err := http.ParseTime(dateHeader)
+	if err != nil {
+		log.Printf("clock-skew probe: parse Date %q: %v (skipping)", dateHeader, err)
+		return
+	}
+	// Adjust the remote timestamp forward by half the RTT to estimate
+	// when Cloudflare emitted it relative to our reception. Crude but
+	// dominant source of error — RTT/2 — is small (sub-100ms) compared
+	// to the 5s skew threshold so this is fine.
+	estimatedRemoteAtReceive := remote.Add(rtt / 2)
+	skew := time.Since(estimatedRemoteAtReceive)
+	if skew < 0 {
+		skew = -skew
+	}
+	if skew > maxAcceptableSkew {
+		log.Printf("clock-skew WARNING: local clock differs from cloudflare by %s (threshold %s); the 3:55pm close cron and 5-minute confirmation window WILL fire at the wrong wall-clock time", skew.Truncate(time.Second), maxAcceptableSkew)
+	} else {
+		log.Printf("clock-skew probe: local clock within %s of cloudflare (rtt=%s) ✓", skew.Truncate(time.Millisecond), rtt.Truncate(time.Millisecond))
+	}
 }
 
 // isLocalStubKey detects the placeholder API keys used by the local Docker
@@ -312,6 +366,15 @@ func main() {
 	log.Printf("Market open schedule: %s (ET)", cfg.CronScheduleOpen)
 	log.Printf("Market close schedule: %s (ET)", cfg.CronScheduleClose)
 	log.Printf("Weekly email schedule: %s (ET)", cfg.CronScheduleWeekly)
+
+	// Clock-skew probe. The 3:55pm mandatory close cron + the 5-minute
+	// confirmation window both depend on the system clock matching
+	// real-world wall time. A drifted clock means the close cron fires
+	// at the wrong moment (overnight gap risk if late) or the
+	// confirmation window expires before the user's email even arrives
+	// (if early). Probe an external NTP-disciplined Date header and
+	// warn on >5s skew. Non-fatal — boot continues regardless.
+	go checkClockSkew()
 
 	// Log current subscriber count
 	if subs, err := db.GetActiveSubscribers(); err == nil {
